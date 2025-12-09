@@ -20,7 +20,7 @@
 	],
 	"references": [
 		{
-			"path": "../client"
+			"path": "../../packages/client"
 		}
 	]
 }

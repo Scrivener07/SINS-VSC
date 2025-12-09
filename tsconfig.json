@@ -13,7 +13,7 @@
 			"path": "./packages/server"
 		},
 		{
-			"path": "./packages/client-test"
+			"path": "./tests/client-test"
 		}
 	]
 }

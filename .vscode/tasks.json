@@ -4,6 +4,39 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			// Runs Webpack once to build the dist folder.
+			"label": "npm: compile",
+			"detail": "One-shot build for the extension (dist)",
+			"type": "npm",
+			"script": "compile",
+			"group": "build",
+			"problemMatcher": [
+				"$ts-webpack"
+			]
+		},
+		{
+			// Runs TypeScript once to build the out folder.
+			"label": "npm: compile-tests",
+			"detail": "One-shot build for tests (out)",
+			"type": "npm",
+			"script": "compile-tests",
+			"group": "build",
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			// A convenience task that runs both `compile` and `compile-tests` in parallel.
+			"label": "Build All",
+			"dependsOn": [
+				"npm: compile",
+				"npm: compile-tests"
+			],
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			// The default build task starts a watcher instance.
 			"type": "npm",
 			"script": "watch",
 			"problemMatcher": "$ts-webpack-watch",

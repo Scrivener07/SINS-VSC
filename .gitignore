@@ -1,5 +1,11 @@
+# Building
 out
 dist
 node_modules
+
+# Testing
 .vscode-test/
+*.tsbuildinfo
+
+# Distribution
 *.vsix

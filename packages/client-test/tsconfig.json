@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "ES2024",
+		"outDir": "out",
+		"rootDir": "src",
+		"lib": [
+			"ES2024"
+		],
+		"sourceMap": true,
+		"strict": true,
+		"types": [
+			"vscode",
+			"mocha",
+			"node"
+		]
+	},
+	"include": [
+		"src/**/*"
+	],
+	"references": [
+		{
+			"path": "../client"
+		}
+	]
+}

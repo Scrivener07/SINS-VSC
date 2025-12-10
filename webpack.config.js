@@ -93,6 +93,10 @@ const serverConfig = {
 				{
 					from: path.resolve(__dirname, "resources", "schemas"),
 					to: path.resolve(__dirname, "dist", "resources", "schemas")
+				},
+				{ // New or modified JSON schemas.
+					from: path.resolve(__dirname, "resources", "schemas-dev"),
+					to: path.resolve(__dirname, "dist", "resources", "schemas-dev")
 				}
 			],
 		}),

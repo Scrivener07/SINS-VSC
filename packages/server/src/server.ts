@@ -103,6 +103,9 @@ class SinsLanguageServer {
 		// Resolve path to the schemas folder.
 		const schemasPath = path.join(__dirname, "resources", "schemas");
 
+		// The new or modified schemas folder.
+		const schemasPath_dev = path.join(__dirname, "resources", "schemas-dev");
+
 		// Define schema associations.
 		// TODO: Add more file extension mappings here.
 		// TODO: Uniforms need special handling for filename to schema matching.
@@ -114,6 +117,14 @@ class SinsLanguageServer {
 			{
 				fileMatch: ["*.action_data_source"],
 				uri: pathToFileURL(path.join(schemasPath, "action-data-source-schema.json")).toString()
+			},
+			{
+				fileMatch: ["*.buff"],
+				uri: pathToFileURL(path.join(schemasPath, "buff-schema.json")).toString()
+			},
+			{
+				fileMatch: ["*.entity_manifest"],
+				uri: pathToFileURL(path.join(schemasPath_dev, "entity-manifest-schema.json")).toString()
 			},
 			{
 				fileMatch: ["*.unit"],

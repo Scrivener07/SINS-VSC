@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Scenario Uniforms",
+    "description": "",
+    "type": "object",
+    "properties": {
+        "dlc_multiplayer_scenarios": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "product_id": {
+                        "type": "string"
+                    },
+                    "scenario_ptrs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "unevaluatedProperties": false
+            }
+        },
+        "dlc_scenarios": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "product_id": {
+                        "type": "string"
+                    },
+                    "scenario_ptrs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "unevaluatedProperties": false
+            }
+        },
+        "fake_server_scenarios": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "overwrite_fake_dlc_multiplayer_scenarios": {
+            "type": "boolean"
+        },
+        "overwrite_fake_server_scenarios": {
+            "type": "boolean"
+        },
+        "overwrite_scenarios": {
+            "type": "boolean"
+        },
+        "scenarios": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "version": {
+            "type": "integer"
+        }
+    },
+    "required": [
+        "dlc_multiplayer_scenarios",
+        "dlc_scenarios",
+        "fake_server_scenarios",
+        "scenarios"
+    ],
+    "unevaluatedProperties": false
+}

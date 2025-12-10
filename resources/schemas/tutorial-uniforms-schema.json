@@ -1,0 +1,24 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Tutorial Uniforms",
+    "description": "",
+    "type": "object",
+    "properties": {
+        "overwrite_tutorials": {
+            "type": "boolean"
+        },
+        "tutorials": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "version": {
+            "type": "integer"
+        }
+    },
+    "required": [
+        "tutorials"
+    ],
+    "unevaluatedProperties": false
+}

@@ -167,8 +167,7 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "future-orbit-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property fillings is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["galaxy_generator.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "galaxy-generator-uniforms-schema.json")).toString()
 			},
@@ -178,10 +177,7 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "game-renderer-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property unmet_target_gravity_well_must_have_unit_type_constraint is not allowed.
-				// - Property target_filter_unit_type_names is not allowed.
-				// - Property inline_icons is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["gui.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "gui-uniforms-schema.json")).toString()
 			},
@@ -190,27 +186,17 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "hud-skin-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Property weight is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["loot.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "loot-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property groups is not allowed.
-				// - Property social_system is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["main_view.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "main-view-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property trigger_tooltip_desc_override is not allowed.
-				// - Property trigger_hud_definition is not allowed.
-				// - Property trigger_hud_icon_structure_override is not allowed.
-				// - Property build_structure_tooltip_desc_override is not allowed.
-				// - Property build_structure_tooltip_title_override is not allowed.
-				// - Property hyperspace_time is not allowed.
-				// - Property chains is not allowed.
-				// - Property reward_hud_definition is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["missions.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "mission-uniforms-schema.json")).toString()
 			},
@@ -243,9 +229,7 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "player-ai-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property passive_hate_per_factional_victory_obtained is not allowed.
-				// - Property minutes_allowed_for_trade_offer_cooldown is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["player_ai_diplomacy.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "player-ai-diplomacy-schema.json")).toString()
 			},
@@ -266,21 +250,24 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "research-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// @dlc_scenarios
-				// @dlc_multiplayer_scenarios
-				// - Property scenarios is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["scenario.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "scenario-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: This has TWO schemas that need to be investigated.
-				// - special-operation-unit-uniforms-schema.json   <--- using this one
-				// - special_operation_unit_uniforms-schema.json
+				/**
+				 * Using `special-operation-unit-uniforms-schema.json` as the schema type.
+				 *
+				 *
+				 * NOTE: This has TWO schemas that need to be investigated.
+				 * - `special-operation-unit-uniforms-schema.json`   <--- using this one
+				 * - `special_operation_unit_uniforms-schema.json`
+				 *
+				 * The `special-operation-unit-uniforms-schema.json` has two new fields compared to the other.
+				 * - `overwrite_special_operation_unit_kinds`
+				 * - `will_ignore_planet_slot_costs`
+				 */
 				fileMatch: ["special_operation_unit.uniforms"],
-				// This one has two new fields compared to the other.
-				// - overwrite_special_operation_unit_kinds
-				// - will_ignore_planet_slot_costs
 				uri: pathToFileURL(path.join(schemasPath, "special-operation-unit-uniforms-schema.json")).toString()
 			},
 			{
@@ -300,8 +287,7 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "tutorial-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property raw_distance_per_gravity_well_distance is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["unit.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "unit-uniforms-schema.json")).toString()
 			},
@@ -314,35 +300,7 @@ class SinsLanguageServer {
 				uri: pathToFileURL(path.join(schemasPath, "unit-build-uniforms-schema.json")).toString()
 			},
 			{
-				// TODO: Vanilla file has problems.
-				// - Property can_use_weapons is not allowed.
-				// - Property can_use_missile_weapons is not allowed.
-				// - Property can_update_weapon_cooldown_progress is not allowed.
-				// - Property can_use_weapons_when_crippled is not allowed.
-				// - Property can_hyperspace is not allowed.
-				// - Property can_be_targeted_by_allies is not allowed.
-				// - Property can_be_targeted_by_enemies is not allowed.
-				// - Property can_be_damaged is not allowed.
-				// - Property can_planet_be_damaged is not allowed.
-				// - Property can_planet_update_track_upgrade_progress is not allowed.
-				// - Property can_have_hull_restored is not allowed.
-				// - Property can_have_armor_restored is not allowed.
-				// - Property can_have_shields_bypassed is not allowed.
-				// - Property can_have_shields_restored is not allowed.
-				// - Property can_have_shields_burst_restored is not allowed.
-				// - Property can_passively_regenerate_hull is not allowed.
-				// - Property can_passively_regenerate_armor is not allowed.
-				// - Property can_passively_regenerate_shields is not allowed.
-				// - Property can_use_active_abilities is not allowed.
-				// - Property can_use_abilities_when_crippled is not allowed.
-				// - Property can_update_ability_cooldown_progress is not allowed.
-				// - Property can_update_build_progress is not allowed.
-				// - Property can_be_colonized is not allowed.
-				// - Property can_launch_or_dock_strikecraft is not allowed.
-				// - Property can_have_any_strikecraft_launched is not allowed.
-				// - Property can_update_unit_production is not allowed.
-				// - Property can_create_retargeting_torpedoes is not allowed.
-				// - Property can_update_unit_item_build_progress is not allowed.
+				// NOTE: Has a runtime patcher.
 				fileMatch: ["unit_mutation.uniforms"],
 				uri: pathToFileURL(path.join(schemasPath, "unit-mutation-uniforms-schema.json")).toString()
 			},

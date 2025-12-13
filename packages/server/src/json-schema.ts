@@ -19,13 +19,22 @@ type PatchFunction = (schema: any) => void;
  * Manages runtime patches for JSON schemas.
  */
 export class SchemaPatcher {
+
+	/** Maps a JSON schema file name to a patching function. */
 	private patches: Map<string, PatchFunction>;
 
 
 	constructor() {
 		this.patches = new Map();
 		this.register("galaxy-generator-uniforms-schema.json", SchemaPatch.galaxy_generator_uniforms);
+		this.register("gui-uniforms-schema.json", SchemaPatch.gui_uniforms);
+		this.register("loot-uniforms-schema.json", SchemaPatch.loot_uniforms);
+		this.register("main-view-uniforms-schema.json", SchemaPatch.main_view_uniforms);
 		this.register("mission-uniforms-schema.json", SchemaPatch.mission_uniforms);
+		this.register("player-ai-diplomacy-schema.json", SchemaPatch.player_ai_diplomacy_uniforms);
+		this.register("scenario-uniforms-schema.json", SchemaPatch.scenario_uniforms);
+		this.register("unit-uniforms-schema.json", SchemaPatch.unit_uniforms);
+		this.register("unit-mutation-uniforms-schema.json", SchemaPatch.unit_mutation_uniforms);
 	}
 
 
@@ -55,13 +64,92 @@ export class SchemaPatcher {
 
 class SchemaPatch {
 
-
+	/**
+	 * A runtime patcher for the `galaxy-generator-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property fillings is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
 	public static galaxy_generator_uniforms(schema: any): void {
 		schema.properties = schema.properties || {};
 		schema.properties["fillings"] = { type: "object" };
 	}
 
 
+	/**
+	 * A runtime patcher for the `gui-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property unmet_target_gravity_well_must_have_unit_type_constraint is not allowed.
+	 * - Property target_filter_unit_type_names is not allowed.
+	 * - Property inline_icons is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static gui_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+		schema.properties["inline_icons"] = { type: "array" };
+		const query_status = schema.properties["query_status"];
+		if (query_status.properties) {
+			query_status.properties["unmet_target_gravity_well_must_have_unit_type_constraint"] = { type: "string" };
+			query_status.properties["target_filter_unit_type_names"] = { type: "object" };
+		}
+	}
+
+
+	/**
+	 * A runtime patcher for the `loot-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property weight is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static loot_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+		const random_loots = schema.properties["random_loots"];
+		if (random_loots) {
+			random_loots.items.properties["weight"] = { type: "integer" };
+		}
+	}
+
+
+	/**
+	 * A runtime patcher for the `main-view-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property groups is not allowed.
+	 * - Property social_system is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static main_view_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+		const unit_icons = schema.properties["unit_icons"];
+		if (unit_icons) {
+			unit_icons.properties["groups"] = { type: "array" };
+		}
+		schema.properties["social_system"] = { type: "object" };
+	}
+
+
+	/**
+	 * A runtime patcher for the `mission-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property trigger_tooltip_desc_override is not allowed.
+	 * - Property trigger_hud_definition is not allowed.
+	 * - Property trigger_hud_icon_structure_override is not allowed.
+	 * - Property build_structure_tooltip_desc_override is not allowed.
+	 * - Property build_structure_tooltip_title_override is not allowed.
+	 * - Property hyperspace_time is not allowed.
+	 * - Property chains is not allowed.
+	 * - Property reward_hud_definition is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
 	public static mission_uniforms(schema: any): void {
 		schema.properties = schema.properties || {};
 		schema.properties["build_structure_tooltip_title_override"] = { type: "string" };
@@ -106,8 +194,143 @@ class SchemaPatch {
 
 			}
 		} catch (error) {
-			// TODO: Swallowing for now, which is safer than crashing the server.
+			// TODO: Print this to extension console. Swallowing for now, which is safer than crashing the server.
 		}
+	}
+
+
+	/**
+	 * A runtime patcher for the `player-ai-diplomacy-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property passive_hate_per_factional_victory_obtained is not allowed.
+	 * - Property minutes_allowed_for_trade_offer_cooldown is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static player_ai_diplomacy_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+		schema.properties["passive_hate_per_factional_victory_obtained"] = { type: "number" };
+		schema.properties["minutes_allowed_for_trade_offer_cooldown"] = {
+			type: "array",
+			items: {
+				type: "number"
+			}
+		};
+	}
+
+
+	/**
+	 * A runtime patcher for the `scenario-uniforms-schema..json` schema type.
+	 *
+	 * Vanilla file has problems. (`dlc_scenarios` and `dlc_multiplayer_scenarios`)
+	 * - Property scenarios is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static scenario_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+
+		const dlc_scenarios = schema.properties["dlc_scenarios"];
+		dlc_scenarios.items.properties["scenarios"] = {
+			type: "array",
+			items: {
+				type: "string"
+			}
+		};
+
+		const dlc_multiplayer_scenarios = schema.properties["dlc_multiplayer_scenarios"];
+		dlc_multiplayer_scenarios.items.properties["scenarios"] = {
+			type: "array",
+			items: {
+				type: "string"
+			}
+		};
+	}
+
+
+	/**
+	 * A runtime patcher for the `unit-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property raw_distance_per_gravity_well_distance is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static unit_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+		schema.properties["raw_distance_per_gravity_well_distance"] = { type: "number" };
+	}
+
+
+	/**
+	 * A runtime patcher for the `unit-mutation-uniforms-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - Property can_use_weapons is not allowed.
+	 * - Property can_use_missile_weapons is not allowed.
+	 * - Property can_update_weapon_cooldown_progress is not allowed.
+	 * - Property can_use_weapons_when_crippled is not allowed.
+	 * - Property can_hyperspace is not allowed.
+	 * - Property can_be_targeted_by_allies is not allowed.
+	 * - Property can_be_targeted_by_enemies is not allowed.
+	 * - Property can_be_damaged is not allowed.
+	 * - Property can_planet_be_damaged is not allowed.
+	 * - Property can_planet_update_track_upgrade_progress is not allowed.
+	 * - Property can_have_hull_restored is not allowed.
+	 * - Property can_have_armor_restored is not allowed.
+	 * - Property can_have_shields_bypassed is not allowed.
+	 * - Property can_have_shields_restored is not allowed.
+	 * - Property can_have_shields_burst_restored is not allowed.
+	 * - Property can_passively_regenerate_hull is not allowed.
+	 * - Property can_passively_regenerate_armor is not allowed.
+	 * - Property can_passively_regenerate_shields is not allowed.
+	 * - Property can_use_active_abilities is not allowed.
+	 * - Property can_use_abilities_when_crippled is not allowed.
+	 * - Property can_update_ability_cooldown_progress is not allowed.
+	 * - Property can_update_build_progress is not allowed.
+	 * - Property can_be_colonized is not allowed.
+	 * - Property can_launch_or_dock_strikecraft is not allowed.
+	 * - Property can_have_any_strikecraft_launched is not allowed.
+	 * - Property can_update_unit_production is not allowed.
+	 * - Property can_create_retargeting_torpedoes is not allowed.
+	 * - Property can_update_unit_item_build_progress is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
+	public static unit_mutation_uniforms(schema: any): void {
+		schema.properties = schema.properties || {};
+
+		const permission_infos = schema.properties["permission_infos"];
+		permission_infos.properties["can_use_weapons"] = { type: "object" };
+		permission_infos.properties["can_use_missile_weapons"] = { type: "object" };
+		permission_infos.properties["can_update_weapon_cooldown_progress"] = { type: "object" };
+		permission_infos.properties["can_use_weapons_when_crippled"] = { type: "object" };
+		permission_infos.properties["can_hyperspace"] = { type: "object" };
+		permission_infos.properties["can_be_targeted_by_allies"] = { type: "object" };
+		permission_infos.properties["can_be_targeted_by_enemies"] = { type: "object" };
+		permission_infos.properties["can_be_targeted_by_enemies"] = { type: "object" };
+		permission_infos.properties["can_be_damaged"] = { type: "object" };
+		permission_infos.properties["can_planet_be_damaged"] = { type: "object" };
+		permission_infos.properties["can_planet_update_track_upgrade_progress"] = { type: "object" };
+		permission_infos.properties["can_have_hull_restored"] = { type: "object" };
+		permission_infos.properties["can_have_armor_restored"] = { type: "object" };
+		permission_infos.properties["can_have_shields_bypassed"] = { type: "object" };
+		permission_infos.properties["can_have_shields_restored"] = { type: "object" };
+		permission_infos.properties["can_have_shields_burst_restored"] = { type: "object" };
+		permission_infos.properties["can_passively_regenerate_hull"] = { type: "object" };
+		permission_infos.properties["can_passively_regenerate_armor"] = { type: "object" };
+		permission_infos.properties["can_passively_regenerate_shields"] = { type: "object" };
+		permission_infos.properties["can_use_active_abilities"] = { type: "object" };
+		permission_infos.properties["can_use_abilities_when_crippled"] = { type: "object" };
+		permission_infos.properties["can_update_ability_cooldown_progress"] = { type: "object" };
+		permission_infos.properties["can_update_build_progress"] = { type: "object" };
+		permission_infos.properties["can_be_colonized"] = { type: "object" };
+		permission_infos.properties["can_launch_or_dock_strikecraft"] = { type: "object" };
+		permission_infos.properties["can_have_any_strikecraft_launched"] = { type: "object" };
+		permission_infos.properties["can_update_unit_production"] = { type: "object" };
+		permission_infos.properties["can_create_retargeting_torpedoes"] = { type: "object" };
+		permission_infos.properties["can_update_unit_item_build_progress"] = { type: "object" };
 	}
 
 

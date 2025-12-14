@@ -10,11 +10,13 @@ import {
 	Connection,
 	Hover,
 	Diagnostic,
-	DefinitionParams
+	DefinitionParams,
+	CompletionParams
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
 	ASTNode,
+	CompletionItem,
 	getLanguageService,
 	JSONDocument,
 	LanguageService,
@@ -98,6 +100,7 @@ class SinsLanguageServer {
 		// Bind the language feature listeners.
 		this.connection.onHover(this.onHover.bind(this));
 		this.connection.onDefinition(this.onDefinition.bind(this));
+		this.connection.onCompletion(this.onCompletion.bind(this));
 
 		// Bind the document event listeners.
 		this.documents.onDidOpen(this.onDidOpen.bind(this));
@@ -293,6 +296,24 @@ class SinsLanguageServer {
 		}
 
 		return null;
+	}
+
+
+	private async onCompletion(params: CompletionParams): Promise<CompletionItem[] | null> {
+		const document = this.documents.get(params.textDocument.uri);
+		if (!document) {
+			return null;
+		}
+
+		const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
+		const offset: number = document.offsetAt(params.position);
+		const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
+
+		// TODO: Implement code completions.
+		// 1. Identify the current property node.
+		// 2. Check if that property maps to a known type.
+		// 3. Return list of CompletionItems from the relevant manager.
+		return [];
 	}
 
 

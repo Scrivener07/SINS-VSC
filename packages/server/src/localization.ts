@@ -57,7 +57,8 @@ export class LocalizationManager {
 					}
 				}
 				console.log(`Loaded ${languageMap.size} keys for language '${languageCode}'`);
-			} catch (error) {
+			}
+			catch (error) {
 				console.error(`Failed to load localization file: ${file}`, error);
 			}
 		}
@@ -87,12 +88,14 @@ export class LocalizationManager {
 						const result: string[] = await this.findLocalizedTextFiles(fullPath, depth + 1);
 						results = results.concat(result);
 					}
-				} else if (entry.name.endsWith(".localized_text")) {
+				}
+				else if (entry.name.endsWith(".localized_text")) {
 					results.push(fullPath);
 				}
 			}
 
-		} catch (error) {
+		}
+		catch (error) {
 			// TODO: Ignore "Access Denied" errors (like System Volume Information or locked folders).
 			console.error(`Failed search (depth:${depth}): ${directory}`, error);
 		}
@@ -119,7 +122,8 @@ export class LocalizationManager {
 			const value: string | undefined = languageMap.get(key);
 			if (value) {
 				markdown.push(`| **${languageCode}** | ${value} |`);
-			} else {
+			}
+			else {
 				markdown.push(`| ${languageCode} | ❗ *(missing)* |`);
 			}
 		}

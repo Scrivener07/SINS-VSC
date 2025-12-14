@@ -15,8 +15,7 @@ import {
 	getLanguageService,
 	JSONDocument,
 	LanguageService,
-	LanguageSettings,
-	SchemaConfiguration
+	LanguageSettings
 } from "vscode-json-languageservice";
 import * as path from "path";
 import * as fs from "fs";
@@ -24,6 +23,7 @@ import { fileURLToPath } from "url";
 import { SchemaPatcher } from "./json-schema";
 import { LocalizationManager } from "./localization";
 import { SchemaManager } from "./schema";
+import { TextureManager } from "./texture";
 
 /**
  * Encapsulates the Sins language server logic.
@@ -45,6 +45,8 @@ class SinsLanguageServer {
 
 	private localizationManager: LocalizationManager;
 
+	private textureManager: TextureManager;
+
 
 	constructor() {
 		// Create the LSP connection.
@@ -55,6 +57,7 @@ class SinsLanguageServer {
 
 		this.schemaPatcher = new SchemaPatcher();
 		this.localizationManager = new LocalizationManager();
+		this.textureManager = new TextureManager();
 
 		// Initialize the JSON language service.
 		this.jsonLanguageService = getLanguageService({
@@ -139,6 +142,9 @@ class SinsLanguageServer {
 			this.localizationManager.loadFromWorkspace(fsPath).then(() => {
 				this.connection.console.log("Localization data loaded.");
 			});
+			this.textureManager.loadFromWorkspace(fsPath).then(() => {
+				this.connection.console.log("Texture data loaded.");
+			});
 		}
 	}
 
@@ -203,22 +209,19 @@ class SinsLanguageServer {
 		const offset: number = document.offsetAt(params.position);
 		const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
 
-		// Check a string is being hovered.
+		// Check that a string node is being hovered.
 		if (node && node.type === "string" && node.value) {
-			// Ensure we are hovering the value, not the property key.
-			// In AST: Property -> [KeyNode, ValueNode]
-			// If the parent is a property, we only want to trigger if we are the ValueNode.
-			if (node.parent?.type === "property" && node.parent.children?.[1] === node) {
-				const hover: Hover | null = this.localizationManager.getHover(node.value);
-				if (hover) {
-					return hover;
+			if (JsonAST.isNodeValue(node)) {
+				if (this.workspaceFolder) {
+					const textureHover: Hover | null = await this.textureManager.getHover(node.value);
+					if (textureHover) {
+						return textureHover;
+					}
 				}
-			}
-			// Also handle strings inside arrays ("special_operation_names").
-			else if (node.parent?.type === "array") {
-				const hover: Hover | null = this.localizationManager.getHover(node.value);
-				if (hover) {
-					return hover;
+
+				const localizeHover: Hover | null = this.localizationManager.getHover(node.value);
+				if (localizeHover) {
+					return localizeHover;
 				}
 			}
 		}
@@ -227,6 +230,44 @@ class SinsLanguageServer {
 		return this.jsonLanguageService.doHover(document, params.position, jsonDocument);
 	}
 
+
+}
+
+
+/**
+ * Provides utility methods for working with JSON AST nodes.
+ */
+class JsonAST {
+
+	/** An index for the AST node key. */
+	public static readonly NODE_KEY: number = 0;
+
+	/** An index for the AST node value. */
+	public static readonly NODE_VALUE: number = 1;
+
+	/**
+	 * Determines if the given AST node is a value node.
+	 */
+	public static isNodeValue(node: ASTNode | undefined): boolean {
+		if (!node) {
+			return false;
+		}
+		else if (node.parent?.type === "property" && node.parent.children?.[JsonAST.NODE_VALUE] === node) {
+			// Its a value in an object property (Key: Value)
+			return true;
+		}
+		else if (node.parent?.type === "array") {
+			// Its an item in an array
+			return true;
+		}
+		else if (!node.parent) {
+			// Its the root node (rare, but valid)
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 
 }
 

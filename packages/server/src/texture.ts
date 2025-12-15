@@ -53,14 +53,15 @@ export class TextureManager {
 
 			const fileUrl: string = pathToFileURL(fullPath).toString();
 
-			const buffer: Buffer = await fs.promises.readFile(fullPath);
-			const base64: string = buffer.toString("base64");
-			const uri: string = `data:image/png;base64,${base64}`;
+			// Unnecessary, might break on large filesizes
+				// const buffer: Buffer = await fs.promises.readFile(fullPath);
+				// const base64: string = buffer.toString("base64");
+				// const uri: string = `data:image/png;base64,${base64}`;
 
 			const markdown: string[] = [];
 			markdown.push("**Texture Preview**");
-			markdown.push(`[${fullPath}](${fileUrl})`);
-			markdown.push(`![${key}](${uri})`);
+			markdown.push(`[image](${fileUrl})`);
+			markdown.push(`![${key}](file:///${fullPath})`);
 
 			const hover: Hover = {
 				contents: {

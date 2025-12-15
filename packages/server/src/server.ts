@@ -242,19 +242,46 @@ class SinsLanguageServer {
 		const offset: number = document.offsetAt(params.position);
 		const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
 
-		// Check that a string node is being hovered.
+		// iterate over schema and return the property context, maybe encapsulate it later as it will be useful for completions as well.
+		const schemas: MatchingSchema[] = await this.jsonLanguageService.getMatchingSchemas(document, jsonDocument);
+
+		let isHovering: number = PointerType.none;
+
+		schemas.forEach((s) => {
+			const props = s.schema.properties;
+			if (props) {
+				Object.keys(props).forEach(key => {
+					const schemaProp: any = props[key];
+					if (node?.parent?.type === "property" && node.parent.keyNode.value === key && "pointer" in schemaProp) {
+						switch (schemaProp.pointer) {
+							case PointerType.localized_text:
+								isHovering = PointerType.localized_text;
+								break;
+							case PointerType.brushes:
+								isHovering = PointerType.brushes;
+								break;
+							default:
+								break;
+						}
+					}
+				});
+			}
+		});
+
 		if (node && node.type === "string" && node.value) {
 			if (JsonAST.isNodeValue(node)) {
-				if (this.workspaceFolder) {
+				if (isHovering === PointerType.brushes && this.workspaceFolder) {
 					const textureHover: Hover | null = await this.textureManager.getHover(node.value);
 					if (textureHover) {
 						return textureHover;
 					}
 				}
 
-				const localizeHover: Hover | null = this.localizationManager.getHover(node.value);
-				if (localizeHover) {
-					return localizeHover;
+				if (isHovering === PointerType.localized_text) {
+					const localizeHover: Hover | null = this.localizationManager.getHover(node.value);
+					if (localizeHover) {
+						return localizeHover;
+					}
 				}
 			}
 		}

@@ -14,10 +14,6 @@ export class TextureManager {
 	 */
 	private cache: Map<string, string> = new Map();
 
-	/** The maximum image preview size in kilobytes. */
-	private static readonly MAX_PREVIEW_KB = 100;
-
-
 	public async loadFromWorkspace(rootPath: string): Promise<void> {
 		this.cache.clear();
 
@@ -59,7 +55,7 @@ export class TextureManager {
 			const markdown: string[] = [];
 			markdown.push("**Texture Preview**");
 			markdown.push(`[image](${fileUrl})`);
-			markdown.push(`![${key}](file:///${fullPath.replace(" ", "%20")})`);
+			markdown.push(`![${key}](file:///${fullPath.replaceAll(" ", "%20")})`);
 
 			const hover: Hover = {
 				contents: {

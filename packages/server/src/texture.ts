@@ -14,6 +14,9 @@ export class TextureManager {
 	 */
 	private cache: Map<string, string> = new Map();
 
+	/** The maximum image preview size in kilobytes. */
+	private static readonly MAX_PREVIEW_KB = 100;
+
 
 	public async loadFromWorkspace(rootPath: string): Promise<void> {
 		this.cache.clear();
@@ -39,6 +42,7 @@ export class TextureManager {
 	 *
 	 * TODO:
 	 * - Add support for Direct Draw Surface (DDS).
+	 * - Possibly add emoji for too-large warning.
 	 *
 	 * @param key The texture key value from the JSON (`"trader_light_frigate_hud_icon"`).
 	 */
@@ -48,15 +52,9 @@ export class TextureManager {
 		}
 
 		const fullPath: string = this.cache.get(key) || "";
+
 		try {
-			await fs.promises.access(fullPath);
-
 			const fileUrl: string = pathToFileURL(fullPath).toString();
-
-			// Unnecessary, might break on large filesizes
-				// const buffer: Buffer = await fs.promises.readFile(fullPath);
-				// const base64: string = buffer.toString("base64");
-				// const uri: string = `data:image/png;base64,${base64}`;
 
 			const markdown: string[] = [];
 			markdown.push("**Texture Preview**");

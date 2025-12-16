@@ -1,4 +1,3 @@
-import * as fs from "fs";
 import * as path from "path";
 import { pathToFileURL } from "url";
 import { Hover, MarkupKind } from "vscode-languageserver/node";
@@ -38,7 +37,6 @@ export class TextureManager {
 	 *
 	 * TODO:
 	 * - Add support for Direct Draw Surface (DDS).
-	 * - Possibly add emoji for too-large warning.
 	 *
 	 * @param key The texture key value from the JSON (`"trader_light_frigate_hud_icon"`).
 	 */
@@ -55,7 +53,7 @@ export class TextureManager {
 			const markdown: string[] = [];
 			markdown.push("**Texture Preview**");
 			markdown.push(`[image](${fileUrl})`);
-			markdown.push(`![${key}](file:///${fullPath.replaceAll(" ", "%20")})`);
+			markdown.push(`![${key}](${fileUrl})`);
 
 			const hover: Hover = {
 				contents: {

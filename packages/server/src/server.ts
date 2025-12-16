@@ -11,23 +11,24 @@ import {
 	Hover,
 	Diagnostic,
 	DefinitionParams,
-	CompletionParams
+	CompletionParams,
+	CompletionList
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
 	ASTNode,
-	CompletionItem,
 	getLanguageService,
 	JSONDocument,
 	LanguageService,
 	LanguageSettings,
 	Location,
+	MatchingSchema,
 	Range
 } from "vscode-json-languageservice";
 import { fileURLToPath, pathToFileURL } from "url";
 import { SchemaPatcher } from "./json-schema";
 import { LocalizationManager } from "./localization";
-import { SchemaManager } from "./schema";
+import { PointerType, SchemaManager } from "./schema";
 import { TextureManager } from "./texture";
 import { JsonAST } from "./json-ast";
 import { IndexManager } from "./data-manager";
@@ -82,6 +83,7 @@ class SinsLanguageServer {
 					try {
 						const content: string = await fs.promises.readFile(fsPath, "utf-8");
 						const schema: any = JSON.parse(content);
+						this.schemaPatcher.applyPointers(schema);
 						this.schemaPatcher.apply(fileName, schema);
 						return JSON.stringify(schema);
 					}
@@ -140,7 +142,8 @@ class SinsLanguageServer {
 
 				// Tell the client that this server supports code completion.
 				completionProvider: {
-					resolveProvider: true
+					triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+					resolveProvider: false // you haven't implemented a resolver yet
 				},
 
 				// Tell the client that this server supports hover.
@@ -242,19 +245,46 @@ class SinsLanguageServer {
 		const offset: number = document.offsetAt(params.position);
 		const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
 
-		// Check that a string node is being hovered.
+		// iterate over schema and return the property context, maybe encapsulate it later as it will be useful for completions as well.
+		const schemas: MatchingSchema[] = await this.jsonLanguageService.getMatchingSchemas(document, jsonDocument);
+
+		let isHovering: number = PointerType.none;
+
+		schemas.forEach((s) => {
+			const props = s.schema.properties;
+			if (props) {
+				Object.keys(props).forEach(key => {
+					const schemaProp: any = props[key];
+					if (node?.parent?.type === "property" && node.parent.keyNode.value === key && "pointer" in schemaProp) {
+						switch (schemaProp.pointer) {
+							case PointerType.localized_text:
+								isHovering = PointerType.localized_text;
+								break;
+							case PointerType.brushes:
+								isHovering = PointerType.brushes;
+								break;
+							default:
+								break;
+						}
+					}
+				});
+			}
+		});
+
 		if (node && node.type === "string" && node.value) {
 			if (JsonAST.isNodeValue(node)) {
-				if (this.workspaceFolder) {
+				if (isHovering === PointerType.brushes && this.workspaceFolder) {
 					const textureHover: Hover | null = await this.textureManager.getHover(node.value);
 					if (textureHover) {
 						return textureHover;
 					}
 				}
 
-				const localizeHover: Hover | null = this.localizationManager.getHover(node.value);
-				if (localizeHover) {
-					return localizeHover;
+				if (isHovering === PointerType.localized_text) {
+					const localizeHover: Hover | null = this.localizationManager.getHover(node.value);
+					if (localizeHover) {
+						return localizeHover;
+					}
 				}
 			}
 		}
@@ -299,7 +329,7 @@ class SinsLanguageServer {
 	}
 
 
-	private async onCompletion(params: CompletionParams): Promise<CompletionItem[] | null> {
+	private async onCompletion(params: CompletionParams): Promise<CompletionList | null> {
 		const document = this.documents.get(params.textDocument.uri);
 		if (!document) {
 			return null;
@@ -313,9 +343,16 @@ class SinsLanguageServer {
 		// 1. Identify the current property node.
 		// 2. Check if that property maps to a known type.
 		// 3. Return list of CompletionItems from the relevant manager.
-		return [];
-	}
+		if (node && node.type === "string" && JsonAST.isNodeValue(node)) {
+			const defaultSuggestions: CompletionList | null = await this.jsonLanguageService.doComplete(document, params.position, jsonDocument);
+			return defaultSuggestions;
+		}
 
+		return {
+			isIncomplete: false,
+			items: []
+		};
+	}
 
 }
 

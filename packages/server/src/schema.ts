@@ -2,6 +2,21 @@ import * as path from "path";
 import { pathToFileURL } from "url";
 import { SchemaConfiguration } from "vscode-json-languageservice";
 
+export enum PointerType {
+	none,
+	brushes,
+	localized_text,
+	units,
+	buffs,
+	action_values,
+	research_subjects,
+	abilities,
+	unit_items,
+	buff_unit_factory_modifiers,
+	buff_unit_modifiers
+	// TODO: add more...
+}
+
 /**
  * Manages JSON schema configurations for the language service.
  */
@@ -10,7 +25,7 @@ export class SchemaManager {
 
 	/**
 	 * Configures the JSON language service with schemas.
-	 */
+	*/
 	public static configure(): SchemaConfiguration[] {
 		// Resolve path to the schemas folder.
 		const schemasPath = path.join(__dirname, "resources", "schemas");

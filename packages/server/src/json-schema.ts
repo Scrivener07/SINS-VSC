@@ -8,6 +8,8 @@
  * This code modifies the schema in memory before the Language Service sees it by injecting changes at runtime.
  */
 
+import { PointerType } from "./schema";
+
 
 /**
  * A function that modifies a schema object in place.
@@ -45,6 +47,21 @@ export class SchemaPatcher {
 		this.patches.set(fileName, patch);
 	}
 
+	public applyPointers(schema: any): void {
+		const defs: any = schema.$defs;
+
+		defs.localized_text_ptr = { ...defs.localized_text_ptr, pointer: PointerType.localized_text};
+		defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brushes };
+		defs.unit_definition_ptr = {...defs.unit_definition_ptr, pointer: PointerType.units};
+		defs.buff_definition_ptr = {...defs.buff_definition_ptr, pointer: PointerType.buffs};
+		defs.action_value_id = {...defs.action_value_id, pointer: PointerType.action_values};
+		defs.research_subject_definition_ptr = {...defs.research_subject_definition_ptr, pointer: PointerType.research_subjects};
+		defs.ability_definition_ptr = {...defs.ability_definition_ptr, pointer: PointerType.abilities};
+		defs.unit_item_definition_ptr = {...defs.unit_item_definition_ptr, pointer: PointerType.unit_items};
+		defs.buff_unit_factory_modifier_id = {...defs.buff_unit_factory_modifier_id, pointer: PointerType.buff_unit_factory_modifiers};
+		defs.buff_unit_modifier_id = {...defs.buff_unit_modifier_id, pointer: PointerType.buff_unit_modifiers};
+		// TODO: add more...
+	}
 
 	/**
 	 * Applies a registered patch to the given schema object if one exists.

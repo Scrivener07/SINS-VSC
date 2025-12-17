@@ -28,6 +28,8 @@ export class SchemaPatcher {
 
 	constructor() {
 		this.patches = new Map();
+		this.register("unit-schema.json", SchemaPatch.unit);
+		this.register("weapon-schema.json", SchemaPatch.weapon);
 		this.register("galaxy-generator-uniforms-schema.json", SchemaPatch.galaxy_generator_uniforms);
 		this.register("gui-uniforms-schema.json", SchemaPatch.gui_uniforms);
 		this.register("loot-uniforms-schema.json", SchemaPatch.loot_uniforms);
@@ -48,13 +50,21 @@ export class SchemaPatcher {
 	}
 
 	public applyPointers(schema: any): void {
-		const defs: any = schema.$defs;
-
+		let defs: any = schema.$defs;
+		if (!defs) {
+			defs = schema.$defs = {};
+		}
 		defs.localized_text_ptr = { ...defs.localized_text_ptr, pointer: PointerType.localized_text};
-		defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brushes };
+		defs.file_texture_ptr = { ...defs.file_texture_ptr, pointer: PointerType.textures};
+		defs.unit_skin_definition_ptr = { ...defs.unit_skin_definition_ptr, pointer: PointerType.unit_skins};
+		defs.npc_reward_definition_ptr = { ...defs.npc_reward_definition_ptr, pointer: PointerType.npc_rewards};
+		defs.particle_effect_definition_ptr = { ...defs.particle_effect_definition_ptr, pointer: PointerType.particle_effects};
+		defs.beam_effect_definition_ptr = { ...defs.beam_effect_definition_ptr, pointer: PointerType.beam_effects};
+		defs.action_data_source_definition_ptr = { ...defs.action_data_source_definition_ptr, pointer: PointerType.action_data_sources};
+		defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brushes};
 		defs.unit_definition_ptr = {...defs.unit_definition_ptr, pointer: PointerType.units};
 		defs.buff_definition_ptr = {...defs.buff_definition_ptr, pointer: PointerType.buffs};
-		defs.action_value_id = {...defs.action_value_id, pointer: PointerType.action_values};
+		defs.action_value_id = {...defs.action_value_id, pointer: PointerType.action_value_ids};
 		defs.research_subject_definition_ptr = {...defs.research_subject_definition_ptr, pointer: PointerType.research_subjects};
 		defs.ability_definition_ptr = {...defs.ability_definition_ptr, pointer: PointerType.abilities};
 		defs.unit_item_definition_ptr = {...defs.unit_item_definition_ptr, pointer: PointerType.unit_items};
@@ -80,6 +90,26 @@ export class SchemaPatcher {
 
 
 class SchemaPatch {
+
+	public static unit(schema: any): void {
+		const defs: any = schema.$defs;
+		defs.unit_skin_definition_group.items.properties.skins = { ...defs.unit_skin_definition_group.items.properties.skins, pointer: PointerType.unit_skins, uniqueItems: true};
+	}
+
+
+	/**
+	 * A runtime patcher for the `weapon.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - "name" property is not tagged as a pointer...
+	 *
+	 * @param schema The schema object data to use.
+	 */
+
+	public static weapon(schema: any): void {
+		const props: any = schema.properties;
+		props.name = {...props.name, pointer: PointerType.localized_text };
+	}
 
 	/**
 	 * A runtime patcher for the `galaxy-generator-uniforms-schema.json` schema type.

@@ -1,3 +1,1 @@
-
-### Dependencies
-- `vscode-languageclient`
+The VS Code extension entry point and editor features.

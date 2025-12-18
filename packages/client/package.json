@@ -5,12 +5,12 @@
 	"engines": {
 		"vscode": "^1.106.1"
 	},
-	"scripts": {},
 	"dependencies": {
 		"@soase/shared": "file:../shared",
-		"vscode-languageclient": "^7.0.0"
+		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {
 		"@types/vscode": "^1.106.1"
-	}
+	},
+	"scripts": {}
 }

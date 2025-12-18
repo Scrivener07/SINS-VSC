@@ -6,14 +6,9 @@
 			"ES2024"
 		],
 		"outDir": "out",
+		"rootDir": "src",
 		"sourceMap": true,
-		"strict": true,
-		"composite": true,
-		"paths": {
-			"@soase/shared": [
-				"../shared/src/index.ts"
-			]
-		}
+		"strict": true
 	},
 	"include": [
 		"src"

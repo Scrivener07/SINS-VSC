@@ -25,10 +25,7 @@ const clientConfig = {
 	},
 	resolve: {
 		// support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-		extensions: [".ts", ".js"],
-		alias: {
-			'@soase/shared': path.resolve(__dirname, 'packages/shared/src/index.ts')
-		}
+		extensions: [".ts", ".js"]
 	},
 	module: {
 		rules: [
@@ -51,6 +48,16 @@ const clientConfig = {
 	infrastructureLogging: {
 		level: "log", // enables logging required for problem matchers
 	},
+	ignoreWarnings: [
+		{
+			module: /vscode-languageserver-types/,
+			message: /Critical dependency: require function is used in a way/
+			/**
+			 * The warning occurs because this library uses a UMD (Universal Module Definition) wrapper.
+			 * The standard require() system is available at runtime, so the code will work perfectly fine despite the warning.
+			*/
+		}
+	]
 };
 
 
@@ -69,10 +76,7 @@ const serverConfig = {
 		// However, it usually doesn't import it either.
 	},
 	resolve: {
-		extensions: [".ts", ".js"],
-		alias: {
-			'@soase/shared': path.resolve(__dirname, 'packages/shared/src/index.ts')
-		}
+		extensions: [".ts", ".js"]
 	},
 	module: {
 		rules: [

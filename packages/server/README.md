@@ -1,3 +1,1 @@
-### Dependencies
-- `vscode-languageserver`
-- `vscode-json-languageservice`
+The Language Server Protocol (LSP) implementation handling logic, indexing, and validation.

@@ -20,6 +20,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import {
 	ASTNode,
 	CompletionItemKind,
+	DocumentSymbol,
 	getLanguageService,
 	JSONDocument,
 	LanguageService,
@@ -532,9 +533,10 @@ class SinsLanguageServer {
 	/**
 	 * Called when the client requests document symbols for the outline view or breadcrumbs.
 	 * @param params The parameters for the document symbol request.
-	 * @returns An array of `SymbolInformation` objects.
+	 * @returns An array of `DocumentSymbol` objects.
+	 * @see [Document Symbols Request Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol)
 	 */
-	private onDocumentSymbol(params: DocumentSymbolParams): SymbolInformation[] {
+	private onDocumentSymbol(params: DocumentSymbolParams): DocumentSymbol[] {
 		const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
 		if (!document) {
 			return [];
@@ -542,7 +544,7 @@ class SinsLanguageServer {
 
 		// Use the JSON language service to get symbols.
 		const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
-		const jsonSymbols: SymbolInformation[] = this.jsonLanguageService.findDocumentSymbols(document, jsonDocument);
+		const jsonSymbols: DocumentSymbol[] = this.jsonLanguageService.findDocumentSymbols2(document, jsonDocument);
 		return jsonSymbols;
 	}
 

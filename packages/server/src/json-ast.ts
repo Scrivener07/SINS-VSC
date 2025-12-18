@@ -11,10 +11,25 @@ export class JsonAST {
 	/** An index for the AST node value. */
 	public static readonly NODE_VALUE: number = 1;
 
+
+	/**
+	 * Determines if the given offset is within the bounds of the specified AST node.
+	 * @param offset The offset to check.
+	 * @param node The AST node to check against.
+	 * @returns True if the offset is within the node, false otherwise.
+	 */
 	public static isWithinSchemaNode(offset: number, node: ASTNode): boolean {
 		return offset >= node.offset && offset <= node.offset + node.length;
 	}
 
+
+	/**
+	 * Finds all property nodes with the specified key within the given AST node.
+	 * @param node The AST node to search within.
+	 * @param key The node key to search for.
+	 * @param nodes An array to accumulate found nodes (same as the return value).
+	 * @returns An array of property nodes with the specified key.
+	 */
 	public static findNodes(
 		node: PropertyASTNode | ASTNode | undefined,
 		key: string,
@@ -37,8 +52,11 @@ export class JsonAST {
 		return nodes;
 	}
 
+
 	/**
-	 * Determines if the given AST node is a value node.
+	 * Determines if the given AST node is a JSON value node.
+	 * @param node The JSON AST node to check.
+	 * @returns True if the node is a value node, false otherwise.
 	 */
 	public static isNodeValue(node: ASTNode | undefined): boolean {
 		if (!node) {
@@ -60,5 +78,27 @@ export class JsonAST {
 			return false;
 		}
 	}
+
+
+	/**
+	 * Builds a schema property path array from the JSON document structure by traversing parent nodes.
+	 * @param node The JSON AST node.
+	 * @returns An array of property names from root to the given node.
+	 */
+	public static getNodePath(node: ASTNode): string[] {
+		let current: ASTNode | undefined = node;
+		const path: string[] = [];
+
+		while (current) {
+			if (current.type === "property" && current.keyNode) {
+				const key: string = current.keyNode.value as string;
+				path.unshift(key);
+			}
+			current = current.parent;
+		}
+
+		return path;
+	}
+
 
 }

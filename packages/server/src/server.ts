@@ -250,17 +250,18 @@ class SinsLanguageServer {
 		this.connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 	}
 
+
 	private async validatePointers(document: TextDocument, jsonDocument: JSONDocument): Promise<Diagnostic[]> {
 		const diagnostics: Diagnostic[] = [];
 		const cache = this.cacheManager.getCache();
 
-		function walk(node: ASTNode | undefined, pointer: PointerType) {
+		function walk(node: ASTNode | undefined, pointer: PointerType, nodePath: string[]) {
 			if (!node || node.value === null) {
 				return;
 			}
 
 			if (node.type === "array") {
-				node.items.forEach(item => walk(item, pointer));
+				node.items.forEach(item => walk(item, pointer, nodePath));
 				return;
 			}
 
@@ -274,8 +275,26 @@ class SinsLanguageServer {
 			switch (pointer) {
 				case PointerType.localized_text:
 					// TODO: create a function for diagnostic logging
-					if (!cache.localized_text.has(value)) {
-						diagnostics.push({ severity: 1, range, message: `- no localisation key found for: "${value}".`, source: shared.SOURCE });
+					if (value === "") {
+						// Check for unit_gui_definition > description
+						// @ skin_stages > gui > description
+						const isUnitSkinDescription =
+							nodePath.includes('gui') &&
+							nodePath[nodePath.length - 1] === 'description';
+
+						if (isUnitSkinDescription) {
+							console.log(`Allowing empty description at path: ${nodePath.join(' > ')}`);
+						} else {
+							diagnostics.push({
+								severity: 1,
+								range,
+								message: `Empty localization key. Consider providing a description.`,
+								source: shared.SOURCE
+							});
+						}
+					}
+					else if (!cache.localized_text.has(value)) {
+						diagnostics.push({ severity: 1, range, message: `- no localization key found for: "${value}".`, source: shared.SOURCE });
 					}
 					break;
 				case PointerType.brushes:
@@ -311,13 +330,17 @@ class SinsLanguageServer {
 					if (!JsonAST.isWithinSchemaNode(node.offset, schemaMatch.node)) {
 						return;
 					}
-					walk(node.valueNode, schemaProp.pointer);
+
+					const nodePath: string[] = JsonAST.getNodePath(node);
+					walk(node.valueNode, schemaProp.pointer, nodePath);
 				});
 			});
 		});
 
 		return diagnostics;
 	}
+
+
 	/**
 	 * Core logic for validating a document.
 	 * @param textDocument The text document to validate.
@@ -340,6 +363,7 @@ class SinsLanguageServer {
 		// Send the diagnostics to the client.
 		this.connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 	}
+
 
 	public async getContext(jsonLanguageService: LanguageService, document: TextDocument, jsonDocument: JSONDocument, node: ASTNode | undefined): Promise<PointerType> {
 		if (!node || (node.parent?.type === "property" && node === node.parent.keyNode)) {

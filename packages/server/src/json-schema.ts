@@ -28,7 +28,8 @@ export class SchemaPatcher {
 
 	constructor() {
 		this.patches = new Map();
-		this.register("unit-schema.json", SchemaPatch.unit);
+
+		// Uniforms
 		this.register("weapon-schema.json", SchemaPatch.weapon);
 		this.register("galaxy-generator-uniforms-schema.json", SchemaPatch.galaxy_generator_uniforms);
 		this.register("gui-uniforms-schema.json", SchemaPatch.gui_uniforms);
@@ -39,6 +40,10 @@ export class SchemaPatcher {
 		this.register("scenario-uniforms-schema.json", SchemaPatch.scenario_uniforms);
 		this.register("unit-uniforms-schema.json", SchemaPatch.unit_uniforms);
 		this.register("unit-mutation-uniforms-schema.json", SchemaPatch.unit_mutation_uniforms);
+
+		// Entities
+		this.register("unit-schema.json", SchemaPatch.unit);
+		// this.register("unit-skin-schema.json", SchemaPatch.unit_skin);
 	}
 
 
@@ -54,22 +59,22 @@ export class SchemaPatcher {
 		if (!defs) {
 			defs = schema.$defs = {};
 		}
-		defs.localized_text_ptr = { ...defs.localized_text_ptr, pointer: PointerType.localized_text};
-		defs.file_texture_ptr = { ...defs.file_texture_ptr, pointer: PointerType.textures};
-		defs.unit_skin_definition_ptr = { ...defs.unit_skin_definition_ptr, pointer: PointerType.unit_skins};
-		defs.npc_reward_definition_ptr = { ...defs.npc_reward_definition_ptr, pointer: PointerType.npc_rewards};
-		defs.particle_effect_definition_ptr = { ...defs.particle_effect_definition_ptr, pointer: PointerType.particle_effects};
-		defs.beam_effect_definition_ptr = { ...defs.beam_effect_definition_ptr, pointer: PointerType.beam_effects};
-		defs.action_data_source_definition_ptr = { ...defs.action_data_source_definition_ptr, pointer: PointerType.action_data_sources};
-		defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brushes};
-		defs.unit_definition_ptr = {...defs.unit_definition_ptr, pointer: PointerType.units};
-		defs.buff_definition_ptr = {...defs.buff_definition_ptr, pointer: PointerType.buffs};
-		defs.action_value_id = {...defs.action_value_id, pointer: PointerType.action_value_ids};
-		defs.research_subject_definition_ptr = {...defs.research_subject_definition_ptr, pointer: PointerType.research_subjects};
-		defs.ability_definition_ptr = {...defs.ability_definition_ptr, pointer: PointerType.abilities};
-		defs.unit_item_definition_ptr = {...defs.unit_item_definition_ptr, pointer: PointerType.unit_items};
-		defs.buff_unit_factory_modifier_id = {...defs.buff_unit_factory_modifier_id, pointer: PointerType.buff_unit_factory_modifiers};
-		defs.buff_unit_modifier_id = {...defs.buff_unit_modifier_id, pointer: PointerType.buff_unit_modifiers};
+		defs.localized_text_ptr = { ...defs.localized_text_ptr, pointer: PointerType.localized_text };
+		defs.file_texture_ptr = { ...defs.file_texture_ptr, pointer: PointerType.textures };
+		defs.unit_skin_definition_ptr = { ...defs.unit_skin_definition_ptr, pointer: PointerType.unit_skins };
+		defs.npc_reward_definition_ptr = { ...defs.npc_reward_definition_ptr, pointer: PointerType.npc_rewards };
+		defs.particle_effect_definition_ptr = { ...defs.particle_effect_definition_ptr, pointer: PointerType.particle_effects };
+		defs.beam_effect_definition_ptr = { ...defs.beam_effect_definition_ptr, pointer: PointerType.beam_effects };
+		defs.action_data_source_definition_ptr = { ...defs.action_data_source_definition_ptr, pointer: PointerType.action_data_sources };
+		defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brushes };
+		defs.unit_definition_ptr = { ...defs.unit_definition_ptr, pointer: PointerType.units };
+		defs.buff_definition_ptr = { ...defs.buff_definition_ptr, pointer: PointerType.buffs };
+		defs.action_value_id = { ...defs.action_value_id, pointer: PointerType.action_value_ids };
+		defs.research_subject_definition_ptr = { ...defs.research_subject_definition_ptr, pointer: PointerType.research_subjects };
+		defs.ability_definition_ptr = { ...defs.ability_definition_ptr, pointer: PointerType.abilities };
+		defs.unit_item_definition_ptr = { ...defs.unit_item_definition_ptr, pointer: PointerType.unit_items };
+		defs.buff_unit_factory_modifier_id = { ...defs.buff_unit_factory_modifier_id, pointer: PointerType.buff_unit_factory_modifiers };
+		defs.buff_unit_modifier_id = { ...defs.buff_unit_modifier_id, pointer: PointerType.buff_unit_modifiers };
 		// TODO: add more...
 	}
 
@@ -89,27 +94,54 @@ export class SchemaPatcher {
 }
 
 
+/**
+ * Provides schema patch function implementations.
+ */
 class SchemaPatch {
 
+	/**
+	 * A runtime patcher for the `weapon-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - "name" property is not tagged as a pointer...
+	 * - Property bombing_damage is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
 	public static unit(schema: any): void {
 		const defs: any = schema.$defs;
-		defs.unit_skin_definition_group.items.properties.skins = { ...defs.unit_skin_definition_group.items.properties.skins, pointer: PointerType.unit_skins, uniqueItems: true};
+		defs.unit_skin_definition_group.items.properties.skins = { ...defs.unit_skin_definition_group.items.properties.skins, pointer: PointerType.unit_skins, uniqueItems: true };
 	}
 
 
 	/**
-	 * A runtime patcher for the `weapon.json` schema type.
+	 * A runtime patcher for the `unit-skin-schema.json` schema type.
 	 *
 	 * Vanilla file has problems.
-	 * - "name" property is not tagged as a pointer...
+	 * - no localisation key found for: "".
 	 *
 	 * @param schema The schema object data to use.
 	 */
+	private static unit_skin(schema: any): void {
+		// TODO: https://github.com/Scrivener07/SINS-VSC/issues/7
+	}
 
+
+	/**
+	 * A runtime patcher for the `weapon-schema.json` schema type.
+	 *
+	 * Vanilla file has problems.
+	 * - "name" property is not tagged as a pointer...
+	 * - Property bombing_damage is not allowed.
+	 *
+	 * @param schema The schema object data to use.
+	 */
 	public static weapon(schema: any): void {
 		const props: any = schema.properties;
-		props.name = {...props.name, pointer: PointerType.localized_text };
+		props.name = { ...props.name, pointer: PointerType.localized_text };
+		schema.properties["bombing_damage"] = { type: "number" };
 	}
+
 
 	/**
 	 * A runtime patcher for the `galaxy-generator-uniforms-schema.json` schema type.

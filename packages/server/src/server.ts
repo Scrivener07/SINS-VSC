@@ -13,7 +13,8 @@ import {
 	Diagnostic,
 	DefinitionParams,
 	CompletionParams,
-	CompletionList
+	CompletionList,
+	DocumentSymbolParams
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
@@ -24,7 +25,8 @@ import {
 	LanguageService,
 	LanguageSettings,
 	Location,
-	Range
+	Range,
+	SymbolInformation
 } from "vscode-json-languageservice";
 import { fileURLToPath, pathToFileURL } from "url";
 import { SchemaPatcher } from "./json-schema";
@@ -117,6 +119,7 @@ class SinsLanguageServer {
 		this.connection.onHover(this.onHover.bind(this));
 		this.connection.onDefinition(this.onDefinition.bind(this));
 		this.connection.onCompletion(this.onCompletion.bind(this));
+		this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
 
 		// Bind the document event listeners.
 		this.documents.onDidOpen(this.onDidOpen.bind(this));
@@ -164,7 +167,10 @@ class SinsLanguageServer {
 				hoverProvider: true,
 
 				// Tell the client that this server supports go-to-definition.
-				definitionProvider: true
+				definitionProvider: true,
+
+				// Tell the client that this server supports document symbols.
+				documentSymbolProvider: true
 			}
 		};
 
@@ -226,6 +232,7 @@ class SinsLanguageServer {
 			return;
 		}
 
+		// Using `sendRequest` creates client specific coupling on the agnostic server.
 		this.connection.sendRequest(shared.PROPERTIES.language).then((code: any) => this.currentLanguageCode = code);
 		await this.validateTextDocument(change.document);
 
@@ -246,7 +253,7 @@ class SinsLanguageServer {
 		const diagnostics: Diagnostic[] = [];
 		const cache = this.cacheManager.getCache();
 
-		function walk (node: ASTNode | undefined, pointer: PointerType) {
+		function walk(node: ASTNode | undefined, pointer: PointerType) {
 			if (!node || node.value === null) {
 				return;
 			}
@@ -298,7 +305,7 @@ class SinsLanguageServer {
 				}
 
 				const nodes = JsonAST.findNodes(jsonDocument.root, key);
-				nodes.forEach(node =>  {
+				nodes.forEach(node => {
 					// prevent validation on properties with the same names that aren't in the same context
 					if (!JsonAST.isWithinSchemaNode(node.offset, schemaMatch.node)) {
 						return;
@@ -434,7 +441,7 @@ class SinsLanguageServer {
 		if (node && node.type === 'string' && JsonAST.isNodeValue(node)) {
 			const identifier: string = node.value;
 			let paths: string[] | undefined = this.indexManager.getPaths(identifier);
-			let range: Range =  Range.create({character: 0, line: 0}, {character: 0, line: 0});
+			let range: Range = Range.create({ character: 0, line: 0 }, { character: 0, line: 0 });
 
 
 			if (context === PointerType.localized_text) {
@@ -451,7 +458,7 @@ class SinsLanguageServer {
 				for (let i = 0; i < lines.length; i++) {
 					const idx = lines[i].indexOf(`"${identifier}"`);
 					if (idx !== -1) {
-						range = Range.create({line: i, character: idx}, {line: i, character: idx + identifier.length + 2});
+						range = Range.create({ line: i, character: idx }, { line: i, character: idx + identifier.length + 2 });
 						break;
 					}
 				}
@@ -520,6 +527,25 @@ class SinsLanguageServer {
 
 		return defaultSuggestions;
 	}
+
+
+	/**
+	 * Called when the client requests document symbols for the outline view or breadcrumbs.
+	 * @param params The parameters for the document symbol request.
+	 * @returns An array of `SymbolInformation` objects.
+	 */
+	private onDocumentSymbol(params: DocumentSymbolParams): SymbolInformation[] {
+		const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
+		if (!document) {
+			return [];
+		}
+
+		// Use the JSON language service to get symbols.
+		const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
+		const jsonSymbols: SymbolInformation[] = this.jsonLanguageService.findDocumentSymbols(document, jsonDocument);
+		return jsonSymbols;
+	}
+
 
 }
 

@@ -1,0 +1,21 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Entity Manifest",
+	"description": "Manages a collection of identifiers for a type.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"ids"
+	],
+	"properties": {
+		"ids": {
+			"description": "A collection of identifiers for this entity type.",
+			"type": "array",
+			"uniqueItems": true,
+			"items": {
+				"description": "An identifier for this entity.",
+				"type": "string"
+			}
+		}
+	}
+}

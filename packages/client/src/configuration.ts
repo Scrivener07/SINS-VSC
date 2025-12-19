@@ -2,15 +2,13 @@ import { WorkspaceConfiguration, workspace } from "vscode";
 import * as shared from "@soase/shared";
 
 export class Configuration {
+    private static copy(): WorkspaceConfiguration {
+        return workspace.getConfiguration(shared.NAME);
+    }
 
-	private static copy(): WorkspaceConfiguration {
-		return workspace.getConfiguration(shared.NAME);
-	}
+    public static getLanguage(): any {
+        return this.copy().get(shared.PROPERTIES.language);
+    }
 
-	public static getLanguage(): any {
-		return this.copy().get(shared.PROPERTIES.language);
-	}
-
-	// Add more...
-
+    // Add more...
 }

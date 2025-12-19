@@ -16,7 +16,6 @@ import {
 	CompletionList,
 	DocumentSymbolParams
 } from "vscode-languageserver/node";
-import { TextDocument } from "vscode-languageserver-textdocument";
 import {
 	ASTNode,
 	CompletionItemKind,
@@ -26,9 +25,9 @@ import {
 	LanguageService,
 	LanguageSettings,
 	Location,
-	Range,
-	SymbolInformation
+	Range
 } from "vscode-json-languageservice";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { fileURLToPath, pathToFileURL } from "url";
 import { SchemaPatcher } from "./json-schema";
 import { LocalizationManager } from "./localization";
@@ -64,14 +63,19 @@ class SinsLanguageServer {
 	/** The texture manager to use. */
 	private textureManager: TextureManager;
 
+	/** The completion manager to use. */
 	private completionManager: CompletionManager;
 
+	/** The cache manager to use. */
 	private cacheManager: CacheManager;
 
 	/** The index manager to use. */
 	private indexManager: IndexManager;
 
+	/** The current language code in use. */
 	private currentLanguageCode: string = "en";
+
+	/** Indicates whether the server has been initialized. */
 	private isInitialized: boolean;
 
 
@@ -137,7 +141,7 @@ class SinsLanguageServer {
 
 	/**
 	 * Called when the client starts the server.
-	 * This is where server capabilities are decalred.
+	 * This is where server capabilities are declared.
 	 * @param params The initialization parameters from the client.
 	 * @returns The server's capabilities.
 	 */
@@ -199,10 +203,12 @@ class SinsLanguageServer {
 					this.connection.console.log("Completion data loaded")
 				)
 			]);
+
 			this.indexManager.rebuildIndex(fsPath);
 			for (const doc of this.documents.all()) {
 				await this.validateTextDocument(doc);
 			}
+
 			/*
 				since onDidOpen/onDidChangeContent events execute before the server
 				actually initializes (ie: files already opened), we'll need to keep track of it via a variable
@@ -514,11 +520,6 @@ class SinsLanguageServer {
 		const offset: number = document.offsetAt(params.position);
 		const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
 		const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
-
-		// TODO: Implement code completions.
-		// 1. Identify the current property node.
-		// 2. Check if that property maps to a known type.
-		// 3. Return list of CompletionItems from the relevant manager.
 
 		if (node) {
 			const range: Range = {

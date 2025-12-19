@@ -1,5 +1,7 @@
 import * as path from "path";
 import { WorkspaceManager } from "./workspace";
+import * as shared from "@soase/shared";
+
 
 /**
  * Manages an index of files within the workspace for quick lookup by identifier.
@@ -9,59 +11,9 @@ export class IndexManager {
 	/**
 	 * Maps a filename (without extension) to a list of absolute file paths.
 	 *
-	 * Example: `"trader_loyalist" -> ["c:/sins2/entities/trader_loyalist.player"]`
+	 * @example "trader_loyalist" -> "c:/sins2/entities/trader_loyalist.player"
 	 */
 	private fileIndex: Map<string, string[]> = new Map();
-
-	/** Provides a list of file extensions for indexing. */
-	private readonly fileExtensions: Set<string> = new Set([
-		".mod_meta_data",
-		".localized_text",
-		".uniforms",
-		".ability",
-		".action_data_source",
-		".buff",
-		".entity_manifest",
-		".exotic",
-		".flight_pattern",
-		".formation",
-		".npc_reward",
-		".player",
-		".player_color_group",
-		".player_icon",
-		".player_portrait",
-		".research_subject",
-		".unit_item",
-		".unit_skin",
-		".unit",
-		".weapon",
-		".named_colors",
-		".death_sequence",
-		".death_sequence_group",
-		".beam_effect",
-		".exhaust_trail_effect",
-		".particle_effect",
-		".shield_effect",
-		".font",
-		".gravity_well_props",
-		".button_style",
-		".drop_box_style",
-		".gui",
-		".label_style",
-		".list_box_style",
-		".reflect_box_style",
-		".scroll_bar_style",
-		".text_entry_box_style",
-		".brush",
-		".mesh_material",
-		".skybox",
-		".sound",
-		".texture_animation",
-		".gdpr_accept_data",
-		".playtime_message",
-		".welcome_message",
-		".start_mode"
-	]);
 
 
 	/**
@@ -72,7 +24,7 @@ export class IndexManager {
 		this.fileIndex.clear();
 		console.time(`Indexing::'${rootPath}'`);
 
-		for (const extension of this.fileExtensions) {
+		for (const extension of shared.JSON_EXTENSIONS.values()) {
 			const files: string[] = await WorkspaceManager.findFiles(rootPath, extension);
 			for (const file of files) {
 				this.addToIndex(file);

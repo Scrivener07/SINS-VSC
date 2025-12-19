@@ -3,175 +3,111 @@
  */
 
 type AssetDirectoryMapping = {
-	[key: string]: string[];
+    [key: string]: string[];
 };
 
 const enum FileExtension {
-	None = "",
-	Brush = "brush",
-	Named_Color = "named_colors",
-	Cursor = "cursor",
-	Death_Sequence = "death_sequence",
-	Beam_Effect = "beam_effect",
-	Exhaust_Trail_Effect = "exhaust_trail_effect",
-	Particle_Effect = "particle_effect",
-	Shield_Effect = "shield_effect",
-	Ability = "ability",
-	Action_Data_Source = "action_data_source",
-	Buff = "buff",
-	Entity_Manifest = "entity_manifest",
-	Exotic = "exotic",
-	Flight_Pattern = "flight_pattern",
-	Formation = "formation",
-	Npc_Reward = "npc_reward",
-	Player = "player",
-	Research_Subject = "research_subject",
-	Start_Mode = "start_mode",
-	Unit = "unit",
-	Unit_Item = "unit_item",
-	Unit_Skin = "unit_skin",
-	Weapon = "weapon",
-	Font = "font",
-	TTF = "ttf",
-	GDPR_Accept_Data = "gdpr_accept_data",
-	Gravity_Well_Props = "gravity_well_props",
-	GUI = "gui",
-	Button_Style = "button_style",
-	Drop_Box_Style = "drop_box_style",
-	Label_Style = "label_style",
-	List_Box_Style = "list_box_style",
-	Reflect_Box_Style = "reflect_box_style",
-	Scroll_Bar_Style = "scroll_bar_style",
-	Text_Entry_Box_Style = "text_entry_box_style",
-	Localized_Text = "localized_text",
-	Mesh_Material = "mesh_material",
-	Mesh = "mesh",
-	Player_Color_Group = "player_color_group",
-	Player_Icon = "player_icon",
-	Player_Portrait = "player_portrait",
-	Scenario = "scenario",
-	FXCO = "fxco",
-	Skybox = "skybox",
-	Sound = "sound",
-	OGG = "ogg",
-	Texture_Animation = "texture_animation",
-	DDS = "dds",
-	PNG = "png",
-	Uniforms = "uniforms",
-	WebM = "webm",
-	Playtime_Message = "playtime_message",
-	Welcome_Message = "welcome_message"
+    None = "",
+    Brush = "brush",
+    Named_Color = "named_colors",
+    Cursor = "cursor",
+    Death_Sequence = "death_sequence",
+    Beam_Effect = "beam_effect",
+    Exhaust_Trail_Effect = "exhaust_trail_effect",
+    Particle_Effect = "particle_effect",
+    Shield_Effect = "shield_effect",
+    Ability = "ability",
+    Action_Data_Source = "action_data_source",
+    Buff = "buff",
+    Entity_Manifest = "entity_manifest",
+    Exotic = "exotic",
+    Flight_Pattern = "flight_pattern",
+    Formation = "formation",
+    Npc_Reward = "npc_reward",
+    Player = "player",
+    Research_Subject = "research_subject",
+    Start_Mode = "start_mode",
+    Unit = "unit",
+    Unit_Item = "unit_item",
+    Unit_Skin = "unit_skin",
+    Weapon = "weapon",
+    Font = "font",
+    TTF = "ttf",
+    GDPR_Accept_Data = "gdpr_accept_data",
+    Gravity_Well_Props = "gravity_well_props",
+    GUI = "gui",
+    Button_Style = "button_style",
+    Drop_Box_Style = "drop_box_style",
+    Label_Style = "label_style",
+    List_Box_Style = "list_box_style",
+    Reflect_Box_Style = "reflect_box_style",
+    Scroll_Bar_Style = "scroll_bar_style",
+    Text_Entry_Box_Style = "text_entry_box_style",
+    Localized_Text = "localized_text",
+    Mesh_Material = "mesh_material",
+    Mesh = "mesh",
+    Player_Color_Group = "player_color_group",
+    Player_Icon = "player_icon",
+    Player_Portrait = "player_portrait",
+    Scenario = "scenario",
+    FXCO = "fxco",
+    Skybox = "skybox",
+    Sound = "sound",
+    OGG = "ogg",
+    Texture_Animation = "texture_animation",
+    DDS = "dds",
+    PNG = "png",
+    Uniforms = "uniforms",
+    WebM = "webm",
+    Playtime_Message = "playtime_message",
+    Welcome_Message = "welcome_message",
 }
 
 class AssetType {
-
-	private getMapping(): AssetDirectoryMapping {
-		const mapping: AssetDirectoryMapping = {
-			"brushes": [
-				FileExtension.Brush
-			],
-			"colors": [
-				FileExtension.Named_Color
-			],
-			"cursors": [
-				FileExtension.Cursor
-			],
-			"death_sequences": [
-				FileExtension.Death_Sequence
-			],
-			"effects": [
-				FileExtension.Beam_Effect,
-				FileExtension.Exhaust_Trail_Effect,
-				FileExtension.Particle_Effect,
-				FileExtension.Shield_Effect
-			],
-			"entities": [
-				FileExtension.Ability,
-				FileExtension.Action_Data_Source,
-				FileExtension.Buff,
-				FileExtension.Entity_Manifest,
-				FileExtension.Exotic,
-				FileExtension.Flight_Pattern,
-				FileExtension.Formation,
-				FileExtension.Npc_Reward,
-				FileExtension.Player,
-				FileExtension.Research_Subject,
-				FileExtension.Start_Mode,
-				FileExtension.Unit,
-				FileExtension.Unit_Item,
-				FileExtension.Unit_Skin,
-				FileExtension.Weapon
-			],
-			"fonts": [
-				FileExtension.Font,
-				FileExtension.TTF
-			],
-			"gdpr": [
-				FileExtension.GDPR_Accept_Data
-			],
-			"gravity_well_props": [
-				FileExtension.Gravity_Well_Props
-			],
-			"gui": [
-				FileExtension.GUI,
-				FileExtension.Button_Style,
-				FileExtension.Drop_Box_Style,
-				FileExtension.Label_Style,
-				FileExtension.List_Box_Style,
-				FileExtension.Reflect_Box_Style,
-				FileExtension.Scroll_Bar_Style,
-				FileExtension.Text_Entry_Box_Style
-			],
-			"localized_text": [
-				FileExtension.Localized_Text
-			],
-			"mesh_materials": [
-				FileExtension.Mesh_Material
-			],
-			"meshes": [
-				FileExtension.Mesh
-			],
-			"player_colors": [
-				FileExtension.Player_Color_Group
-			],
-			"player_icons": [
-				FileExtension.Player_Icon
-			],
-			"player_portraits": [
-				FileExtension.Player_Portrait
-			],
-			"scenarios": [
-				FileExtension.Scenario
-			],
-			"shaders": [
-				FileExtension.FXCO
-			],
-			"skyboxes": [
-				FileExtension.Skybox
-			],
-			"sounds": [
-				FileExtension.Sound,
-				FileExtension.OGG
-			],
-			"texture_animations": [
-				FileExtension.Texture_Animation
-			],
-			"textures": [
-				FileExtension.DDS,
-				FileExtension.PNG
-			],
-			"uniforms": [
-				FileExtension.Uniforms
-			],
-			"videos": [
-				FileExtension.WebM
-			],
-			"welcome": [
-				FileExtension.Playtime_Message,
-				FileExtension.Welcome_Message
-			]
-		};
-		return mapping;
-	}
-
+    private getMapping(): AssetDirectoryMapping {
+        const mapping: AssetDirectoryMapping = {
+            brushes: [FileExtension.Brush],
+            colors: [FileExtension.Named_Color],
+            cursors: [FileExtension.Cursor],
+            death_sequences: [FileExtension.Death_Sequence],
+            effects: [FileExtension.Beam_Effect, FileExtension.Exhaust_Trail_Effect, FileExtension.Particle_Effect, FileExtension.Shield_Effect],
+            entities: [
+                FileExtension.Ability,
+                FileExtension.Action_Data_Source,
+                FileExtension.Buff,
+                FileExtension.Entity_Manifest,
+                FileExtension.Exotic,
+                FileExtension.Flight_Pattern,
+                FileExtension.Formation,
+                FileExtension.Npc_Reward,
+                FileExtension.Player,
+                FileExtension.Research_Subject,
+                FileExtension.Start_Mode,
+                FileExtension.Unit,
+                FileExtension.Unit_Item,
+                FileExtension.Unit_Skin,
+                FileExtension.Weapon,
+            ],
+            fonts: [FileExtension.Font, FileExtension.TTF],
+            gdpr: [FileExtension.GDPR_Accept_Data],
+            gravity_well_props: [FileExtension.Gravity_Well_Props],
+            gui: [FileExtension.GUI, FileExtension.Button_Style, FileExtension.Drop_Box_Style, FileExtension.Label_Style, FileExtension.List_Box_Style, FileExtension.Reflect_Box_Style, FileExtension.Scroll_Bar_Style, FileExtension.Text_Entry_Box_Style],
+            localized_text: [FileExtension.Localized_Text],
+            mesh_materials: [FileExtension.Mesh_Material],
+            meshes: [FileExtension.Mesh],
+            player_colors: [FileExtension.Player_Color_Group],
+            player_icons: [FileExtension.Player_Icon],
+            player_portraits: [FileExtension.Player_Portrait],
+            scenarios: [FileExtension.Scenario],
+            shaders: [FileExtension.FXCO],
+            skyboxes: [FileExtension.Skybox],
+            sounds: [FileExtension.Sound, FileExtension.OGG],
+            texture_animations: [FileExtension.Texture_Animation],
+            textures: [FileExtension.DDS, FileExtension.PNG],
+            uniforms: [FileExtension.Uniforms],
+            videos: [FileExtension.WebM],
+            welcome: [FileExtension.Playtime_Message, FileExtension.Welcome_Message],
+        };
+        return mapping;
+    }
 }

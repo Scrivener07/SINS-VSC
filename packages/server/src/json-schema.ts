@@ -8,141 +8,51 @@
  * This code modifies the schema in memory before the Language Service sees it by injecting changes at runtime.
  */
 
-import { PointerType } from "./schema";
-
 /**
  * A function that modifies a schema object in place.
  */
-type PatchFunction = (schema: any) => void;
-type PatchConfig = { exec: PatchFunction; pointer: PointerType };
+
 
 /**
  * Manages runtime patches for JSON schemas.
  */
 export class SchemaPatcher {
     /** Maps a JSON schema file name to a patching function. */
-    private patches: Map<string, PatchConfig>;
+    private patches: Map<string, object>;
 
     constructor() {
         this.patches = new Map();
-        /* Entity manifest specific patches */
-        this.register("entity-manifest-weapon-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.weapon));
-        this.register("entity-manifest-unit-skin-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.unit_skin));
-        this.register("entity-manifest-unit-item-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.unit_item));
-        this.register("entity-manifest-unit-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.unit));
-        this.register("entity-manifest-start-mode-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.start_mode));
-        this.register("entity-manifest-research-subject-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.research_subject));
-        this.register("entity-manifest-player-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.player));
-        this.register("entity-manifest-npc-reward-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.npc_reward));
-        this.register("entity-manifest-formation-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.formation));
-        this.register("entity-manifest-flight-pattern-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.flight_pattern));
-        this.register("entity-manifest-exotic-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.exotic));
-        this.register("entity-manifest-buff-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.buff));
-        this.register("entity-manifest-action-data-source.json", (_) => SchemaPatch.entity_manifest(_, PointerType.action_data_source));
-        this.register("entity-manifest-ability-schema.json", (_) => SchemaPatch.entity_manifest(_, PointerType.ability));
-        /* ----------- */
-
-        this.register("unit-schema.json", SchemaPatch.unit);
-        this.register("weapon-schema.json", SchemaPatch.weapon);
-        this.register("galaxy-generator-uniforms-schema.json", SchemaPatch.galaxy_generator_uniforms);
-        this.register("gui-uniforms-schema.json", SchemaPatch.gui_uniforms);
-        this.register("loot-uniforms-schema.json", SchemaPatch.loot_uniforms);
-        this.register("main-view-uniforms-schema.json", SchemaPatch.main_view_uniforms);
-        this.register("mission-uniforms-schema.json", SchemaPatch.mission_uniforms);
-        this.register("player-ai-diplomacy-schema.json", SchemaPatch.player_ai_diplomacy_uniforms);
-        this.register("scenario-uniforms-schema.json", SchemaPatch.scenario_uniforms);
-        this.register("unit-uniforms-schema.json", SchemaPatch.unit_uniforms);
-        this.register("unit-mutation-uniforms-schema.json", SchemaPatch.unit_mutation_uniforms);
+        // this.register("gui-uniforms-schema.json", SchemaPatch.gui_uniforms);
+        // this.register("loot-uniforms-schema.json", SchemaPatch.loot_uniforms);
+        // this.register("main-view-uniforms-schema.json", SchemaPatch.main_view_uniforms);
+        // this.register("mission-uniforms-schema.json", SchemaPatch.mission_uniforms);
+        // this.register("player-ai-diplomacy-schema.json", SchemaPatch.player_ai_diplomacy_uniforms);
+        // this.register("scenario-uniforms-schema.json", SchemaPatch.scenario_uniforms);
+        // this.register("unit-uniforms-schema.json", SchemaPatch.unit_uniforms);
+        // this.register("unit-mutation-uniforms-schema.json", SchemaPatch.unit_mutation_uniforms);
     }
 
     /**
      * Registers a patch function for a specific schema file.
      */
-    private register(fileName: string, exec: PatchFunction, pointer: PointerType = PointerType.none): void {
-        this.patches.set(fileName, { exec, pointer });
-    }
-
-    public applyPointers(schema: any): void {
-        let defs: any = schema.$defs;
-        if (!defs) {
-            defs = schema.$defs = {};
-        }
-        defs.mesh_ptr = { ...defs.mesh_ptr, pointer: PointerType.mesh };
-        defs.gravity_well_props_definition_ptr = { ...defs.gravity_well_props_definition_ptr, pointer: PointerType.gravity_well_prop };
-        defs.localized_text_ptr = { ...defs.localized_text_ptr, pointer: PointerType.localized_text };
-        defs.file_texture_ptr = { ...defs.file_texture_ptr, pointer: PointerType.texture };
-        defs.unit_skin_definition_ptr = { ...defs.unit_skin_definition_ptr, pointer: PointerType.unit_skin };
-        defs.npc_reward_definition_ptr = { ...defs.npc_reward_definition_ptr, pointer: PointerType.npc_reward };
-        defs.particle_effect_definition_ptr = { ...defs.particle_effect_definition_ptr, pointer: PointerType.particle_effect };
-        defs.beam_effect_definition_ptr = { ...defs.beam_effect_definition_ptr, pointer: PointerType.beam_effect };
-        defs.action_data_source_definition_ptr = { ...defs.action_data_source_definition_ptr, pointer: PointerType.action_data_source };
-        defs.brush_ptr = { ...defs.brush_ptr, pointer: PointerType.brush };
-        defs.unit_definition_ptr = { ...defs.unit_definition_ptr, pointer: PointerType.unit };
-        defs.buff_definition_ptr = { ...defs.buff_definition_ptr, pointer: PointerType.buff };
-        defs.action_value_id = { ...defs.action_value_id, pointer: PointerType.action_value_id };
-        defs.research_subject_definition_ptr = { ...defs.research_subject_definition_ptr, pointer: PointerType.research_subject };
-        defs.ability_definition_ptr = { ...defs.ability_definition_ptr, pointer: PointerType.ability };
-        defs.unit_item_definition_ptr = { ...defs.unit_item_definition_ptr, pointer: PointerType.unit_item };
-        defs.buff_unit_factory_modifier_id = { ...defs.buff_unit_factory_modifier_id, pointer: PointerType.buff_unit_factory_modifier };
-        defs.buff_unit_modifier_id = { ...defs.buff_unit_modifier_id, pointer: PointerType.buff_unit_modifier };
-        // TODO: add more...
+    private register(fileName: string, entity: object): void {
+        this.patches.set(fileName, entity);
     }
 
     /**
      * Applies a registered patch to the given schema object if one exists.
      * @returns The modified schema object or the original if no patch exists.
      */
-    public apply(fileName: string, schema: any): any {
-        const patch: PatchConfig | undefined = this.patches.get(fileName);
-        if (patch) {
-            patch.exec(schema);
-        }
-        return schema;
-    }
+    // public apply(fileName: string, schema: any): any {
+    //     const entity: EntityPatch | undefined = this.patches.get(fileName);
+    //     if (entity) {
+    //         entity.patch(schema);
+    //     }
+    //     return schema;
+    // }
 }
 
 class SchemaPatch {
-    public static entity_manifest(schema: any, pointer: PointerType): void {
-        const props: any = schema.properties;
-        props.ids = { ...props.ids, pointer: pointer };
-    }
-
-    public static unit(schema: any): void {
-        const defs: any = schema.$defs;
-        defs.unit_skin_definition_group.items.properties.skins = {
-            ...defs.unit_skin_definition_group.items.properties.skins,
-            pointer: PointerType.unit_skin,
-            uniqueItems: true,
-        };
-    }
-
-    /**
-     * A runtime patcher for the `weapon.json` schema type.
-     *
-     * Vanilla file has problems.
-     * - "name" property is not tagged as a pointer...
-     *
-     * @param schema The schema object data to use.
-     */
-
-    public static weapon(schema: any): void {
-        const props: any = schema.properties;
-        props.name = { ...props.name, pointer: PointerType.localized_text };
-    }
-
-    /**
-     * A runtime patcher for the `galaxy-generator-uniforms-schema.json` schema type.
-     *
-     * Vanilla file has problems.
-     * - Property fillings is not allowed.
-     *
-     * @param schema The schema object data to use.
-     */
-    public static galaxy_generator_uniforms(schema: any): void {
-        schema.properties = schema.properties || {};
-        schema.properties["fillings"] = { type: "object" };
-    }
-
     /**
      * A runtime patcher for the `gui-uniforms-schema.json` schema type.
      *
@@ -270,8 +180,8 @@ class SchemaPatch {
         schema.properties["minutes_allowed_for_trade_offer_cooldown"] = {
             type: "array",
             items: {
-                type: "number",
-            },
+                type: "number"
+            }
         };
     }
 
@@ -290,16 +200,16 @@ class SchemaPatch {
         dlc_scenarios.items.properties["scenarios"] = {
             type: "array",
             items: {
-                type: "string",
-            },
+                type: "string"
+            }
         };
 
         const dlc_multiplayer_scenarios = schema.properties["dlc_multiplayer_scenarios"];
         dlc_multiplayer_scenarios.items.properties["scenarios"] = {
             type: "array",
             items: {
-                type: "string",
-            },
+                type: "string"
+            }
         };
     }
 

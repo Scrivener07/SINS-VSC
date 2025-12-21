@@ -14,7 +14,7 @@ import {
     DefinitionParams,
     CompletionParams,
     CompletionList,
-    DocumentSymbolParams,
+    DocumentSymbolParams
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import {
@@ -26,19 +26,15 @@ import {
     LanguageService,
     LanguageSettings,
     Location,
-    Range,
-    SymbolInformation,
+    Range
 } from "vscode-json-languageservice";
 import { fileURLToPath, pathToFileURL } from "url";
 import { SchemaPatcher } from "./json-schema";
-import { LocalizationManager } from "./localization";
-import { PointerType, SchemaManager } from "./schema";
-import { TextureManager } from "./texture";
 import { JsonAST } from "./json-ast";
-import { IndexManager } from "./data-manager";
-import { CompletionManager } from "./completion";
-import { CacheManager } from "./cache";
-import { EntityManifestManager } from "./manifest";
+import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager } from "./providers";
+import { EntityManifestManager, UniformManager, TextureManager, SchemaManager, LocalizationManager, IndexManager, CacheManager } from "./managers";
+import { Validator } from "./validate";
+import { PointerType } from "./pointers";
 
 /**
  * Encapsulates the Sins language server logic.
@@ -59,22 +55,32 @@ class SinsLanguageServer {
     /** The schema patcher to use. */
     private schemaPatcher: SchemaPatcher;
 
+    private schemaManager: SchemaManager;
+
     /** The localization manager to use. */
     private localizationManager: LocalizationManager;
+
+    private hoverProvider: HoverProvider;
+    private definitionProvider: DefinitionProvider;
+    private completionManager: CompletionManager;
 
     /** The texture manager to use. */
     private textureManager: TextureManager;
 
-    private completionManager: CompletionManager;
-
     private cacheManager: CacheManager;
+    private uniformManager: UniformManager;
     private entityManifestManager: EntityManifestManager;
+    private diagnosticManager: DiagnosticManager;
 
     /** The index manager to use. */
     private indexManager: IndexManager;
 
+    private validator: Validator;
+
     private currentLanguageCode: string = "en";
+    private currentEntity: PointerType = PointerType.none;
     private isInitialized: boolean;
+    private diagnostics: Diagnostic[] = [];
 
     constructor() {
         // Create the LSP connection.
@@ -84,34 +90,32 @@ class SinsLanguageServer {
         this.documents = new TextDocuments(TextDocument);
 
         this.isInitialized = false;
-
+        this.diagnostics = [];
+        this.schemaManager = new SchemaManager();
         this.schemaPatcher = new SchemaPatcher();
-        this.localizationManager = new LocalizationManager();
         this.textureManager = new TextureManager();
         this.completionManager = new CompletionManager();
         this.cacheManager = new CacheManager();
+        this.uniformManager = new UniformManager();
         this.entityManifestManager = new EntityManifestManager();
-        this.indexManager = new IndexManager(this.cacheManager, this.entityManifestManager);
+        this.indexManager = new IndexManager(this.cacheManager, this.entityManifestManager, this.uniformManager);
+
+        this.localizationManager = new LocalizationManager();
+        this.hoverProvider = new HoverProvider(this.indexManager, this.localizationManager);
+        this.definitionProvider = new DefinitionProvider(this.cacheManager, this.indexManager, this.currentLanguageCode);
+        this.diagnosticManager = new DiagnosticManager(this.diagnostics);
 
         // Initialize the JSON language service.
-        this.jsonLanguageService = getLanguageService({
-            schemaRequestService: async (uri) => {
-                if (uri.startsWith("file")) {
-                    const fsPath: string = fileURLToPath(uri);
-                    const fileName: string = path.basename(fsPath);
-                    try {
-                        const content: string = await fs.promises.readFile(fsPath, "utf-8");
-                        const schema: any = JSON.parse(content);
-                        this.schemaPatcher.applyPointers(schema);
-                        this.schemaPatcher.apply(fileName, schema);
-                        return JSON.stringify(schema);
-                    } catch (error) {
-                        return Promise.reject(error);
-                    }
-                }
-                return Promise.reject(`Schema request failed for: ${uri}`);
-            },
-        });
+        this.jsonLanguageService = getLanguageService({});
+
+        this.validator = new Validator(
+            this.jsonLanguageService,
+            this.diagnostics,
+            this.cacheManager,
+            this.entityManifestManager,
+            this.uniformManager,
+            this.diagnosticManager
+        );
 
         // Bind the connection event listeners.
         this.connection.onInitialize(this.onInitialize.bind(this));
@@ -146,11 +150,7 @@ class SinsLanguageServer {
         this.workspaceFolder = params.rootUri;
         this.connection.console.log(`[Server(${process.pid}) ${this.workspaceFolder}] Initialization starting.`);
 
-        const settings: LanguageSettings = {
-            schemas: SchemaManager.configure(),
-        };
-
-        this.jsonLanguageService.configure(settings);
+        this.jsonLanguageService.configure({ schemas: this.schemaManager.configure() });
 
         const initializeResult: InitializeResult = {
             capabilities: {
@@ -159,8 +159,8 @@ class SinsLanguageServer {
 
                 // Tell the client that this server supports code completion.
                 completionProvider: {
-                    triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
-                    resolveProvider: false, // you haven't implemented a resolver yet
+                    triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:_".split(""),
+                    resolveProvider: false // you haven't implemented a resolver yet
                 },
 
                 // Tell the client that this server supports hover.
@@ -170,8 +170,8 @@ class SinsLanguageServer {
                 definitionProvider: true,
 
                 // Tell the client that this server supports document symbols.
-                documentSymbolProvider: true,
-            },
+                documentSymbolProvider: true
+            }
         };
 
         return initializeResult;
@@ -200,7 +200,7 @@ class SinsLanguageServer {
             await Promise.all([
                 this.indexManager.rebuildIndex(fsPath, this.currentLanguageCode),
                 this.localizationManager.loadFromWorkspace(fsPath).then(() => this.connection.console.log("Localization data loaded")),
-                this.textureManager.loadFromWorkspace(fsPath).then(() => this.connection.console.log("Texture data loaded")),
+                this.textureManager.loadFromWorkspace(fsPath).then(() => this.connection.console.log("Texture data loaded"))
             ]);
             for (const doc of this.documents.all()) {
                 await this.validateTextDocument(doc);
@@ -219,7 +219,12 @@ class SinsLanguageServer {
      * @param event The event containing the opened document.
      */
     private onDidOpen(event: { document: TextDocument }): void {
+        this.currentEntity = this.getCurrentEntityType(event.document.uri);
         this.connection.console.log(`[Server(${process.pid}) ${this.workspaceFolder}] Document opened: ${event.document.uri}`);
+    }
+
+    private getCurrentEntityType(uri: string): PointerType {
+        return PointerType[path.extname(uri).slice(1) as keyof typeof PointerType] ?? PointerType.none;
     }
 
     /**
@@ -232,6 +237,7 @@ class SinsLanguageServer {
             return;
         }
 
+        this.currentEntity = this.getCurrentEntityType(change.document.uri);
         this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
         await this.validateTextDocument(change.document);
     }
@@ -245,7 +251,7 @@ class SinsLanguageServer {
         // TODO: This is over optimistic.
         this.connection.sendDiagnostics({
             uri: event.document.uri,
-            diagnostics: [],
+            diagnostics: []
         });
     }
 
@@ -265,13 +271,13 @@ class SinsLanguageServer {
         // Validate the document against the configured schemas.
         const diagnostics: Diagnostic[] = [
             ...(await this.jsonLanguageService.doValidation(textDocument, jsonDocument)),
-            ...(await this.validatePointers(textDocument, jsonDocument)),
+            ...(await this.validator.doValidation(textDocument, jsonDocument, this.currentEntity))
         ];
 
         // Send the diagnostics to the client.
         this.connection.sendDiagnostics({
             uri: textDocument.uri,
-            diagnostics,
+            diagnostics
         });
     }
 
@@ -302,9 +308,23 @@ class SinsLanguageServer {
                 }
 
                 if (context === PointerType.localized_text) {
-                    const localizeHover: Hover | null = this.localizationManager.getHover(node.value, this.currentLanguageCode);
+                    const localizeHover: Hover | null = this.hoverProvider.getLocalizedText(node.value, this.currentLanguageCode);
                     if (localizeHover) {
                         return localizeHover;
+                    }
+                }
+
+                if (context === PointerType.weapon) {
+                    const weaponHover: Hover | null = await this.hoverProvider.getWeapon(node.value, this.currentLanguageCode);
+                    if (weaponHover) {
+                        return weaponHover;
+                    }
+                }
+
+                if (context === PointerType.weapon_tag) {
+                    const weaponTagHover: Hover | null = await this.hoverProvider.getWeaponTag(node.value, this.currentLanguageCode);
+                    if (weaponTagHover) {
+                        return weaponTagHover;
                     }
                 }
             }
@@ -331,45 +351,7 @@ class SinsLanguageServer {
         const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
 
         if (node && node.type === "string" && JsonAST.isNodeValue(node)) {
-            const identifier: string = node.value;
-            let paths: string[] | undefined = this.indexManager.getPaths(identifier);
-            let range: Range = Range.create({ character: 0, line: 0 }, { character: 0, line: 0 });
-
-            if (context === PointerType.localized_text) {
-                // TODO: encapsulate this later...
-                paths = this.indexManager.getPaths(this.currentLanguageCode);
-
-                const localisation = this.cacheManager.get("localized_text");
-                if (!localisation?.has(identifier) || !paths) {
-                    return null;
-                }
-
-                const text = await fs.promises.readFile(paths[0], "utf-8");
-                const lines = text.split("\n");
-                for (let i = 0; i < lines.length; i++) {
-                    const idx = lines[i].indexOf(`"${identifier}"`);
-                    if (idx !== -1) {
-                        range = Range.create(
-                            { line: i, character: idx },
-                            {
-                                line: i,
-                                character: idx + identifier.length + 2,
-                            },
-                        );
-                        break;
-                    }
-                }
-            }
-            if (paths && paths.length > 0) {
-                // Map all found paths to Locations.
-                return paths.map((filePath) => {
-                    const location: Location = Location.create(
-                        pathToFileURL(filePath).toString(),
-                        range, // Point to start of file
-                    );
-                    return location;
-                });
-            }
+            return await this.definitionProvider.goToDefinition(context, node.value);
         }
 
         return null;
@@ -386,92 +368,27 @@ class SinsLanguageServer {
         const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
         const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
 
-        // TODO: Implement code completions.
-        // 1. Identify the current property node.
-        // 2. Check if that property maps to a known type.
-        // 3. Return list of CompletionItems from the relevant manager.
-
         if (node) {
-            const range: Range = {
+            let range: Range = {
                 start: document.positionAt(node.offset + 1),
-                end: document.positionAt(node.offset + node.length - 1),
+                end: document.positionAt(node.offset + node.length - 1)
             };
             const prefix = document.getText(range);
-            if (context === PointerType.localized_text) {
-                const localisation: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("localized_text"),
-                    CompletionItemKind.Constant,
-                    range,
-                    prefix,
-                );
-                return localisation;
-            } else if (context === PointerType.brush) {
-                const brushes: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("brush"),
-                    CompletionItemKind.File,
-                    range,
-                    prefix,
-                );
 
-                return {
-                    ...brushes,
-                    items: brushes.items
-                        .filter((e) => e.label.endsWith(".png"))
-                        .map((e) => {
-                            const label = path.basename(e.label, path.extname(e.label));
-                            return {
-                                ...e,
-                                label: label,
-                                detail: ".png",
-                                textEdit: {
-                                    range,
-                                    newText: label,
-                                },
-                            };
-                        }),
-                };
-            } else if (context === PointerType.unit_skin) {
-                const unit_skins: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("unit_skin"),
-                    CompletionItemKind.Enum,
-                    range,
+            return (
+                this.completionManager.doComplete(
+                    context,
+                    this.currentEntity,
                     prefix,
-                );
-                return unit_skins;
-            } else if (context === PointerType.unit_item) {
-                const unit_items: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("unit_item"),
-                    CompletionItemKind.Enum,
                     range,
-                    prefix,
-                );
-                return unit_items;
-            } else if (context === PointerType.unit) {
-                const units: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("unit"),
-                    CompletionItemKind.Enum,
-                    range,
-                    prefix,
-                );
-                return units;
-            } else if (context === PointerType.mesh) {
-                const meshes: CompletionList = this.completionManager.setCompletionList(
-                    this.cacheManager.get("mesh"),
-                    CompletionItemKind.File,
-                    range,
-                    prefix,
-                    (e) => ({
-                        ...e,
-                        detail: ".obj",
-                    }),
-                );
-                return meshes;
-            }
+                    document,
+                    offset,
+                    this.cacheManager,
+                    this.uniformManager
+                ) ?? (await this.jsonLanguageService.doComplete(document, params.position, jsonDocument))
+            );
         }
-
-        const defaultSuggestions: CompletionList | null = await this.jsonLanguageService.doComplete(document, params.position, jsonDocument);
-
-        return defaultSuggestions;
+        return null;
     }
 
     /**
@@ -496,7 +413,7 @@ class SinsLanguageServer {
         jsonLanguageService: LanguageService,
         document: TextDocument,
         jsonDocument: JSONDocument,
-        node: ASTNode | undefined,
+        node: ASTNode | undefined
     ): Promise<PointerType> {
         if (!node || (node.parent?.type === "property" && node === node.parent.keyNode)) {
             return PointerType.none;
@@ -519,126 +436,27 @@ class SinsLanguageServer {
                 continue;
             }
 
-            const props = schema.schema.properties;
-            if (!props) {
-                continue;
-            }
+            const { properties, patternProperties } = schema.schema;
 
             const key = currentNode.keyNode.value;
-            const schemaProp: any = props[key];
+            const schemaProp: any = properties?.[key];
 
-            if (!schemaProp) {
+            if (schemaProp?.pointer) {
+                return schemaProp.pointer as PointerType;
+            }
+
+            if (!patternProperties) {
                 continue;
             }
-            if (!("pointer" in schemaProp)) {
-                continue;
-            }
 
-            return schemaProp.pointer as PointerType;
-        }
-
-        return PointerType.none;
-    }
-
-    private async validatePointers(document: TextDocument, jsonDocument: JSONDocument): Promise<Diagnostic[]> {
-        const diagnostics: Diagnostic[] = [];
-
-        const walk = (node: ASTNode | undefined, pointer: PointerType) => {
-            if (!node || node.value === null) {
-                return;
-            }
-
-            if (node.type === "array") {
-                node.items.forEach((item) => walk(item, pointer));
-                return;
-            }
-
-            const range: Range = {
-                start: document.positionAt(node.offset),
-                end: document.positionAt(node.offset + node.length),
-            };
-
-            const value = node.value as string;
-
-            switch (pointer) {
-                case PointerType.localized_text:
-                    // TODO: create a function for diagnostic logging
-                    if (!this.cacheManager.get("localized_text").has(value)) {
-                        diagnostics.push({
-                            severity: 1,
-                            range,
-                            message: `- no localisation key found for: "${value}".`,
-                            source: shared.SOURCE,
-                        });
-                    }
-                    break;
-                case PointerType.brush:
-                    if (!this.cacheManager.get("brush").has(value)) {
-                        diagnostics.push({
-                            severity: 1,
-                            range,
-                            message: `- no texture found for: "${value}".`,
-                            source: shared.SOURCE,
-                        });
-                    }
-                    break;
-                case PointerType.unit_skin:
-                    // check if it exists in the cache or the manifests, not being present in manifest is considered invalid.
-                    if (!this.cacheManager.get("unit_skin").has(value)) {
-                        diagnostics.push({
-                            severity: 1,
-                            range,
-                            message: `- "${value}" is missing in the entities folder.`,
-                            source: shared.SOURCE,
-                        });
-                    } else if (!this.entityManifestManager.get("unit_skin").has(value)) {
-                        diagnostics.push({
-                            severity: 1,
-                            range,
-                            message: `- "${value}" is missing in unit_skin.entity_manifest`,
-                            source: shared.SOURCE,
-                        });
-                    }
-                    break;
-                case PointerType.mesh:
-                    if (!this.cacheManager.get("mesh").has(value)) {
-                        diagnostics.push({
-                            severity: 1,
-                            range,
-                            message: `- no mesh found for: "${value}".`,
-                            source: shared.SOURCE,
-                        });
-                    }
-                    break;
-            }
-        };
-
-        const schemas = await this.jsonLanguageService.getMatchingSchemas(document, jsonDocument);
-        schemas.forEach((schemaMatch) => {
-            const props = schemaMatch.schema.properties;
-            if (!props) {
-                return;
-            }
-
-            Object.keys(props).forEach((key) => {
-                const schemaProp: any = props[key];
-
-                if (!("pointer" in schemaProp)) {
-                    return;
+            for (const pattern in patternProperties) {
+                const match: any = patternProperties[pattern];
+                if (match?.pointer) {
+                    return match.pointer as PointerType;
                 }
-
-                const nodes = JsonAST.findNodes(jsonDocument.root, key);
-                nodes.forEach((node) => {
-                    // prevent validation on properties with the same names that aren't in the same context
-                    if (!JsonAST.isWithinSchemaNode(node.offset, schemaMatch.node)) {
-                        return;
-                    }
-                    walk(node.valueNode, schemaProp.pointer);
-                });
-            });
-        });
-
-        return diagnostics;
+            }
+        }
+        return PointerType.none;
     }
 }
 

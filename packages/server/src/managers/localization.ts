@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import { Hover, MarkupKind } from "vscode-languageserver/node";
 import { WorkspaceManager } from "./workspace";
 
 /**
@@ -19,7 +18,7 @@ export class LocalizationManager {
      * A set of all unique keys found across all languages.
      * Used to quickly check if a string is a localization key without iterating everything.
      */
-    private knownKeys: Set<string> = new Set();
+    public knownKeys: Set<string> = new Set();
 
     /**
      * Scans the workspace for `.localized_text` files and loads them.
@@ -56,40 +55,7 @@ export class LocalizationManager {
             }
         }
     }
-
-    /**
-     * Checks if a string is a known localization key and returns a `Hover` object if so.
-     */
-    public getHover(key: string, lang: string = "en"): Hover | null {
-        if (!this.knownKeys.has(key)) {
-            return null;
-        }
-
-        const markdown: string[] = [];
-        markdown.push(`**Localized Text** - *${lang}.localized_text*`);
-        markdown.push(`\n`);
-        markdown.push(`------------`);
-        markdown.push(`\n`);
-        markdown.push(`${this.cache.get(lang)?.get(key)}`);
-
-        // Iterate over all loaded languages to show values or missing status.
-        // for (const [languageCode, languageMap] of this.cache.entries()) {
-        // 	const value: string | undefined = languageMap.get(key);
-        // 	if (value) {
-        // 		markdown.push(`| **${languageCode}** | ${value} |`);
-        // 	}
-        // 	else {
-        // 		markdown.push(`| ${languageCode} | ❗ *(missing)* |`);
-        // 	}
-        // }
-
-        const hover: Hover = {
-            contents: {
-                kind: MarkupKind.Markdown,
-                value: markdown.join("\n"),
-            },
-        };
-
-        return hover;
+    public get(lang: string): Map<string, string> {
+        return this.cache.get(lang)!;
     }
 }

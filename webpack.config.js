@@ -6,7 +6,6 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 /** @typedef {import("webpack").Configuration} WebpackConfig **/
 
-
 /** @type WebpackConfig */
 const clientConfig = {
 	target: "node", // VS Code extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
@@ -25,7 +24,10 @@ const clientConfig = {
 	},
 	resolve: {
 		// support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
-		extensions: [".ts", ".js"]
+		extensions: [".ts", ".js"],
+		alias: {
+			"@soase/shared": path.resolve(__dirname, "packages/shared/src")
+		}
 	},
 	module: {
 		rules: [
@@ -37,7 +39,8 @@ const clientConfig = {
 						loader: "ts-loader",
 						options: {
 							// Explicitly tell ts-loader to use the client config
-							configFile: "client/tsconfig.json"
+							configFile: "packages/client/tsconfig.json",
+							transpileOnly: true // Skip type checking during webpack build
 						}
 					}
 				]
@@ -46,7 +49,7 @@ const clientConfig = {
 	},
 	devtool: "source-map",
 	infrastructureLogging: {
-		level: "log", // enables logging required for problem matchers
+		level: "log" // enables logging required for problem matchers
 	},
 	ignoreWarnings: [
 		{
@@ -55,11 +58,10 @@ const clientConfig = {
 			/**
 			 * The warning occurs because this library uses a UMD (Universal Module Definition) wrapper.
 			 * The standard require() system is available at runtime, so the code will work perfectly fine despite the warning.
-			*/
+			 */
 		}
 	]
 };
-
 
 /** @type WebpackConfig */
 const serverConfig = {
@@ -76,7 +78,10 @@ const serverConfig = {
 		// However, it usually doesn't import it either.
 	},
 	resolve: {
-		extensions: [".ts", ".js"]
+		extensions: [".ts", ".js"],
+		alias: {
+			"@soase/shared": path.resolve(__dirname, "packages/shared/src")
+		}
 	},
 	module: {
 		rules: [
@@ -88,7 +93,8 @@ const serverConfig = {
 						loader: "ts-loader",
 						options: {
 							// Explicitly tell ts-loader to use the server config
-							configFile: "server/tsconfig.json"
+							configFile: "packages/server/tsconfig.json",
+							transpileOnly: true // Skip type checking during webpack build
 						}
 					}
 				]
@@ -102,18 +108,18 @@ const serverConfig = {
 					from: path.resolve(__dirname, "resources", "schemas"),
 					to: path.resolve(__dirname, "dist", "resources", "schemas")
 				},
-				{ // New or modified JSON schemas.
+				{
+					// New or modified JSON schemas.
 					from: path.resolve(__dirname, "resources", "schemas-dev"),
 					to: path.resolve(__dirname, "dist", "resources", "schemas-dev")
 				}
-			],
-		}),
+			]
+		})
 	],
-
 	devtool: "source-map",
 	infrastructureLogging: {
-		level: "log",
-	},
+		level: "log"
+	}
 };
 
 module.exports = [clientConfig, serverConfig];

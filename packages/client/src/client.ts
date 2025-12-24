@@ -1,8 +1,15 @@
 import * as path from "path";
-import { workspace as Workspace, window as Window, ExtensionContext, TextDocument, OutputChannel, WorkspaceFolder, Uri } from "vscode";
-
+import {
+    workspace as Workspace,
+    window as Window,
+    ExtensionContext,
+    TextDocument,
+    OutputChannel,
+    WorkspaceFolder,
+    Uri,
+    WorkspaceFoldersChangeEvent
+} from "vscode";
 import { LanguageClient, LanguageClientOptions, TransportKind, ServerOptions } from "vscode-languageclient/node";
-
 import { Configuration } from "./configuration";
 import * as shared from "@soase/shared";
 
@@ -10,6 +17,7 @@ export class ClientManager {
     private static clients = new Map<string, LanguageClient>();
     private static defaultClient: LanguageClient | undefined;
 
+    /** A file path to the server TypesScript module. */
     private static serverModule: string;
 
     private static sortedWorkspaceFolders: string[] | undefined;
@@ -17,6 +25,9 @@ export class ClientManager {
     private static outputChannel: OutputChannel;
     private static readonly CHANNEL_NAME: string = "Sins of a Solar Empire LSP";
 
+    /** The Sins of a Solar Empire JSON language ID.
+     * Ensure this matches the language ID in the extension `package.json`.
+     */
     private static readonly LANGUAGE_SINS: string = "soase";
 
     private static readonly CLIENT_ID: string = "soase-lsp";
@@ -29,21 +40,12 @@ export class ClientManager {
         this.serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
         this.outputChannel = Window.createOutputChannel(ClientManager.CHANNEL_NAME);
 
-        // Listen for file opens
+        // Listen for workspace folder changes.
+        Workspace.onDidChangeWorkspaceFolders((event) => this.onDidChangeWorkspaceFolders(event));
+
+        // Listen for workspace file opens.
         Workspace.onDidOpenTextDocument((doc) => this.didOpenTextDocument(doc));
         Workspace.textDocuments.forEach((doc) => this.didOpenTextDocument(doc));
-
-        // Handle workspace folder changes
-        Workspace.onDidChangeWorkspaceFolders((event) => {
-            this.sortedWorkspaceFolders = undefined; // Reset cache
-            for (const folder of event.removed) {
-                const client: LanguageClient | undefined = this.clients.get(folder.uri.toString());
-                if (client) {
-                    this.clients.delete(folder.uri.toString());
-                    client.stop();
-                }
-            }
-        });
     }
 
     /**
@@ -60,9 +62,27 @@ export class ClientManager {
         return Promise.all(promises).then(() => undefined);
     }
 
+    /**
+     * Handles workspace folder changes.
+     * @param event The workspace folder change event.
+     */
+    private static onDidChangeWorkspaceFolders(event: WorkspaceFoldersChangeEvent) {
+        this.sortedWorkspaceFolders = undefined; // Reset cache
+        for (const folder of event.removed) {
+            const client: LanguageClient | undefined = this.clients.get(folder.uri.toString());
+            if (client) {
+                this.clients.delete(folder.uri.toString());
+                client.stop();
+            }
+        }
+    }
+
+    /**
+     * Handles workspace file opens.
+     * @param document The document that was opened.
+     */
     private static didOpenTextDocument(document: TextDocument): void {
         // Make sure only the specific language ID is handled.
-        // Ensure this matches the ID in the `package.json`.
         if (document.languageId !== ClientManager.LANGUAGE_SINS || (document.uri.scheme !== "file" && document.uri.scheme !== "untitled")) {
             return;
         }
@@ -72,20 +92,23 @@ export class ClientManager {
         // Untitled files go to the default client.
         if (uri.scheme === "untitled" && !this.defaultClient) {
             const serverOptions: ServerOptions = {
-                run: { module: this.serverModule, transport: TransportKind.ipc },
+                run: {
+                    module: this.serverModule,
+                    transport: TransportKind.ipc
+                },
                 debug: {
                     module: this.serverModule,
                     transport: TransportKind.ipc,
                     // Do NOT use the fixed debug port here to avoid conflicts with the main server.
                     options: {
-                        execArgv: ["--nolazy"],
-                    },
-                },
+                        execArgv: ["--nolazy"] // Ensures all code is parsed before execution to allow setting breakpoints.
+                    }
+                }
             };
             const clientOptions: LanguageClientOptions = {
                 documentSelector: [{ scheme: "untitled", language: ClientManager.LANGUAGE_SINS }],
                 diagnosticCollectionName: ClientManager.CLIENT_ID,
-                outputChannel: this.outputChannel,
+                outputChannel: this.outputChannel
             };
 
             this.defaultClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);
@@ -93,7 +116,7 @@ export class ClientManager {
             return;
         }
 
-        // Files outside a folder can"t be handled. This might depend on the language.
+        // Files outside a folder cant be handled. This might depend on the language.
         // Single file languages like JSON might handle files outside the workspace folders.
         let folder: WorkspaceFolder | undefined = Workspace.getWorkspaceFolder(uri);
         if (!folder) {
@@ -105,24 +128,28 @@ export class ClientManager {
 
         if (!this.clients.has(folder.uri.toString())) {
             const serverOptions: ServerOptions = {
-                run: { module: this.serverModule, transport: TransportKind.ipc },
+                run: {
+                    module: this.serverModule,
+                    transport: TransportKind.ipc
+                },
                 debug: {
                     module: this.serverModule,
                     transport: TransportKind.ipc,
                     options: {
-                        // Define debug options to open a specific port for debugging the server. (See launch.json configuration)
-                        execArgv: ["--nolazy", "--inspect=6009"],
-                        // Use this to break on server constructor or initialization code.
-                        // execArgv: ['--nolazy', '--inspect-brk=6009']
-                    },
-                },
+                        execArgv: [
+                            "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
+                            // "--inspect=6010"
+                            "--inspect-brk=6010"
+                        ]
+                    }
+                }
             };
 
             const clientOptions: LanguageClientOptions = {
                 documentSelector: [{ scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${folder.uri.fsPath}/**/*` }],
                 diagnosticCollectionName: ClientManager.CLIENT_ID,
                 workspaceFolder: folder,
-                outputChannel: this.outputChannel,
+                outputChannel: this.outputChannel
             };
 
             const client: LanguageClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);

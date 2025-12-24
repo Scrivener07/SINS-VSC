@@ -3,5 +3,5 @@
 	"singleQuote": false,
 	"tabWidth": 4,
 	"printWidth": 150,
-	"trailingComma": "all"
+	"trailingComma": "none"
 }

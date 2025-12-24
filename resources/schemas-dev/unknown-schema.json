@@ -3,5 +3,5 @@
 	"title": "Unknown Type",
 	"description": "This file type does not yet have a strict schema definition. All properties are allowed.",
 	"type": "object",
-	"additionalProperties": true
+	"additionalProperties": false
 }

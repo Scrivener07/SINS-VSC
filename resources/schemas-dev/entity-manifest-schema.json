@@ -8,6 +8,10 @@
 		"ids"
 	],
 	"properties": {
+		"overwrite_ids": {
+			"description": "Whether or not to merge with vanilla definitions.",
+			"type": "boolean"
+		},
 		"ids": {
 			"description": "A collection of identifiers for this entity type.",
 			"type": "array",

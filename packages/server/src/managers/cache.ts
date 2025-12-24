@@ -1,31 +1,26 @@
 import * as fs from "fs";
 import * as path from "path";
+import { EntityManifestType } from "./manifest";
 import { WorkspaceManager } from "./workspace";
-import { EntityManifest } from "./manifest";
-import { IndexManager } from "./data-manager";
+import { UniformType } from "./uniform";
 
-export interface CacheType extends EntityManifest {
+export interface CacheType extends EntityManifestType {
     texture: Set<string>;
     localized_text: Set<string>;
     brush: Set<string>;
     mesh: Set<string>;
+    mesh_material: Set<string>;
+    ttf: Set<string>;
 }
 
-interface CacheManagerI {
-	loadBrushes(rootPath: string): Promise<void>;
-	loadUnitItems(rootPath: string): Promise<void>;
-	loadUnitSkins(rootPath: string): Promise<void>;
-	loadUnits(rootPath: string): Promise<void>;
-	loadTextures(rootPath: string): Promise<void>;
-	loadMeshes(rootPath: string): Promise<void>;
-	loadLocalisations(rootPath: string, lang: string): Promise<void>;
-	loadCache(rootPath: string, lang: string): Promise<void>;
-}
+export class CacheStorage<T extends CacheType | EntityManifestType | UniformType> {
+    protected cache = new Map<keyof T, Set<string>>();
 
-export class CacheManager implements CacheManagerI  {
-    protected cache: Map<keyof CacheType, Set<string>> = new Map();
+    public set<K extends keyof T>(cache: K, items: Set<string>) {
+        this.cache.set(cache, new Set(items));
+    }
 
-    public get(cache: keyof CacheType): Set<string> {
+    public get<K extends keyof T>(cache: K): Set<string> {
         if (!this.cache.has(cache)) {
             this.cache.set(cache, new Set<string>());
         }
@@ -40,30 +35,20 @@ export class CacheManager implements CacheManagerI  {
         return size;
     }
 
-    public set(cache: keyof CacheType, items: Set<string>): void {
-        if (!this.cache.has(cache)) {
-            this.cache.set(cache, new Set<string>());
-        }
-        this.cache.get(cache)?.clear();
-        for (const item of items) {
-            this.cache.get(cache)?.add(item);
-        }
-    }
-
     public clear(): void {
         for (const cache of this.cache.values()) {
             cache.clear();
         }
     }
+}
 
-    /* -------------------------------------------------------- */
-
+export class CacheManager extends CacheStorage<CacheType> {
     public async loadBrushes(rootPath: string): Promise<void> {
         const brushes: string[] = await WorkspaceManager.findFiles(rootPath, ".png");
         const set: Set<string> = new Set();
         for (const brush of brushes) {
-            set.add(path.basename(brush));
-            set.add(path.basename(brush, path.extname(brush)));
+            set.add(path.basename(brush).toLocaleLowerCase());
+            set.add(path.basename(brush, path.extname(brush)).toLocaleLowerCase());
         }
         this.set("brush", set);
     }
@@ -72,16 +57,25 @@ export class CacheManager implements CacheManagerI  {
         const ids: any = await WorkspaceManager.findFiles(rootPath, ".unit_item");
         const set: Set<string> = new Set();
         for (const id of ids) {
-            set.add(path.basename(id, path.extname(id)));
+            set.add(path.basename(id, path.extname(id)).toLocaleLowerCase());
         }
         this.set("unit_item", set);
+    }
+
+    public async loadWeapons(rootPath: string): Promise<void> {
+        const ids: any = await WorkspaceManager.findFiles(rootPath, ".weapon");
+        const set: Set<string> = new Set();
+        for (const id of ids) {
+            set.add(path.basename(id, path.extname(id)).toLocaleLowerCase());
+        }
+        this.set("weapon", set);
     }
 
     public async loadUnitSkins(rootPath: string): Promise<void> {
         const ids: any = await WorkspaceManager.findFiles(rootPath, ".unit_skin");
         const set: Set<string> = new Set();
         for (const id of ids) {
-            set.add(path.basename(id, path.extname(id)));
+            set.add(path.basename(id, path.extname(id)).toLocaleLowerCase());
         }
         this.set("unit_skin", set);
     }
@@ -90,7 +84,7 @@ export class CacheManager implements CacheManagerI  {
         const ids: string[] = await WorkspaceManager.findFiles(rootPath, ".unit");
         const set: Set<string> = new Set();
         for (const id of ids) {
-            set.add(path.basename(id, path.extname(id)));
+            set.add(path.basename(id, path.extname(id)).toLocaleLowerCase());
         }
         this.set("unit", set);
     }
@@ -100,8 +94,8 @@ export class CacheManager implements CacheManagerI  {
         const textures: string[] = await WorkspaceManager.findFiles(rootPath, ".dds");
         const set: Set<string> = new Set();
         for (const texture of textures) {
-            set.add(path.basename(texture));
-            set.add(path.basename(texture, path.extname(texture)));
+            set.add(path.basename(texture).toLocaleLowerCase());
+            set.add(path.basename(texture, path.extname(texture)).toLocaleLowerCase());
         }
         this.set("texture", set);
     }
@@ -110,9 +104,26 @@ export class CacheManager implements CacheManagerI  {
         const meshes: string[] = await WorkspaceManager.findFiles(rootPath, ".mesh");
         const set: Set<string> = new Set();
         for (const mesh of meshes) {
-            set.add(path.basename(mesh, path.extname(mesh)));
+            set.add(path.basename(mesh, path.extname(mesh)).toLocaleLowerCase());
         }
         this.set("mesh", set);
+    }
+
+    public async loadMeshMaterials(rootPath: string): Promise<void> {
+        const materials: string[] = await WorkspaceManager.findFiles(rootPath, ".mesh_material");
+        const set: Set<string> = new Set();
+        for (const material of materials) {
+            set.add(path.basename(material, path.extname(material)).toLocaleLowerCase());
+        }
+        this.set("mesh_material", set);
+    }
+    public async loadTtfFonts(rootPath: string): Promise<void> {
+        const ttfs: string[] = await WorkspaceManager.findFiles(rootPath, ".ttf");
+        const set: Set<string> = new Set();
+        for (const ttf of ttfs) {
+            set.add(path.basename(ttf, path.extname(ttf)).toLocaleLowerCase());
+        }
+        this.set("ttf", set);
     }
 
     public async loadLocalisations(rootPath: string, lang: string): Promise<void> {
@@ -136,6 +147,9 @@ export class CacheManager implements CacheManagerI  {
             this.loadUnitItems(rootPath),
             this.loadUnits(rootPath),
             this.loadMeshes(rootPath),
+            this.loadWeapons(rootPath),
+            this.loadMeshMaterials(rootPath),
+            this.loadTtfFonts(rootPath),
         ]);
     }
 }

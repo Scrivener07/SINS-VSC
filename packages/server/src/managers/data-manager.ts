@@ -1,8 +1,8 @@
 import * as path from "path";
-import * as fs from "fs";
-import { WorkspaceManager } from "./workspace";
 import { CacheManager } from "./cache";
 import { EntityManifestManager } from "./manifest";
+import { WorkspaceManager } from "./workspace";
+import { UniformManager }   from "./uniform";
 
 /**
  * Manages an index of files within the workspace for quick lookup by identifier.
@@ -17,10 +17,12 @@ export class IndexManager {
 
     private cacheManager: CacheManager;
     private entityManifestManager: EntityManifestManager;
+    private uniformManager: UniformManager;
 
-    constructor(cacheManager: CacheManager, entityManifestManager: EntityManifestManager) {
+    constructor(cacheManager: CacheManager, entityManifestManager: EntityManifestManager, uniformManager: UniformManager) {
         this.cacheManager = cacheManager;
         this.entityManifestManager = entityManifestManager;
+        this.uniformManager = uniformManager;
     }
 
     /** Provides a list of file extensions for indexing. */
@@ -70,7 +72,7 @@ export class IndexManager {
         ".gdpr_accept_data",
         ".playtime_message",
         ".welcome_message",
-        ".start_mode",
+        ".start_mode"
     ]);
 
     /**
@@ -79,6 +81,7 @@ export class IndexManager {
      */
     public async rebuildIndex(rootPath: string, lang: string): Promise<void> {
         this.entityManifestManager.clear();
+        this.uniformManager.clear();
         this.cacheManager.clear();
         this.fileIndex.clear();
 
@@ -96,6 +99,7 @@ export class IndexManager {
         console.time(`Caching::'${rootPath}'`);
         await this.cacheManager.loadCache(rootPath, lang);
         await this.entityManifestManager.loadCache(rootPath);
+        await this.uniformManager.loadCache(rootPath);
 
         console.timeEnd(`Caching::'${rootPath}'`);
         console.log(`Cached ${this.cacheManager.size()} elements in '${rootPath}'.`);
@@ -122,13 +126,5 @@ export class IndexManager {
      */
     public getPaths(identifier: string): string[] | undefined {
         return this.fileIndex.get(identifier);
-    }
-
-    public getKeyFromPath(identifier: string): string | undefined {
-        for (const [k, arr] of this.fileIndex) {
-            if (arr.includes(identifier)) {
-                return k;
-            }
-        }
     }
 }

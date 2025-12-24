@@ -1,0 +1,22 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"required": [
+		"face",
+		"height"
+	],
+	"properties": {
+		"face": {
+			"$ref": "#/$defs/ttf_ptr"
+		},
+		"height": {
+			"type": "number"
+		}
+	},
+	"$defs": {
+		"ttf_ptr": {
+			"type": "string"
+		}
+	}
+}

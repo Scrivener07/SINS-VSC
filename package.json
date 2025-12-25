@@ -114,6 +114,10 @@
 			{
 				"command": "soase.helloWorld",
 				"title": "Hello World"
+			},
+			{
+				"command": "soase.research.visualizer.open",
+				"title": "Open Research Visualizer"
 			}
 		]
 	},

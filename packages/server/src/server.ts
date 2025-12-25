@@ -1,6 +1,6 @@
-import * as fs from "fs";
 import * as path from "path";
-import * as shared from "@soase/shared";
+import * as fs from "fs";
+import { ServerRequest, PROPERTIES } from "@soase/shared";
 import {
     createConnection,
     TextDocuments,
@@ -17,18 +17,8 @@ import {
     DocumentSymbolParams
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import {
-    ASTNode,
-    CompletionItemKind,
-    DocumentSymbol,
-    getLanguageService,
-    JSONDocument,
-    LanguageService,
-    LanguageSettings,
-    Location,
-    Range
-} from "vscode-json-languageservice";
-import { fileURLToPath, pathToFileURL } from "url";
+import { ASTNode, DocumentSymbol, getLanguageService, JSONDocument, LanguageService, Location, Range } from "vscode-json-languageservice";
+import { fileURLToPath } from "url";
 import { SchemaPatcher } from "./json-schema";
 import { JsonAST } from "./json-ast";
 import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager } from "./providers";
@@ -127,6 +117,11 @@ class SinsLanguageServer {
         this.connection.onCompletion(this.onCompletion.bind(this));
         this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
 
+        // Named client requests.
+        this.connection.onRequest(ServerRequest.PLAYERS, () => this.request_PlayerList());
+        this.connection.onRequest(ServerRequest.PLAYER_RESEARCH, (params: { playerId: string }) => this.request_PlayerResearch(params.playerId));
+        this.connection.onRequest(ServerRequest.PLAYER_FILEPATH, (params: { fileId: string }) => this.request_PlayerFile(params.fileId));
+
         // Bind the document event listeners.
         this.documents.onDidOpen(this.onDidOpen.bind(this));
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
@@ -137,6 +132,92 @@ class SinsLanguageServer {
 
         // Start the server.
         this.connection.listen();
+    }
+
+    private request_PlayerList(): string[] {
+        console.log("<SinsLanguageServer::request_PlayerList> Received request");
+        const players: Set<string> = this.cacheManager.get("player");
+        // NOTE: Set<T> is not serializable and must be converted to an array in order to move over the LSP.
+        return Array.from(players);
+    }
+
+    private async request_PlayerResearch(playerId: string): Promise<any[]> {
+        console.log(`<SinsLanguageServer::request_PlayerResearch> Getting research for player ID: ${playerId}`);
+
+        // Get the player file path
+        const playerFilePaths: string[] | undefined = this.indexManager.getPaths(playerId);
+        if (!playerFilePaths || playerFilePaths.length === 0) {
+            console.warn(`<SinsLanguageServer::request_PlayerResearch> Player file not found for ID: ${playerId}`);
+            return [];
+        }
+
+        const playerFilePath: string = playerFilePaths[0];
+
+        try {
+            // Read and parse the player file.
+            const playerFileContent: string = await fs.promises.readFile(playerFilePath, "utf-8");
+            const playerData: any = JSON.parse(playerFileContent);
+
+            // Extract research subject IDs from the player's research section.
+            const researchSubjectIds: string[] = playerData.research?.research_subjects ?? [];
+
+            if (researchSubjectIds.length === 0) {
+                console.warn(`<SinsLanguageServer::request_PlayerResearch> No research subjects found for player: ${playerId}`);
+                return [];
+            }
+
+            console.log(`<SinsLanguageServer::request_PlayerResearch> Found ${researchSubjectIds.length} research subjects`);
+
+            // Get localization data for resolving names.
+            const localization = this.localizationManager.get(this.currentLanguageCode);
+
+            // Load each research subject file.
+            const researchData: any[] = [];
+            for (const researchId of researchSubjectIds) {
+                const researchFilePaths: string[] | undefined = this.indexManager.getPaths(researchId);
+
+                if (!researchFilePaths || researchFilePaths.length === 0) {
+                    console.warn(`<SinsLanguageServer::request_PlayerResearch> Research subject file not found: ${researchId}`);
+                    continue;
+                }
+
+                const researchFilePath: string = researchFilePaths[0];
+
+                try {
+                    const researchFileContent: string = await fs.promises.readFile(researchFilePath, "utf-8");
+                    const researchSubject: any = JSON.parse(researchFileContent);
+
+                    // Get resolved localized name, or fallback to localization key.
+                    const localizedName = localization?.get(researchSubject.name) || researchSubject.name;
+
+                    // Create subject matching ResearchNode interface.
+                    // Add the ID to the research subject data for reference.
+                    const subject: any = {
+                        id: researchId,
+                        name: localizedName,
+                        prerequisites: researchSubject.prerequisites || [],
+                        field_coord: researchSubject.field_coord || [0, 0],
+                        tier: researchSubject.tier || 0,
+                        field: researchSubject.field || "unknown"
+                    };
+                    researchData.push(subject);
+                } catch (error) {
+                    console.error(`<SinsLanguageServer::request_PlayerResearch> Failed to read research subject file: ${researchFilePath}`, error);
+                }
+            }
+
+            console.log(`<SinsLanguageServer::request_PlayerResearch> Successfully loaded ${researchData.length} research subjects`);
+            return researchData;
+        } catch (error) {
+            console.error(`<SinsLanguageServer::request_PlayerResearch> Failed to read player file: ${playerFilePath}`, error);
+            return [];
+        }
+    }
+
+    private request_PlayerFile(fileId: string): string | undefined {
+        console.log(`<SinsLanguageServer::request_PlayerFile> Getting file for identifier: ${fileId}`);
+        const firstPath: string | undefined = this.indexManager.getPaths(fileId)?.[0];
+        return firstPath;
     }
 
     /**
@@ -192,7 +273,7 @@ class SinsLanguageServer {
         this.connection.console.log("Server initialized.");
 
         // Get current language from vscode settings
-        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
+        this.currentLanguageCode = await this.sendRequest(PROPERTIES.language);
 
         // Initialize workspace data managers.
         if (this.workspaceFolder) {
@@ -238,7 +319,7 @@ class SinsLanguageServer {
         }
 
         this.currentEntity = this.getCurrentEntityType(change.document.uri);
-        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
+        this.currentLanguageCode = await this.sendRequest(PROPERTIES.language);
         await this.validateTextDocument(change.document);
     }
 

@@ -17,6 +17,14 @@ export class ClientManager {
     private static clients = new Map<string, LanguageClient>();
     private static defaultClient: LanguageClient | undefined;
 
+    /**
+     * TODO: This has a timing problem.
+     * If no soase documents have been opened yet, there will not be a language client instance available.
+     */
+    public static getLanguageClients(): Map<string, LanguageClient> {
+        return ClientManager.clients;
+    }
+
     /** A file path to the server TypesScript module. */
     private static serverModule: string;
 
@@ -138,8 +146,8 @@ export class ClientManager {
                     options: {
                         execArgv: [
                             "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
-                            // "--inspect=6010"
-                            "--inspect-brk=6010"
+                            "--inspect=6010"
+                            // "--inspect-brk=6010"
                         ]
                     }
                 }

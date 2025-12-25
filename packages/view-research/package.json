@@ -1,0 +1,18 @@
+{
+	"name": "@soase/view-research",
+	"description": "Provides the research visualization webview.",
+	"version": "1.0.0",
+	"private": true,
+	"main": "out/index.js",
+	"dependencies": {
+		"@soase/shared": "file:../shared"
+	},
+	"devDependencies": {
+		"css-loader": "^7.1.2",
+		"style-loader": "^4.0.0"
+	},
+	"scripts": {
+		"compile": "webpack --mode production",
+		"watch": "webpack --mode development --watch"
+	}
+}

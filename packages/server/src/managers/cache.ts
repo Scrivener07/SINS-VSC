@@ -43,6 +43,15 @@ export class CacheStorage<T extends CacheType | EntityManifestType | UniformType
 }
 
 export class CacheManager extends CacheStorage<CacheType> {
+    public async loadPlayers(rootPath: string): Promise<void> {
+        const ids: any = await WorkspaceManager.findFiles(rootPath, ".player");
+        const set: Set<string> = new Set();
+        for (const id of ids) {
+            set.add(path.basename(id, path.extname(id)).toLocaleLowerCase());
+        }
+        this.set("player", set);
+    }
+
     public async loadBrushes(rootPath: string): Promise<void> {
         const brushes: string[] = await WorkspaceManager.findFiles(rootPath, ".png");
         const set: Set<string> = new Set();
@@ -140,6 +149,7 @@ export class CacheManager extends CacheStorage<CacheType> {
 
     public async loadCache(rootPath: string, lang: string): Promise<void> {
         await Promise.all([
+            this.loadPlayers(rootPath),
             this.loadLocalisations(rootPath, lang),
             this.loadTextures(rootPath),
             this.loadBrushes(rootPath),
@@ -149,7 +159,7 @@ export class CacheManager extends CacheStorage<CacheType> {
             this.loadMeshes(rootPath),
             this.loadWeapons(rootPath),
             this.loadMeshMaterials(rootPath),
-            this.loadTtfFonts(rootPath),
+            this.loadTtfFonts(rootPath)
         ]);
     }
 }

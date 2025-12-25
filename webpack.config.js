@@ -122,4 +122,42 @@ const serverConfig = {
 	}
 };
 
-module.exports = [clientConfig, serverConfig];
+/** @type WebpackConfig */
+const viewResearchConfig = {
+	target: "web",
+	mode: "none",
+	entry: "./packages/view-research/src/index.ts",
+	output: {
+		path: path.resolve(__dirname, "dist", "view-research"),
+		filename: "index.js",
+		libraryTarget: "module"
+	},
+	experiments: {
+		outputModule: true
+	},
+	resolve: {
+		extensions: [".ts", ".js"]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.ts$/,
+				exclude: /node_modules/,
+				use: {
+					loader: "ts-loader",
+					options: {
+						transpileOnly: true
+					}
+				}
+			},
+			{
+				test: /\.css$/,
+				use: ["style-loader", "css-loader"]
+			}
+		]
+	},
+	devtool: "source-map"
+};
+
+
+module.exports = [clientConfig, serverConfig, viewResearchConfig];

@@ -7,7 +7,7 @@ import { ResearchNode } from "./data";
  */
 export class ResearchRenderer {
     /** The VSCode API object provided to the webview. */
-    private vscode: VSCodeApi;
+    private readonly vscode: VSCodeApi;
 
     /** The ID of the main container element. */
     private static readonly CONTAINER_ID: string = "research-tree-container";
@@ -27,9 +27,14 @@ export class ResearchRenderer {
     /** The padding around the research tree. */
     private readonly PADDING: number = 20;
 
+    /** The ID of the player selector element. */
+    private static readonly PLAYER_SELECTOR_ID: string = "player-selector";
+
+    /** The currently selected player ID. */
+    private selectedPlayerId: string | null = null;
+
     /**
      * Creates a new ResearchRenderer.
-     * @param containerId The ID of the container element.
      * @param vscode The VSCode API object.
      */
     constructor(vscode: VSCodeApi) {
@@ -71,12 +76,6 @@ export class ResearchRenderer {
             this.vscode.postMessage(message);
         }
     }
-
-    /** The ID of the player selector element. */
-    private static readonly PLAYER_SELECTOR_ID: string = "player-selector";
-
-    /** The currently selected player ID. */
-    private selectedPlayerId: string | null = null;
 
     private setupPlayerSelector(): void {
         const selector = document.getElementById(ResearchRenderer.PLAYER_SELECTOR_ID) as HTMLSelectElement;

@@ -53,7 +53,7 @@ export class ResearchPanel {
         this.panel = panel;
         this.context = context;
 
-        this.panel.webview.html = ResearchPanel.getHtml(this.panel.webview, context.extensionUri);
+        this.panel.webview.html = ResearchPanel.getHtml(this.panel.webview);
         this.panel.webview.onDidReceiveMessage((message) => this.onDidReceiveMessage(message), null, this.disposables);
 
         this.panel.onDidDispose(
@@ -69,52 +69,48 @@ export class ResearchPanel {
     /**
      * Generates the initial HTML content for the research tree webview.
      * @param webview The webview instance.
-     * @param extensionUri The extension URI.
      * @returns The HTML content as a string.
      */
-    private static getHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+    private static getHtml(webview: vscode.Webview): string {
         const scriptPath = vscode.Uri.joinPath(ResearchPanel.viewResourceRoot, "index.js");
         const scriptUri: vscode.Uri = webview.asWebviewUri(scriptPath);
 
         const nonce: string = ResearchPanel.getNonce();
 
-        // TODO: I dont know what I was thinking, this is formatted dumb.
-        const html: string[] = [
-            `<!DOCTYPE html>`,
-            `<html lang="en">`,
-            `<head>`,
-            `  <meta charset="UTF-8">`,
-            `  <meta name="viewport" content="width=device-width, initial-scale=1.0">`,
-            `  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">`,
-            `  <title>Research Tree</title>`,
-            `</head>`,
-            `<body>`,
+        const html: string = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+              <title>${ResearchPanel.VIEW_TITLE}</title>
+            </head>
+            <body>
+                <div style="padding: 20px; background-color: var(--vscode-editor-background);">
+                    <label for="player-selector" style="margin-right: 10px;">Player:</label>
+                    <select
+                        id="player-selector"
+                        style="
+                            padding: 4px 8px;
+                            background-color: var(--vscode-input-background);
+                            color: var(--vscode-input-foreground);
+                            border: 1px solid var(--vscode-input-border);
+                            border-radius: 2px;
+                            min-width: 200px;
+                        "
+                    >
+                        <option value="">Loading players...</option>
+                    </select>
+                </div>
 
-            `<div style="padding: 20px; background-color: var(--vscode-editor-background);">
-                <label for="player-selector" style="margin-right: 10px;">Player:</label>
-                <select
-                    id="player-selector"
-                    style="
-                        padding: 4px 8px;
-                        background-color: var(--vscode-input-background);
-                        color: var(--vscode-input-foreground);
-                        border: 1px solid var(--vscode-input-border);
-                        border-radius: 2px;
-                        min-width: 200px;
-                    "
-                >
-                    <option value="">Loading players...</option>
-                </select>
-            </div>
+                <div id="research-tree-container"></div>
 
-            <div id="research-tree-container"></div>`,
-
-            `  <div id="research-tree-container"></div>`,
-            `  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>`,
-            `</body>`,
-            `</html>`
-        ];
-        return html.join("\n");
+                <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+            </body>
+            </html>
+        `;
+        return html;
     }
 
     /**

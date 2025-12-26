@@ -33,36 +33,50 @@ export interface ILogMessage {
 /**
  * The names of the requests sent from the client to the server.
  */
-export class ServerRequest {
-    public static readonly PLAYERS: string = "custom/getPlayers";
-    public static readonly PLAYER_RESEARCH: string = "custom/getResearchForPlayer";
-    public static readonly PLAYER_FILEPATH: string = "custom/getFilePath";
+export enum ServerRequest {
+    /** Request the list of players. */
+    PLAYERS = "custom/getPlayers",
+
+    /** Request the research data for a specific player. */
+    PLAYER_RESEARCH = "custom/getResearchForPlayer",
+
+    /** Request the file path for a specific player. */
+    PLAYER_FILEPATH = "custom/getFilePath"
 }
 
 /**
  * The names of the requests sent from the client to the webview.
  */
-export class ViewRequest {
-    public static readonly UPDATE: string = "update";
-    public static readonly REFRESH: string = "refresh";
-    public static readonly PLAYER_LIST: string = "playerList";
+export enum ViewRequest {
+    /** Sends the list of players to the webview. */
+    PLAYER_LIST = "playerList",
+
+    /** WIP: For the unused refresh request. */
+    UPDATE = "update",
+
+    /** WIP: For the unused refresh request. */
+    REFRESH = "refresh"
 }
 
 /**
  * The names of the responses sent from the webview to the client.
  */
-export class ViewResponse {
-    public static readonly LOG: string = "log";
+export enum ViewResponse {
+    /** Log message from the webview to be recorded by the extension. */
+    LOG = "log",
 
     /** Indicates that the webview is ready for interaction. */
-    public static readonly READY: string = "ready";
+    READY = "ready",
 
     /** Indicates that a player has been selected in the webview and research data is being requested. */
-    public static readonly PLAYER_SELECT: string = "playerSelect";
+    PLAYER_SELECT = "playerSelect",
 
     /** Indicates that the research data for the selected player should be updated in the webview. */
-    public static readonly UPDATE_RESEARCH: string = "updateResearch";
+    UPDATE_RESEARCH = "updateResearch",
 
-    public static readonly DATA_REQUEST: string = "requestData";
-    public static readonly FILE_OPEN: string = "openFile";
+    /** WIP: For the unused refresh request. */
+    DATA_REQUEST = "requestData",
+
+    /** Indicates a request to open a file in the editor. */
+    FILE_OPEN = "openFile"
 }

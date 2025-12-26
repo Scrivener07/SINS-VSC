@@ -1,6 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
-import { ServerRequest, PROPERTIES } from "@soase/shared";
+import * as shared from "@soase/shared";
+import { ServerRequest, IResearchSubject } from "@soase/shared";
 import {
     createConnection,
     TextDocuments,
@@ -141,6 +142,13 @@ class SinsLanguageServer {
         return Array.from(players);
     }
 
+    /**
+     * Gets the research nodes for a specific player.
+     *
+     * TODO: This pollutes the language server with code that should partially be handled on the client side.
+     * @param playerId The player identifier.
+     * @returns An array of research nodes for the specified player.
+     */
     private async request_PlayerResearch(playerId: string): Promise<any[]> {
         console.log(`<SinsLanguageServer::request_PlayerResearch> Getting research for player ID: ${playerId}`);
 
@@ -169,7 +177,7 @@ class SinsLanguageServer {
             console.log(`<SinsLanguageServer::request_PlayerResearch> Found ${researchSubjectIds.length} research subjects`);
 
             // Get localization data for resolving names.
-            const localization = this.localizationManager.get(this.currentLanguageCode);
+            const localization: Map<string, string> = this.localizationManager.get(this.currentLanguageCode);
 
             // Load each research subject file.
             const researchData: any[] = [];
@@ -192,7 +200,7 @@ class SinsLanguageServer {
 
                     // Create subject matching ResearchNode interface.
                     // Add the ID to the research subject data for reference.
-                    const subject: any = {
+                    const subject: IResearchSubject = {
                         id: researchId,
                         name: localizedName,
                         prerequisites: researchSubject.prerequisites || [],
@@ -273,7 +281,7 @@ class SinsLanguageServer {
         this.connection.console.log("Server initialized.");
 
         // Get current language from vscode settings
-        this.currentLanguageCode = await this.sendRequest(PROPERTIES.language);
+        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
 
         // Initialize workspace data managers.
         if (this.workspaceFolder) {
@@ -319,7 +327,7 @@ class SinsLanguageServer {
         }
 
         this.currentEntity = this.getCurrentEntityType(change.document.uri);
-        this.currentLanguageCode = await this.sendRequest(PROPERTIES.language);
+        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
         await this.validateTextDocument(change.document);
     }
 

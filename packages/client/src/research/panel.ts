@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import { IWebViewMessage, ServerRequest, ViewRequest, ViewResponse } from "@soase/shared";
+import { ILogMessage, IWebViewMessage, ServerRequest, ViewRequest, ViewResponse } from "@soase/shared";
 import { ClientManager } from "../client";
 
 /**
@@ -77,31 +77,39 @@ export class ResearchPanel {
 
         const nonce: string = ResearchPanel.getNonce();
 
-        const html: string = `
+        return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
-              <title>${ResearchPanel.VIEW_TITLE}</title>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+                <title>${ResearchPanel.VIEW_TITLE}</title>
             </head>
             <body>
-                <div style="padding: 20px; background-color: var(--vscode-editor-background);">
-                    <label for="player-selector" style="margin-right: 10px;">Player:</label>
-                    <select
-                        id="player-selector"
-                        style="
-                            padding: 4px 8px;
-                            background-color: var(--vscode-input-background);
-                            color: var(--vscode-input-foreground);
-                            border: 1px solid var(--vscode-input-border);
-                            border-radius: 2px;
-                            min-width: 200px;
-                        "
-                    >
-                        <option value="">Loading players...</option>
-                    </select>
+                <div class="header">
+
+                    <div>
+                        <label for="player-selector" class="control-label">Player:</label>
+                        <select id="player-selector" class="player-selector">
+                            <option value="">Loading players...</option>
+                        </select>
+                    </div>
+
+                    <div id="domain-tabs" class="domain-tabs">
+                        <button id="tab-civilian" class="domain-tab active" data-domain="civilian">
+                            Civilian
+                        </button>
+                        <button id="tab-military" class="domain-tab" data-domain="military">
+                            Military
+                        </button>
+                    </div>
+
+                    <div>
+                        <label for="node-connection-selector" class="control-label">Connections:</label>
+                        <input id="node-connection-selector" type="checkbox" class="node-connection-selector"></input>
+                    </div>
+
                 </div>
 
                 <div id="research-tree-container"></div>
@@ -110,7 +118,6 @@ export class ResearchPanel {
             </body>
             </html>
         `;
-        return html;
     }
 
     /**
@@ -141,6 +148,10 @@ export class ResearchPanel {
      */
     private async onDidReceiveMessage(message: IWebViewMessage): Promise<void> {
         switch (message.type) {
+            case ViewResponse.LOG:
+                const log: ILogMessage = message.data;
+                console[log.level](log.text, log.data);
+                break;
             case ViewResponse.READY:
                 await this.update_PlayerList();
                 break;
@@ -220,7 +231,7 @@ export class ResearchPanel {
         }
 
         // Use IndexManager paths from language server to find the file.
-        console.log(`<ResearchPanel::openFile> Opening file for ID: ${identifier}`);
+        console.info(`<ResearchPanel::openFile> Opening file for ID: ${identifier}`);
         const filePath: string = await client.sendRequest(ServerRequest.PLAYER_FILEPATH, { fileId: identifier });
         if (filePath) {
             const document: vscode.TextDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));

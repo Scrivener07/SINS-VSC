@@ -1,7 +1,8 @@
 import "./styles.css";
-import * as shared from "@soase/shared";
+import { VSCode, acquireVsCodeApi } from "./vscode";
+import { Log } from "./log";
 import { ResearchRenderer } from "./renderer";
-import { VSCodeApi, acquireVsCodeApi } from "./vscode";
+import * as shared from "@soase/shared";
 
 /**
  * The main application class for the research visualizer.
@@ -10,7 +11,7 @@ class Application {
     /**
      * The aquired VSCode API object.
      */
-    private readonly vscode: VSCodeApi = acquireVsCodeApi();
+    private readonly vscode: VSCode = acquireVsCodeApi();
 
     /**
      * The main renderer for the research visualizer.
@@ -21,6 +22,8 @@ class Application {
      * A constructor that instantiates a new application instance.
      */
     constructor() {
+        Log.initialize(this.vscode);
+
         // Instantiate the renderer.
         this.renderer = new ResearchRenderer(this.vscode);
 
@@ -32,7 +35,7 @@ class Application {
     }
 
     /**
-     * Handles message events from the extension.
+     * Handles message events from the extension host.
      * @param event The message event.
      */
     private onMessage(event: MessageEvent<any>) {

@@ -1,7 +1,7 @@
 Research is split into two domains, civilian and military.
 Each domain is further split into "fields" which are varied between each domain and faction.
 
-Within each field are the research subject nodes which are laid out on a grid with "field coordinates" where the origin grid cell is [0,0] in the upper-left hand side of each tier group.
+Within each field are the research subject nodes which are laid out on a grid with "field coordinates" where the origin grid cell is [0,0] in the upper-left hand side of each field group.
 
 Looking at the field cell coordinates, there is a further division of "tiers" that start at 0 on the left and ascend moving right.
 These tiers are represented as columns in the grid. Each tier occupys 2 columns for grid cells with default settings.

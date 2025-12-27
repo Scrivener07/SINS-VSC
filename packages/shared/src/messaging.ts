@@ -31,30 +31,16 @@ export interface ILogMessage {
 }
 
 /**
- * The names of the requests sent from the client to the server.
- */
-export enum ServerRequest {
-    /** Request the list of players. */
-    PLAYERS = "custom/getPlayers",
-
-    /** Request the research data for a specific player. */
-    PLAYER_RESEARCH = "custom/getResearchForPlayer",
-
-    /** Request the file path for a specific player. */
-    PLAYER_FILEPATH = "custom/getFilePath"
-}
-
-/**
  * The names of the requests sent from the client to the webview.
  */
 export enum ViewRequest {
     /** Sends the list of players to the webview. */
     PLAYER_LIST = "playerList",
 
-    /** WIP: For the unused refresh request. */
+    /** @deprecated WIP: For the unused refresh request. */
     UPDATE = "update",
 
-    /** WIP: For the unused refresh request. */
+    /** @deprecated WIP: For the unused refresh request. */
     REFRESH = "refresh"
 }
 
@@ -74,7 +60,7 @@ export enum ViewResponse {
     /** Indicates that the research data for the selected player should be updated in the webview. */
     UPDATE_RESEARCH = "updateResearch",
 
-    /** WIP: For the unused refresh request. */
+    /** @deprecated WIP: For the unused refresh request. */
     DATA_REQUEST = "requestData",
 
     /** Indicates a request to open a file in the editor. */

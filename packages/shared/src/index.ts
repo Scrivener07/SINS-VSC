@@ -6,4 +6,5 @@ Examples of how to import from this package:
 
 export * from "./constants";
 export * from "./messaging";
+export * from "./requests";
 export * from "./entities/research";

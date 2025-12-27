@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import { ILogMessage, IWebViewMessage, ServerRequest, ViewRequest, ViewResponse } from "@soase/shared";
+import { ILogMessage, IResearchSubject, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
 import { ClientManager } from "../client";
+import { ResearchDataService } from "./data";
 
 /**
  * Encapsulates the Research panel webview.
@@ -16,6 +17,8 @@ export class ResearchPanel {
     private readonly panel: vscode.WebviewPanel;
     private readonly context: vscode.ExtensionContext;
     private disposables: vscode.Disposable[] = [];
+
+    private dataService: ResearchDataService | undefined;
 
     /**
      * A static factory method to show the singleton Research panel.
@@ -53,6 +56,14 @@ export class ResearchPanel {
         this.panel = panel;
         this.context = context;
 
+        const client: LanguageClient | undefined = this.getLanguageClient();
+        if (!client) {
+            console.error("<ResearchPanel::constructor> No language client available.");
+            return;
+        } else {
+            this.dataService = new ResearchDataService(client);
+        }
+
         this.panel.webview.html = ResearchPanel.getHtml(this.panel.webview);
         this.panel.webview.onDidReceiveMessage((message) => this.onDidReceiveMessage(message), null, this.disposables);
 
@@ -64,6 +75,20 @@ export class ResearchPanel {
             null,
             this.disposables
         );
+    }
+
+    /**
+     * Gets the language client instance.
+     * @returns The LanguageClient or undefined if not available.
+     */
+    private getLanguageClient(): LanguageClient | undefined {
+        const clients: Map<string, LanguageClient> = ClientManager.getLanguageClients();
+        if (clients && clients.size > 0) {
+            const client: [string, LanguageClient] = Array.from(clients)[0];
+            return client[1];
+        } else {
+            return undefined;
+        }
     }
 
     /**
@@ -169,32 +194,16 @@ export class ResearchPanel {
     }
 
     /**
-     * Gets the language client instance.
-     * @returns The LanguageClient or undefined if not available.
-     */
-    private getLanguageClient(): LanguageClient | undefined {
-        const clients: Map<string, LanguageClient> = ClientManager.getLanguageClients();
-        if (clients && clients.size > 0) {
-            const client: [string, LanguageClient] = Array.from(clients)[0];
-            return client[1];
-        } else {
-            return undefined;
-        }
-    }
-
-    /**
      * Requests a list of `*.player` files from the language server, then sends it to the webview.
      * @return A promise that resolves when the data is requested.
      */
     private async update_PlayerList(): Promise<void> {
-        const client: LanguageClient | undefined = this.getLanguageClient();
-        if (!client) {
-            console.warn("<ResearchPanel::update_PlayerList> No language client available.");
-            return;
+        const players: string[] | undefined = await this.dataService?.getPlayerList();
+        if (players) {
+            this.panel.webview.postMessage({ type: ViewRequest.PLAYER_LIST, data: players });
+        } else {
+            console.warn("<ResearchPanel::update_PlayerList> No player data received.");
         }
-
-        const players: string[] = await client.sendRequest(ServerRequest.PLAYERS, {});
-        this.panel.webview.postMessage({ type: ViewRequest.PLAYER_LIST, data: players });
     }
 
     /**
@@ -203,18 +212,16 @@ export class ResearchPanel {
      * @return A promise that resolves when the data is requested.
      */
     private async update_PlayerData(playerIdentifier: string): Promise<void> {
-        const client: LanguageClient | undefined = this.getLanguageClient();
-        if (!client) {
-            console.warn("<ResearchPanel::update_PlayerData> No language client available.");
-            return;
+        const researchData: IResearchSubject[] | undefined = await this.dataService?.getResearchForPlayer(playerIdentifier);
+        if (researchData) {
+            this.panel.webview.postMessage({ type: ViewResponse.UPDATE_RESEARCH, data: researchData });
+        } else {
+            console.warn("<ResearchPanel::update_PlayerData> No research data received.");
         }
-
-        const researchData: unknown = await client.sendRequest(ServerRequest.PLAYER_RESEARCH, { playerId: playerIdentifier });
-        this.panel.webview.postMessage({ type: ViewResponse.UPDATE_RESEARCH, data: researchData });
     }
 
     /**
-     * Opens a file in the editor based on the given identifier.
+     * Opens a file in the editor based on the given entity identifier.
      * @param identifier The identifier of the file to open.
      * @returns A promise that resolves when the file is opened.
      */
@@ -224,18 +231,13 @@ export class ResearchPanel {
             return;
         }
 
-        const client: LanguageClient | undefined = this.getLanguageClient();
-        if (!client) {
-            console.warn("<ResearchPanel::openFile> No language client available.");
-            return;
-        }
-
-        // Use IndexManager paths from language server to find the file.
-        console.info(`<ResearchPanel::openFile> Opening file for ID: ${identifier}`);
-        const filePath: string = await client.sendRequest(ServerRequest.PLAYER_FILEPATH, { fileId: identifier });
+        const filePath: string | null | undefined = await this.dataService?.getEntityPath(identifier);
         if (filePath) {
+            console.info(`<ResearchPanel::openFile> Opening file for ID: ${identifier}`);
             const document: vscode.TextDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(filePath));
             await vscode.window.showTextDocument(document);
+        } else {
+            console.warn(`<ResearchPanel::openFile> No file path found for ID: ${identifier}`);
         }
     }
 }

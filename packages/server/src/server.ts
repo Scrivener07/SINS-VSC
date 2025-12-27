@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as shared from "@soase/shared";
-import { ServerRequest, IResearchSubject } from "@soase/shared";
+import { ServerRequest, IRequestEntityPath, IRequestLocalization } from "@soase/shared";
 import {
     createConnection,
     TextDocuments,
@@ -119,9 +119,11 @@ class SinsLanguageServer {
         this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
 
         // Named client requests.
-        this.connection.onRequest(ServerRequest.PLAYERS, () => this.request_PlayerList());
-        this.connection.onRequest(ServerRequest.PLAYER_RESEARCH, (params: { playerId: string }) => this.request_PlayerResearch(params.playerId));
-        this.connection.onRequest(ServerRequest.PLAYER_FILEPATH, (params: { fileId: string }) => this.request_PlayerFile(params.fileId));
+        this.connection.onRequest(ServerRequest.GET_PLAYER_IDS, () => this.request_getPlayerIdentifiers());
+        this.connection.onRequest(ServerRequest.GET_ENTITY_PATH, (params: IRequestEntityPath) => this.request_getEntityPath(params.identifier));
+        this.connection.onRequest(ServerRequest.GET_LOCALIZATION, (params: IRequestLocalization) =>
+            this.request_getLocalization(params.language, params.key)
+        );
 
         // Bind the document event listeners.
         this.documents.onDidOpen(this.onDidOpen.bind(this));
@@ -135,98 +137,61 @@ class SinsLanguageServer {
         this.connection.listen();
     }
 
-    private request_PlayerList(): string[] {
-        console.log("<SinsLanguageServer::request_PlayerList> Received request");
+    //--------------------------------------------------
+
+    /**
+     * Gets the list of available player identifiers.
+     *
+     * NOTE: `Set<T>` is not serializable and must be converted to an array in order to move over the LSP.
+     * TODO: Possibly make this more generic by accepting an entity type parameter.
+     * @returns The list of player identifiers.
+     */
+    private request_getPlayerIdentifiers(): string[] {
+        console.info("<SinsLanguageServer::wip_getPlayerIdentifiers> Getting player IDs from cache.");
         const players: Set<string> = this.cacheManager.get("player");
-        // NOTE: Set<T> is not serializable and must be converted to an array in order to move over the LSP.
         return Array.from(players);
     }
 
     /**
-     * Gets the research nodes for a specific player.
-     *
-     * TODO: This pollutes the language server with code that should partially be handled on the client side.
-     * @param playerId The player identifier.
-     * @returns An array of research nodes for the specified player.
+     * Gets the file path for a specific entity identifier.
+     * @param identifier The entity identifier.
+     * @returns The file path, or undefined if not found.
      */
-    private async request_PlayerResearch(playerId: string): Promise<any[]> {
-        console.log(`<SinsLanguageServer::request_PlayerResearch> Getting research for player ID: ${playerId}`);
-
-        // Get the player file path
-        const playerFilePaths: string[] | undefined = this.indexManager.getPaths(playerId);
-        if (!playerFilePaths || playerFilePaths.length === 0) {
-            console.warn(`<SinsLanguageServer::request_PlayerResearch> Player file not found for ID: ${playerId}`);
-            return [];
-        }
-
-        const playerFilePath: string = playerFilePaths[0];
-
-        try {
-            // Read and parse the player file.
-            const playerFileContent: string = await fs.promises.readFile(playerFilePath, "utf-8");
-            const playerData: any = JSON.parse(playerFileContent);
-
-            // Extract research subject IDs from the player's research section.
-            const researchSubjectIds: string[] = playerData.research?.research_subjects ?? [];
-
-            if (researchSubjectIds.length === 0) {
-                console.warn(`<SinsLanguageServer::request_PlayerResearch> No research subjects found for player: ${playerId}`);
-                return [];
+    private request_getEntityPath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getEntityPath> Getting file path for entity indentifier: ${identifier}`);
+        const paths: string[] | undefined = this.indexManager.getPaths(identifier);
+        if (paths) {
+            // Return the first path found.
+            if (paths.length > 0) {
+                console.warn(
+                    `<SinsLanguageServer::request_getEntityPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
+                );
             }
-
-            console.log(`<SinsLanguageServer::request_PlayerResearch> Found ${researchSubjectIds.length} research subjects`);
-
-            // Get localization data for resolving names.
-            const localization: Map<string, string> = this.localizationManager.get(this.currentLanguageCode);
-
-            // Load each research subject file.
-            const researchData: any[] = [];
-            for (const researchId of researchSubjectIds) {
-                const researchFilePaths: string[] | undefined = this.indexManager.getPaths(researchId);
-
-                if (!researchFilePaths || researchFilePaths.length === 0) {
-                    console.warn(`<SinsLanguageServer::request_PlayerResearch> Research subject file not found: ${researchId}`);
-                    continue;
-                }
-
-                const researchFilePath: string = researchFilePaths[0];
-
-                try {
-                    const researchFileContent: string = await fs.promises.readFile(researchFilePath, "utf-8");
-                    const researchSubject: any = JSON.parse(researchFileContent);
-
-                    // Get resolved localized name, or fallback to localization key.
-                    const localizedName = localization?.get(researchSubject.name) || researchSubject.name;
-
-                    // Create subject matching ResearchNode interface.
-                    // Add the ID to the research subject data for reference.
-                    const subject: IResearchSubject = {
-                        id: researchId,
-                        name: localizedName,
-                        prerequisites: researchSubject.prerequisites || [],
-                        field_coord: researchSubject.field_coord || [0, 0],
-                        tier: researchSubject.tier || 0,
-                        field: researchSubject.field || "unknown"
-                    };
-                    researchData.push(subject);
-                } catch (error) {
-                    console.error(`<SinsLanguageServer::request_PlayerResearch> Failed to read research subject file: ${researchFilePath}`, error);
-                }
-            }
-
-            console.log(`<SinsLanguageServer::request_PlayerResearch> Successfully loaded ${researchData.length} research subjects`);
-            return researchData;
-        } catch (error) {
-            console.error(`<SinsLanguageServer::request_PlayerResearch> Failed to read player file: ${playerFilePath}`, error);
-            return [];
+            return paths[0];
+        } else {
+            console.warn(`<SinsLanguageServer::request_getEntityPath> No paths found for identifier: ${identifier}`);
+            return undefined;
         }
     }
 
-    private request_PlayerFile(fileId: string): string | undefined {
-        console.log(`<SinsLanguageServer::request_PlayerFile> Getting file for identifier: ${fileId}`);
-        const firstPath: string | undefined = this.indexManager.getPaths(fileId)?.[0];
-        return firstPath;
+    /**
+     * Gets the localized string for a specific key and language.
+     * @param key The localization key.
+     * @param language The language code.
+     * @returns The localized string, or undefined if not found.
+     */
+    private request_getLocalization(language: string, key: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getLocalization> Getting localization for key: ${key} in language: ${language}`);
+        const localizations: Map<string, string> = this.localizationManager.get(language);
+        if (localizations) {
+            return localizations.get(key);
+        } else {
+            console.warn(`<SinsLanguageServer::request_getLocalization> No localization data found for key: ${key} in language: ${language}`);
+            return undefined;
+        }
     }
+
+    //--------------------------------------------------
 
     /**
      * Called when the client starts the server.
@@ -237,7 +202,7 @@ class SinsLanguageServer {
     private onInitialize(params: InitializeParams): InitializeResult {
         // TODO: rootUri @deprecated — in favour of workspaceFolders
         this.workspaceFolder = params.rootUri;
-        this.connection.console.log(`[Server(${process.pid}) ${this.workspaceFolder}] Initialization starting.`);
+        this.connection.console.info(`[Server(${process.pid}) ${this.workspaceFolder}] Initialization starting.`);
 
         this.jsonLanguageService.configure({ schemas: this.schemaManager.configure() });
 
@@ -278,7 +243,7 @@ class SinsLanguageServer {
      * Called after the handshake is complete.
      */
     private async onInitialized(): Promise<void> {
-        this.connection.console.log("Server initialized.");
+        this.connection.console.info("Server initialized.");
 
         // Get current language from vscode settings
         this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
@@ -288,8 +253,8 @@ class SinsLanguageServer {
             const fsPath: string = fileURLToPath(this.workspaceFolder);
             await Promise.all([
                 this.indexManager.rebuildIndex(fsPath, this.currentLanguageCode),
-                this.localizationManager.loadFromWorkspace(fsPath).then(() => this.connection.console.log("Localization data loaded")),
-                this.textureManager.loadFromWorkspace(fsPath).then(() => this.connection.console.log("Texture data loaded"))
+                this.localizationManager.loadFromWorkspace(fsPath).then(() => this.connection.console.info("Localization data loaded")),
+                this.textureManager.loadFromWorkspace(fsPath).then(() => this.connection.console.info("Texture data loaded"))
             ]);
             for (const doc of this.documents.all()) {
                 await this.validateTextDocument(doc);
@@ -309,7 +274,7 @@ class SinsLanguageServer {
      */
     private onDidOpen(event: { document: TextDocument }): void {
         this.currentEntity = this.getCurrentEntityType(event.document.uri);
-        this.connection.console.log(`[Server(${process.pid}) ${this.workspaceFolder}] Document opened: ${event.document.uri}`);
+        this.connection.console.info(`[Server(${process.pid}) ${this.workspaceFolder}] Document opened: ${event.document.uri}`);
     }
 
     private getCurrentEntityType(uri: string): PointerType {
@@ -352,7 +317,7 @@ class SinsLanguageServer {
         const text: string = textDocument.getText();
 
         // TODO: Just logging the length for now.
-        this.connection.console.log(`Validating ${textDocument.uri} (${text.length} characters in length.)`);
+        this.connection.console.info(`Validating ${textDocument.uri} (${text.length} characters in length.)`);
 
         // Parse the document as JSON.
         const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(textDocument);
@@ -385,7 +350,7 @@ class SinsLanguageServer {
         const offset: number = document.offsetAt(params.position);
         const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
         const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
-        console.log("Hover context:", PointerType[context]);
+        console.info("Hover context:", PointerType[context]);
 
         if (node && node.type === "string" && node.value) {
             if (JsonAST.isNodeValue(node)) {

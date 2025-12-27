@@ -2,6 +2,23 @@ import { VSCode } from "./vscode";
 import { Log } from "./log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject, Point } from "@soase/shared";
 
+/* Features:
+- Research tree visualizer with tier grouping.
+- Zoom controls (mouse wheel, buttons, keyboard).
+- Domain filtering (Civilian/Military tabs).
+- Prerequisite connections (toggleable).
+- VS Code theme integration.
+- Scalable architecture ready for images and more features.
+*/
+
+/* TODO:
+- Add research subject icons/images.
+- Add stats for subject counts per total\domain\tier.
+- Add background grid with column\row divisions, label cells with coordinates.
+- Add ALL domain view option for cross-domain prerequisites.
+- Add option to only show prerequisite connections for hovered nodes.
+*/
+
 /**
  * Renders the research tree.
  */
@@ -79,6 +96,27 @@ export class ResearchRenderer {
         this.setupZoomControls();
     }
 
+    private setupPlayerSelector(): void {
+        const select: HTMLSelectElement | null = document.getElementById(ResearchRenderer.PLAYER_SELECTOR_ID) as HTMLSelectElement;
+        if (select) {
+            select.addEventListener("change", (e) => this.player_OnChange(e));
+        }
+    }
+
+    private setupDomainTabs(): void {
+        const tabs: NodeListOf<Element> = document.querySelectorAll(".domain-tab");
+        for (const tab of tabs) {
+            tab.addEventListener("click", (e) => this.domainTab_OnClick(e));
+        }
+    }
+
+    private setupNodeConnectionSelector(): void {
+        const select: HTMLSelectElement | null = document.getElementById(ResearchRenderer.NODE_CONNECTION_SELECTOR_ID) as HTMLSelectElement;
+        if (select) {
+            select.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
+        }
+    }
+
     private setupZoomControls(): void {
         const zoomInButton: HTMLElement | null = document.getElementById("zoom-in");
         const zoomOutButton: HTMLElement | null = document.getElementById("zoom-out");
@@ -94,11 +132,26 @@ export class ResearchRenderer {
             zoomResetButton.addEventListener("click", () => this.zoomReset());
         }
 
-        // Mouse wheel zoom
-        this.container.addEventListener("wheel", (e) => this.container_OnWheel(e), { passive: false });
-
-        // Keyboard shortcuts
+        const wheelOptions: AddEventListenerOptions = { passive: false };
+        this.container.addEventListener("wheel", (e) => this.container_OnWheel(e), wheelOptions);
         document.addEventListener("keydown", (e) => this.document_OnKeyDown(e));
+    }
+
+    public onMessage(message: any): void {
+        Log.info("<ResearchRenderer::onMessage> Message received", message);
+        switch (message.type) {
+            case ViewRequest.UPDATE:
+                this.setData(message.data);
+                break;
+            case ViewRequest.PLAYER_LIST:
+                this.renderPlayerSelector(message.data);
+                break;
+            case ViewResponse.UPDATE_RESEARCH:
+                this.setData(message.data);
+                break;
+            default:
+                Log.warn(`<ResearchRenderer::onMessage> Unhandled message type: ${message.type}`);
+        }
     }
 
     private container_OnWheel(e: WheelEvent): void {
@@ -110,7 +163,12 @@ export class ResearchRenderer {
         e.preventDefault();
 
         // Determine the zoom direction.
-        const delta: number = e.deltaY > 0 ? -ResearchRenderer.ZOOM_STEP : ResearchRenderer.ZOOM_STEP;
+        let delta: number;
+        if (e.deltaY > 0) {
+            delta = -ResearchRenderer.ZOOM_STEP;
+        } else {
+            delta = ResearchRenderer.ZOOM_STEP;
+        }
         this.setZoom(this.zoomLevel + delta);
     }
 
@@ -165,48 +223,7 @@ export class ResearchRenderer {
             zoomDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
         }
 
-        Log.info(`<ResearchRenderer::setZoom> Zoom level: ${Math.round(this.zoomLevel * 100)}%`);
-    }
-
-    private setupPlayerSelector(): void {
-        const select: HTMLSelectElement | null = document.getElementById(ResearchRenderer.PLAYER_SELECTOR_ID) as HTMLSelectElement;
-        if (select) {
-            select.addEventListener("change", (e) => this.player_OnChange(e));
-        }
-    }
-
-    private setupNodeConnectionSelector(): void {
-        const select: HTMLSelectElement | null = document.getElementById(ResearchRenderer.NODE_CONNECTION_SELECTOR_ID) as HTMLSelectElement;
-        if (select) {
-            select.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
-        }
-    }
-
-    private setupDomainTabs(): void {
-        const tabs: NodeListOf<Element> = document.querySelectorAll(".domain-tab");
-        tabs.forEach((tab) => {
-            tab.addEventListener("click", (e) => this.domainTab_OnClick(e));
-        });
-    }
-
-    public onMessage(message: any): void {
-        Log.info("<ResearchRenderer::onMessage> Message received", message);
-        switch (message.type) {
-            case ViewRequest.UPDATE:
-                this.setData(message.data);
-                break;
-            case ViewRequest.PLAYER_LIST:
-                this.renderPlayerSelector(message.data);
-                break;
-            case ViewResponse.UPDATE_RESEARCH:
-                this.setData(message.data);
-                break;
-            case ViewRequest.REFRESH:
-                this.refresh(); // unused
-                break;
-            default:
-                Log.warn(`<ResearchRenderer::onMessage> Unhandled message type: ${message.type}`);
-        }
+        Log.info(`<ResearchRenderer::setZoom> Zoom level: ${zoomDisplay.textContent}`);
     }
 
     private player_OnChange(e: Event): void {
@@ -231,10 +248,11 @@ export class ResearchRenderer {
             return;
         }
 
-        // Update active tab styling
-        document.querySelectorAll(".domain-tab").forEach((tab) => {
+        // Update the active tab styling.
+        const tabs: NodeListOf<Element> = document.querySelectorAll(".domain-tab");
+        for (const tab of tabs) {
             tab.classList.remove("active");
-        });
+        }
         target.classList.add("active");
 
         // Update the selected domain and re-render.
@@ -255,9 +273,6 @@ export class ResearchRenderer {
             const nodeId: string | undefined = node.dataset.id;
             const message: IWebViewMessage = { type: ViewResponse.FILE_OPEN, identifier: nodeId };
             this.vscode.postMessage(message);
-
-            // TODO: Used to temporarily hide nodes when clicked.
-            // node.style.display = "none";
         }
     }
 
@@ -275,7 +290,7 @@ export class ResearchRenderer {
             return;
         }
 
-        // Build options HTML.
+        // Build the player options HTML.
         const options: string[] = [
             '<option value="">Select a player...</option>',
             ...players.map((playerId) => `<option value="${playerId}">${playerId}</option>`)
@@ -308,20 +323,20 @@ export class ResearchRenderer {
      * Filters the data by the selected domain and then renders the research tree.
      */
     private filterAndRender(): void {
-        this.dataFiltered = this.data.filter((node) => {
-            const nodeDomain: string = node.field?.toLowerCase() || "";
-            return nodeDomain.includes(this.domainSelection);
-        });
-
+        // Use bind() to capture `this` context.
+        this.dataFiltered = this.data.filter(this.filterByDomain.bind(this));
         console.log(`<ResearchRenderer::filterAndRender> Rendering ${this.dataFiltered.length} nodes for domain: ${this.domainSelection}`);
-
         this.render(this.dataFiltered);
     }
 
-    // UNUSED
-    private refresh(): void {
-        const message: IWebViewMessage = { type: ViewResponse.DATA_REQUEST };
-        this.vscode.postMessage(message);
+    /**
+     * Filters research subjects by the selected domain.
+     * @param node The research subject node.
+     * @returns True if the node matches the selected domain.
+     */
+    private filterByDomain(node: IResearchSubject): boolean {
+        const nodeDomain: string = node.field?.toLowerCase() || "";
+        return nodeDomain.includes(this.domainSelection);
     }
 
     private render(data: IResearchSubject[]): void {
@@ -330,35 +345,187 @@ export class ResearchRenderer {
             return;
         }
 
-        // Calculate grid dimensions.
-        const maxColumn: number = Math.max(...data.map((column) => column.field_coord[0]));
-        const maxRow: number = Math.max(...data.map((row) => row.field_coord[1]));
+        // Group the research subjects by tier.
+        const tierGroups: ITierGroup[] = this.groupByTier(data);
 
-        const width: number = (maxColumn + 1) * this.CELL_WIDTH + this.PADDING * 2;
-        const height: number = (maxRow + 1) * this.CELL_HEIGHT + this.PADDING * 2;
+        // Calculate the vertical offsets for each tier group.
+        this.calculateTierOffsets(tierGroups);
 
-        // Create the SVG container for use as a canvas.
+        // Calculate the total dimensions needed for the SVG.
+        const maxWidth: number = Math.max(...tierGroups.map((group) => (group.maxColumn + 1) * this.CELL_WIDTH));
+        const totalHeight: number =
+            tierGroups[tierGroups.length - 1].verticalOffset + (tierGroups[tierGroups.length - 1].maxRow + 1) * this.CELL_HEIGHT;
+
+        // Add extra vertical space for labels.
+        const heightExtra: number = tierGroups.length * 60;
+
+        // Caculate the final SVG dimensions.
+        const width: number = maxWidth + this.PADDING * 2;
+        const height: number = totalHeight + this.PADDING * 2 + heightExtra;
+
+        // Create SVG with tier groups and connections.
         const svg: string = `
             <svg width="${width}" height="${height}" style="display: block;">
-                ${this.renderNodes(data)}
-                ${this.renderConnections(data, this.nodeConnectionsEnabled)}
+                ${this.renderTierGroups(tierGroups)}
+                ${this.renderConnections(data, tierGroups, this.nodeConnectionsEnabled)}
             </svg>
         `;
 
         this.container.innerHTML = svg;
-
-        // Reapply the current zoom after render.
         this.setZoom(this.zoomLevel);
     }
 
-    private renderConnections(data: IResearchSubject[], enabled: boolean): string {
+    /**
+     * Groups research subjects by their tier field.
+     */
+    private groupByTier(data: IResearchSubject[]): ITierGroup[] {
+        const tierMap: Map<string, IResearchSubject[]> = new Map();
+
+        // Group the subjects by tier.
+        for (const subject of data) {
+            const tierName: string = subject.field || "unknown";
+            if (!tierMap.has(tierName)) {
+                tierMap.set(tierName, []);
+            }
+            tierMap.get(tierName)!.push(subject);
+        }
+
+        // Convert to ITierGroup array.
+        const groups: ITierGroup[] = [];
+        for (const [tierName, subjects] of tierMap.entries()) {
+            // Find the maximum column and row for layout calculations.
+            const maxColumn: number = Math.max(...subjects.map((subject) => subject.field_coord[0]));
+            const maxRow: number = Math.max(...subjects.map((subject) => subject.field_coord[1]));
+
+            const tierGroup: ITierGroup = {
+                tierName: tierName,
+                displayName: ResearchRenderer.extractTierDisplayName(tierName),
+                subjects: subjects,
+                maxColumn: maxColumn,
+                maxRow: maxRow,
+                verticalOffset: 0 // This will be calculated later.
+            };
+            groups.push(tierGroup);
+        }
+
+        // Sort by tier number extracted from research subjects.
+        groups.sort(this.compareTierGroups.bind(this));
+        return groups;
+    }
+
+    /**
+     * Compares two tier groups by their minimum tier number.
+     * @param group This tier group.
+     * @param other The other tier group.
+     * @returns Negative if `group_a < group_b`, positive if `group_a > group_b`, zero if equal.
+     */
+    private compareTierGroups(group: ITierGroup, other: ITierGroup): number {
+        const tierA: number = Math.min(...group.subjects.map((subject) => subject.tier));
+        const tierB: number = Math.min(...other.subjects.map((subject) => subject.tier));
+        return tierA - tierB;
+    }
+
+    /**
+     * Extracts the display name from a tier field name.
+     * Example: "Civilian_industry" -> "Industry"
+     *
+     * TODO: This should be done by looking up the field name in a localization file.
+     */
+    private static extractTierDisplayName(tierName: string): string {
+        // Remove domain prefix. (Civilian_ or Military_)
+        const withoutPrefix: string = tierName.replace(/^(Civilian|Military)_/i, "");
+
+        // Capitalize first letter.
+        return withoutPrefix.charAt(0).toUpperCase() + withoutPrefix.slice(1);
+    }
+
+    /**
+     * Calculates vertical offsets for each tier group so they don't overlap.
+     */
+    private calculateTierOffsets(tierGroups: ITierGroup[]): void {
+        const TIER_LABEL_HEIGHT: number = 40;
+        const TIER_SPACING: number = 40;
+
+        let currentOffset: number = 0;
+
+        for (const group of tierGroups) {
+            group.verticalOffset = currentOffset;
+
+            // Next group starts after this group's height + label + spacing.
+            const groupHeight: number = (group.maxRow + 1) * this.CELL_HEIGHT;
+            currentOffset += TIER_LABEL_HEIGHT + groupHeight + TIER_SPACING;
+        }
+    }
+
+    /**
+     * Renders all tier groups with labels and subjects.
+     */
+    private renderTierGroups(tierGroups: ITierGroup[]): string {
+        const TIER_LABEL_HEIGHT: number = 40;
+
+        const groupsHtml: string[] = tierGroups.map((group) => {
+            const labelY: number = group.verticalOffset + this.PADDING;
+            const nodesY: number = labelY + TIER_LABEL_HEIGHT;
+            return `
+                <!-- Tier Label -->
+                <text
+                    x="${this.PADDING}"
+                    y="${labelY + 25}"
+                    font-size="18"
+                    font-weight="bold"
+                    fill="var(--vscode-foreground)"
+                >
+                    ${group.displayName}
+                </text>
+
+                <!-- Tier Separator Line -->
+                <line
+                    x1="${this.PADDING}"
+                    y1="${labelY + 30}"
+                    x2="${(group.maxColumn + 1) * this.CELL_WIDTH + this.PADDING}"
+                    y2="${labelY + 30}"
+                    stroke="var(--vscode-panel-border)"
+                    stroke-width="1"
+                />
+
+                <!-- Research Nodes -->
+                ${this.renderNodesForTier(group, nodesY)}
+            `;
+        });
+
+        return groupsHtml.join("");
+    }
+
+    /**
+     * Renders research nodes for a specific tier group.
+     */
+    private renderNodesForTier(group: ITierGroup, offsetY: number): string {
+        const nodes: string[] = group.subjects.map((node) => this.renderNode(node, offsetY, group));
+        return nodes.join("");
+    }
+
+    /**
+     * Renders prerequisite connections between nodes, accounting for tier offsets.
+     */
+    private renderConnections(data: IResearchSubject[], tierGroups: ITierGroup[], enabled: boolean): string {
         if (!enabled) {
             return "";
         }
-        const connections: string[] = [];
-        const nodeMap: Map<string, IResearchSubject> = new Map(data.map((nodeEntry) => [nodeEntry.id, nodeEntry]));
 
-        // Node dimensions (matching renderNode)
+        const connections: string[] = [];
+        const nodeMap: Map<string, IResearchSubject> = new Map(data.map((subject) => [subject.id, subject]));
+
+        // Build a map of node ID to tier offset
+        const tierOffsetMap: Map<string, number> = new Map();
+        const TIER_LABEL_HEIGHT: number = 40;
+
+        for (const group of tierGroups) {
+            const offsetY: number = group.verticalOffset + this.PADDING + TIER_LABEL_HEIGHT;
+            for (const subject of group.subjects) {
+                tierOffsetMap.set(subject.id, offsetY);
+            }
+        }
+
         const nodeWidth: number = this.CELL_WIDTH - 20;
         const nodeHeight: number = this.CELL_HEIGHT - 20;
 
@@ -368,57 +535,42 @@ export class ResearchRenderer {
             }
 
             const [toColumn, toRow]: Point = node.field_coord;
+            const toOffsetY: number = tierOffsetMap.get(node.id) || 0;
             const toCenterX: number = toColumn * this.CELL_WIDTH + this.PADDING + this.CELL_WIDTH / 2;
-            const toCenterY: number = toRow * this.CELL_HEIGHT + this.PADDING + this.CELL_HEIGHT / 2;
+            const toCenterY: number = toRow * this.CELL_HEIGHT + toOffsetY + this.CELL_HEIGHT / 2;
 
-            // Prerequisites are in OR groups (outer array is AND, inner array is OR).
             for (const prerequisite_group of node.prerequisites) {
                 for (const prerequisite_id of prerequisite_group) {
-                    const prerequisite_node = nodeMap.get(prerequisite_id);
+                    const prerequisite_node: IResearchSubject | undefined = nodeMap.get(prerequisite_id);
                     if (!prerequisite_node) {
+                        Log.warn(`<ResearchRenderer::renderConnections> Prerequisite node not found: ${prerequisite_id}`);
                         continue;
                     }
 
                     const [fromColumn, fromRow]: Point = prerequisite_node.field_coord;
+                    const fromOffsetY: number = tierOffsetMap.get(prerequisite_id) || 0;
                     const fromCenterX: number = fromColumn * this.CELL_WIDTH + this.PADDING + this.CELL_WIDTH / 2;
-                    const fromCenterY: number = fromRow * this.CELL_HEIGHT + this.PADDING + this.CELL_HEIGHT / 2;
+                    const fromCenterY: number = fromRow * this.CELL_HEIGHT + fromOffsetY + this.CELL_HEIGHT / 2;
 
-                    // Calculate the angle between nodes
-                    const dx: number = toCenterX - fromCenterX;
-                    const dy: number = toCenterY - fromCenterY;
-                    const angle: number = Math.atan2(dy, dx);
+                    // Calculate the distance-delta and angle.
+                    const distanceX: number = toCenterX - fromCenterX;
+                    const distanceY: number = toCenterY - fromCenterY;
+                    const angle: number = Math.atan2(distanceY, distanceX);
 
-                    // Calculate edge intersection points on the rectangles
-                    // For the 'from' node (start point)
-                    const fromEdge = ResearchRenderer.getRectangleEdgePoint(
-                        fromCenterX,
-                        fromCenterY,
-                        nodeWidth - 20, // Account for padding
-                        nodeHeight - 20,
-                        angle
-                    );
+                    const fromEdge = ResearchRenderer.getRectangleEdgePoint(fromCenterX, fromCenterY, nodeWidth - 20, nodeHeight - 20, angle);
+                    const toEdge = ResearchRenderer.getRectangleEdgePoint(toCenterX, toCenterY, nodeWidth - 20, nodeHeight - 20, angle + Math.PI);
 
-                    // For the 'to' node (end point)
-                    const toEdge = ResearchRenderer.getRectangleEdgePoint(
-                        toCenterX,
-                        toCenterY,
-                        nodeWidth - 20,
-                        nodeHeight - 20,
-                        angle + Math.PI // Opposite direction
-                    );
-
-                    // Draw line with arrow from edge to edge.
                     const line: string = `
-                    <line
-                        x1="${fromEdge.x}"
-                        y1="${fromEdge.y}"
-                        x2="${toEdge.x}"
-                        y2="${toEdge.y}"
-                        stroke="var(--vscode-editorLineNumber-foreground)"
-                        stroke-width="2"
-                        marker-end="url(#arrowhead)"
-                    />
-                `;
+                        <line
+                            x1="${fromEdge.x}"
+                            y1="${fromEdge.y}"
+                            x2="${toEdge.x}"
+                            y2="${toEdge.y}"
+                            stroke="var(--vscode-editorLineNumber-foreground)"
+                            stroke-width="2"
+                            marker-end="url(#arrowhead)"
+                        />
+                    `;
                     connections.push(line);
                 }
             }
@@ -444,36 +596,42 @@ export class ResearchRenderer {
         `;
     }
 
-    private renderNodes(data: IResearchSubject[]): string {
-        const nodes: string[] = data.map((node) => this.renderNode(node));
-        return nodes.join("");
-    }
+    // private renderNodes(data: IResearchSubject[]): string {
+    //     const nodes: string[] = data.map((node) => this.renderNode(node));
+    //     return nodes.join("");
+    // }
 
-    private renderNode(node: IResearchSubject): string {
+    /**
+     * Renders a single research node at its tier-relative position.
+     */
+    private renderNode(node: IResearchSubject, tierOffsetY: number, group: ITierGroup): string {
         const [column, row]: Point = node.field_coord;
         const x: number = column * this.CELL_WIDTH + this.PADDING;
-        const y: number = row * this.CELL_HEIGHT + this.PADDING;
+        const y: number = row * this.CELL_HEIGHT + tierOffsetY;
 
         const nodeWidth: number = this.CELL_WIDTH - 20;
         const nodeHeight: number = this.CELL_HEIGHT - 20;
 
+        // TODO: Posibly use this instead of group.displayName
+        // const fieldDisplayName: string = ResearchRenderer.extractTierDisplayName(node.field || "unknown");
+
         return `
-            <foreignObject x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}">
-                <div
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    class="research-node"
-                    data-id="${node.id}"
-                    style="
-                        width: ${nodeWidth - 20}px;
-                        height: ${nodeHeight - 20}px;
-                        padding: 10px;
-                    "
-                >
-                    <div class="research-tier">Tier ${node.tier}</div>
-                    <div class="research-name">${node.name}</div>
-                    <div class="research-field">${node.field}</div>
-                </div>
-            </foreignObject>
+        <foreignObject x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}">
+            <div
+                xmlns="http://www.w3.org/1999/xhtml"
+                class="research-node"
+                data-id="${node.id}"
+                style="
+                    width: ${nodeWidth - 20}px;
+                    height: ${nodeHeight - 20}px;
+                    padding: 10px;
+                "
+            >
+                <div class="research-tier">Tier ${node.tier}</div>
+                <div class="research-name">${node.name}</div>
+                <div class="research-field">${group.displayName}</div>
+            </div>
+        </foreignObject>
         `;
     }
 
@@ -506,4 +664,27 @@ export class ResearchRenderer {
             y: centerY + distanceToEdge * directionY
         };
     }
+}
+
+/**
+ * Represents a grouped tier of research subjects.
+ */
+interface ITierGroup {
+    /** The tier field name. (`Civilian_industry`) */
+    tierName: string;
+
+    /** The display name. (`Industry`) */
+    displayName: string;
+
+    /** Research subjects in this tier. */
+    subjects: IResearchSubject[];
+
+    /** Maximum column coordinate in this tier. */
+    maxColumn: number;
+
+    /** Maximum row coordinate in this tier. */
+    maxRow: number;
+
+    /** Vertical offset for rendering (calculated). */
+    verticalOffset: number;
 }

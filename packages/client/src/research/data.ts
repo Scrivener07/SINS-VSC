@@ -38,20 +38,20 @@ export class ResearchDataService {
             }
 
             // Read and extract research subject IDs from the player's research section.
-            const playerData: any = await this.readJsonFile(playerPath);
-            const researchSubjectIds: string[] = playerData.research?.research_subjects ?? [];
+            const player: any = await this.readJsonFile(playerPath);
+            const researchSubjectIds: string[] = player.research?.research_subjects ?? [];
             console.info(`<ResearchDataService::getResearchForPlayer> Found ${researchSubjectIds.length} research subjects`);
 
             // Load each research subject.
-            const researchData: IResearchSubject[] = [];
+            const research_subject: IResearchSubject[] = [];
             for (const researchId of researchSubjectIds) {
                 const researchSubject: IResearchSubject | null = await this.loadResearchSubject(researchId);
                 if (researchSubject) {
-                    researchData.push(researchSubject);
+                    research_subject.push(researchSubject);
                 }
             }
 
-            return researchData;
+            return research_subject;
         } catch (error) {
             console.error(`Failed to load research for player ${playerID}:`, error);
             return [];

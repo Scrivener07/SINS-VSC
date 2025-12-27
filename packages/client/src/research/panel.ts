@@ -56,6 +56,7 @@ export class ResearchPanel {
         this.panel = panel;
         this.context = context;
 
+        // TODO: This should throw if unavailable, or be handled more gracefully in some other way.
         const client: LanguageClient | undefined = this.getLanguageClient();
         if (!client) {
             console.error("<ResearchPanel::constructor> No language client available.");
@@ -128,6 +129,13 @@ export class ResearchPanel {
                         <button id="tab-military" class="domain-tab" data-domain="military">
                             Military
                         </button>
+                    </div>
+
+                    <div class="zoom-controls">
+                        <button id="zoom-out" class="zoom-button" title="Zoom Out (Ctrl+-)">-</button>
+                        <span id="zoom-level" class="zoom-level">100%</span>
+                        <button id="zoom-in" class="zoom-button" title="Zoom In (Ctrl++)">+</button>
+                        <button id="zoom-reset" class="zoom-button" title="Reset Zoom (Ctrl+0)">⊙</button>
                     </div>
 
                     <div>

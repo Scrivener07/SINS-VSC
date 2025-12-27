@@ -46,6 +46,24 @@ export class ResearchRenderer {
     private static readonly NODE_CONNECTION_SELECTOR_ID: string = "node-connection-selector";
     private nodeConnectionsEnabled: boolean = false;
 
+    /** The current zoom level.*/
+    private zoomLevel: number = ResearchRenderer.ZOOM_RESET;
+
+    /** The ID of the zoom level display element. */
+    private static readonly ZOOM_LEVEL_ID: string = "zoom-level";
+
+    /** Default zoom level. (1.0 = 100%) */
+    private static readonly ZOOM_RESET: number = 1.0;
+
+    /** Minimum zoom level. */
+    private static readonly ZOOM_MIN: number = 0.25;
+
+    /** Maximum zoom level. */
+    private static readonly ZOOM_MAX: number = 2.0;
+
+    /** Zoom step per button click. */
+    private static readonly ZOOM_STEP: number = 0.05;
+
     /**
      * Creates a new ResearchRenderer.
      * @param vscode The VSCode API object.
@@ -58,6 +76,96 @@ export class ResearchRenderer {
         this.setupPlayerSelector();
         this.setupDomainTabs();
         this.setupNodeConnectionSelector();
+        this.setupZoomControls();
+    }
+
+    private setupZoomControls(): void {
+        const zoomInButton: HTMLElement | null = document.getElementById("zoom-in");
+        const zoomOutButton: HTMLElement | null = document.getElementById("zoom-out");
+        const zoomResetButton: HTMLElement | null = document.getElementById("zoom-reset");
+
+        if (zoomInButton) {
+            zoomInButton.addEventListener("click", () => this.zoomIn());
+        }
+        if (zoomOutButton) {
+            zoomOutButton.addEventListener("click", () => this.zoomOut());
+        }
+        if (zoomResetButton) {
+            zoomResetButton.addEventListener("click", () => this.zoomReset());
+        }
+
+        // Mouse wheel zoom
+        this.container.addEventListener("wheel", (e) => this.container_OnWheel(e), { passive: false });
+
+        // Keyboard shortcuts
+        document.addEventListener("keydown", (e) => this.document_OnKeyDown(e));
+    }
+
+    private container_OnWheel(e: WheelEvent): void {
+        // Check for the Ctrl key (Cmd on Mac).
+        if (!e.ctrlKey && !e.metaKey) {
+            return;
+        }
+
+        e.preventDefault();
+
+        // Determine the zoom direction.
+        const delta: number = e.deltaY > 0 ? -ResearchRenderer.ZOOM_STEP : ResearchRenderer.ZOOM_STEP;
+        this.setZoom(this.zoomLevel + delta);
+    }
+
+    private document_OnKeyDown(e: KeyboardEvent): void {
+        // Check for the Ctrl/Cmd key.
+        if (!e.ctrlKey && !e.metaKey) {
+            return;
+        }
+
+        switch (e.key) {
+            case "+":
+            case "=":
+                e.preventDefault();
+                this.zoomIn();
+                break;
+            case "-":
+                e.preventDefault();
+                this.zoomOut();
+                break;
+            case "0":
+                e.preventDefault();
+                this.zoomReset();
+                break;
+        }
+    }
+
+    private zoomIn(): void {
+        this.setZoom(this.zoomLevel + ResearchRenderer.ZOOM_STEP);
+    }
+
+    private zoomOut(): void {
+        this.setZoom(this.zoomLevel - ResearchRenderer.ZOOM_STEP);
+    }
+
+    private zoomReset(): void {
+        this.setZoom(ResearchRenderer.ZOOM_RESET);
+    }
+
+    private setZoom(level: number): void {
+        // Clamp the zoom level.
+        this.zoomLevel = Math.max(ResearchRenderer.ZOOM_MIN, Math.min(ResearchRenderer.ZOOM_MAX, level));
+
+        // Apply the zoom transform to the SVG element.
+        const svg: SVGElement | null = this.container.querySelector("svg");
+        if (svg) {
+            svg.style.transform = `scale(${this.zoomLevel})`;
+        }
+
+        // Update the zoom level display.
+        const zoomDisplay: HTMLElement | null = document.getElementById(ResearchRenderer.ZOOM_LEVEL_ID);
+        if (zoomDisplay) {
+            zoomDisplay.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+        }
+
+        Log.info(`<ResearchRenderer::setZoom> Zoom level: ${Math.round(this.zoomLevel * 100)}%`);
     }
 
     private setupPlayerSelector(): void {
@@ -147,6 +255,9 @@ export class ResearchRenderer {
             const nodeId: string | undefined = node.dataset.id;
             const message: IWebViewMessage = { type: ViewResponse.FILE_OPEN, identifier: nodeId };
             this.vscode.postMessage(message);
+
+            // TODO: Used to temporarily hide nodes when clicked.
+            // node.style.display = "none";
         }
     }
 
@@ -235,6 +346,9 @@ export class ResearchRenderer {
         `;
 
         this.container.innerHTML = svg;
+
+        // Reapply the current zoom after render.
+        this.setZoom(this.zoomLevel);
     }
 
     private renderConnections(data: IResearchSubject[], enabled: boolean): string {

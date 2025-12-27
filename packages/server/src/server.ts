@@ -162,7 +162,7 @@ class SinsLanguageServer {
         const paths: string[] | undefined = this.indexManager.getPaths(identifier);
         if (paths) {
             // Return the first path found.
-            if (paths.length > 0) {
+            if (paths.length > 1) {
                 console.warn(
                     `<SinsLanguageServer::request_getEntityPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
                 );

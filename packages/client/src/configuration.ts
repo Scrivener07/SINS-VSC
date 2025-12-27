@@ -6,8 +6,8 @@ export class Configuration {
         return workspace.getConfiguration(shared.NAME);
     }
 
-    public static getLanguage(): any {
-        return this.copy().get(shared.PROPERTIES.language);
+    public static getLanguage(): string {
+        return this.copy().get<string>(shared.PROPERTIES.language) || "en";
     }
 
     // Add more...

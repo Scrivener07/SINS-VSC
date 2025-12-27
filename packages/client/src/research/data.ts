@@ -1,15 +1,13 @@
 import * as vscode from "vscode";
 import { IRequestEntityPath, IRequestLocalization, IResearchSubject, ServerRequest } from "@soase/shared";
 import { LanguageClient } from "vscode-languageclient/node";
+import { Configuration } from "../configuration";
 
 /**
  * Service for loading research data by coordinating server requests and file I/O.
  */
 export class ResearchDataService {
     private readonly client: LanguageClient;
-
-    /** TODO: Get language user preference from vs code settings. */
-    private static readonly USER_LANGUAGE_CODE: string = "en";
 
     constructor(client: LanguageClient) {
         this.client = client;
@@ -75,8 +73,11 @@ export class ResearchDataService {
             // Read and parse research subject file.
             const json: any = await this.readJsonFile(researchPath);
 
+            // Get user language preference.
+            const language: string = Configuration.getLanguage();
+
             // Get the localized name.
-            const localizedName: string = (await this.getLocalization(ResearchDataService.USER_LANGUAGE_CODE, json.name)) || json.name;
+            const localizedName: string = (await this.getLocalization(language, json.name)) || json.name;
 
             // Create subject matching ResearchNode interface.
             const research_subject: IResearchSubject = {

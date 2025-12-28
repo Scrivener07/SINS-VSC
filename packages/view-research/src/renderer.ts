@@ -8,11 +8,13 @@ import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject, Point } f
 - Domain filtering (Civilian/Military tabs).
 - Prerequisite connections (toggleable).
 - VS Code theme integration.
-- Scalable architecture ready for images and more features.
 */
 
 /* TODO:
-- Add research subject icons/images.
+- Fix the layout alignments and offsets.
+- Flip the arrow direction to point at the prerequisite node instead of away from it. (debatable)
+- The name "tier" is inappropriatly used for "field" groupings in some places. Refactor to use "field" instead of "tier" where applicable.
+- Add scalable architecture for research subject icons/images and other resources. (CSP complexity)
 - Add stats for subject counts per total\domain\tier.
 - Add background grid with column\row divisions, label cells with coordinates.
 - Add ALL domain view option for cross-domain prerequisites.
@@ -80,6 +82,15 @@ export class ResearchRenderer {
 
     /** Zoom step per button click. */
     private static readonly ZOOM_STEP: number = 0.05;
+
+    /** The maximum number of tiers in the research grid from `research.uniforms`. */
+    private static readonly MAX_TIER_COUNT: number = 5;
+
+    /** The number of columns per tier from `research.uniforms`. */
+    private static readonly PER_TIER_COLUMN_COUNT: number = 2;
+
+    /** The total number of columns in the research grid. */
+    private static readonly MAX_COLUMN_COUNT: number = ResearchRenderer.MAX_TIER_COUNT * ResearchRenderer.PER_TIER_COLUMN_COUNT;
 
     /**
      * Creates a new ResearchRenderer.
@@ -345,29 +356,32 @@ export class ResearchRenderer {
             return;
         }
 
-        // Group the research subjects by tier.
-        const tierGroups: ITierGroup[] = this.groupByTier(data);
+        // Group the research subjects by field.
+        const fields: IFieldGroup[] = this.groupByField(data);
 
-        // Calculate the vertical offsets for each tier group.
-        this.calculateTierOffsets(tierGroups);
+        // Calculate the vertical offsets for each field group.
+        this.calculateFieldOffsets(fields);
 
-        // Calculate the total dimensions needed for the SVG.
-        const maxWidth: number = Math.max(...tierGroups.map((group) => (group.maxColumn + 1) * this.CELL_WIDTH));
-        const totalHeight: number =
-            tierGroups[tierGroups.length - 1].verticalOffset + (tierGroups[tierGroups.length - 1].maxRow + 1) * this.CELL_HEIGHT;
+        // Use fixed width based on MAX_COLUMN_COUNT
+        const maxWidth: number = ResearchRenderer.MAX_COLUMN_COUNT * this.CELL_WIDTH;
 
-        // Add extra vertical space for labels.
-        const heightExtra: number = tierGroups.length * 60;
+        // Define constants for label heights and spacing.
+        const FIELD_LABEL_HEIGHT: number = 40;
+        const FIELD_SPACING: number = 60;
 
-        // Caculate the final SVG dimensions.
+        // Calculate the base dimensions needed for the SVG.
+        const maxRows: number = Math.max(...fields.map((group) => group.maxRow), 2) + 1;
+        const totalHeight: number = fields.length * (FIELD_LABEL_HEIGHT + maxRows * this.CELL_HEIGHT + FIELD_SPACING);
+
+        // Caculate the final SVG dimensions after padding.
         const width: number = maxWidth + this.PADDING * 2;
-        const height: number = totalHeight + this.PADDING * 2 + heightExtra;
+        const height: number = totalHeight + this.PADDING * 2;
 
-        // Create SVG with tier groups and connections.
+        // Create SVG with field groups and connections.
         const svg: string = `
             <svg width="${width}" height="${height}" style="display: block;">
-                ${this.renderTierGroups(tierGroups)}
-                ${this.renderConnections(data, tierGroups, this.nodeConnectionsEnabled)}
+                ${this.renderFieldGroups(fields)}
+                ${this.renderConnections(data, fields, this.nodeConnectionsEnabled)}
             </svg>
         `;
 
@@ -376,179 +390,205 @@ export class ResearchRenderer {
     }
 
     /**
-     * Groups research subjects by their tier field.
+     * Groups research subjects by their research field.
      */
-    private groupByTier(data: IResearchSubject[]): ITierGroup[] {
-        const tierMap: Map<string, IResearchSubject[]> = new Map();
+    private groupByField(subjects: IResearchSubject[]): IFieldGroup[] {
+        const fieldMap: Map<string, IResearchSubject[]> = new Map();
 
-        // Group the subjects by tier.
-        for (const subject of data) {
-            const tierName: string = subject.field || "unknown";
-            if (!tierMap.has(tierName)) {
-                tierMap.set(tierName, []);
+        // Group the subjects by their field.
+        for (const subject of subjects) {
+            const fieldName: string = subject.field || "unknown";
+            if (!fieldMap.has(fieldName)) {
+                fieldMap.set(fieldName, []);
             }
-            tierMap.get(tierName)!.push(subject);
+            fieldMap.get(fieldName)!.push(subject);
         }
 
-        // Convert to ITierGroup array.
-        const groups: ITierGroup[] = [];
-        for (const [tierName, subjects] of tierMap.entries()) {
+        // Convert to IFieldGroup array.
+        const fields: IFieldGroup[] = [];
+        for (const [fieldName, subjects] of fieldMap.entries()) {
             // Find the maximum column and row for layout calculations.
             const maxColumn: number = Math.max(...subjects.map((subject) => subject.field_coord[0]));
             const maxRow: number = Math.max(...subjects.map((subject) => subject.field_coord[1]));
 
-            const tierGroup: ITierGroup = {
-                tierName: tierName,
-                displayName: ResearchRenderer.extractTierDisplayName(tierName),
+            const field: IFieldGroup = {
+                name: fieldName,
+                nameDisplay: ResearchRenderer.extractFieldDisplayName(fieldName),
                 subjects: subjects,
                 maxColumn: maxColumn,
                 maxRow: maxRow,
                 verticalOffset: 0 // This will be calculated later.
             };
-            groups.push(tierGroup);
+            fields.push(field);
         }
 
-        // Sort by tier number extracted from research subjects.
-        groups.sort(this.compareTierGroups.bind(this));
-        return groups;
+        // Sort a field's research subjects by tier number.
+        fields.sort(this.compareFieldTiers.bind(this));
+        return fields;
     }
 
     /**
-     * Compares two tier groups by their minimum tier number.
-     * @param group This tier group.
-     * @param other The other tier group.
+     * Compares two field groups by their minimum tier number.
+     * @param group This field group.
+     * @param other The other field group.
      * @returns Negative if `group_a < group_b`, positive if `group_a > group_b`, zero if equal.
      */
-    private compareTierGroups(group: ITierGroup, other: ITierGroup): number {
+    private compareFieldTiers(group: IFieldGroup, other: IFieldGroup): number {
         const tierA: number = Math.min(...group.subjects.map((subject) => subject.tier));
         const tierB: number = Math.min(...other.subjects.map((subject) => subject.tier));
         return tierA - tierB;
     }
 
     /**
-     * Extracts the display name from a tier field name.
+     * Extracts the display name from a field name.
      * Example: "Civilian_industry" -> "Industry"
      *
      * TODO: This should be done by looking up the field name in a localization file.
      */
-    private static extractTierDisplayName(tierName: string): string {
+    private static extractFieldDisplayName(fieldName: string): string {
         // Remove domain prefix. (Civilian_ or Military_)
-        const withoutPrefix: string = tierName.replace(/^(Civilian|Military)_/i, "");
+        const withoutPrefix: string = fieldName.replace(/^(Civilian|Military)_/i, "");
 
         // Capitalize first letter.
         return withoutPrefix.charAt(0).toUpperCase() + withoutPrefix.slice(1);
     }
 
     /**
-     * Calculates vertical offsets for each tier group so they don't overlap.
+     * Calculates vertical offsets for each field group so they don't overlap.
      */
-    private calculateTierOffsets(tierGroups: ITierGroup[]): void {
-        const TIER_LABEL_HEIGHT: number = 40;
-        const TIER_SPACING: number = 40;
+    private calculateFieldOffsets(fields: IFieldGroup[]): void {
+        const FIELD_LABEL_HEIGHT: number = 40;
+        const FIELD_SPACING: number = 60;
 
-        let currentOffset: number = 0;
+        // Calculate maximum rows needed across all fields.
+        // Use the maximum to ensure consistent grid height.
+        // Minimum 3 rows (0, 1, 2)
+        // TODO: Reconsider using a row minimum after some testing.
+        const maxRows: number = Math.max(...fields.map((group) => group.maxRow), 2) + 1;
 
-        for (const group of tierGroups) {
-            group.verticalOffset = currentOffset;
+        // Assign the vertical offsets.
+        let offset: number = 0;
+        for (const field of fields) {
+            field.verticalOffset = offset;
+
+            // Use consistent grid height for all fields
+            const fieldHeight: number = maxRows * this.CELL_HEIGHT;
 
             // Next group starts after this group's height + label + spacing.
-            const groupHeight: number = (group.maxRow + 1) * this.CELL_HEIGHT;
-            currentOffset += TIER_LABEL_HEIGHT + groupHeight + TIER_SPACING;
+            offset += FIELD_LABEL_HEIGHT + fieldHeight + FIELD_SPACING;
         }
     }
 
     /**
-     * Renders all tier groups with labels and subjects.
+     * Renders all field groups with labels and subjects.
      */
-    private renderTierGroups(tierGroups: ITierGroup[]): string {
-        const TIER_LABEL_HEIGHT: number = 40;
+    private renderFieldGroups(fieldGroups: IFieldGroup[]): string {
+        const html_fields: string[] = fieldGroups.map((group) => this.renderFieldGroup(group));
+        return html_fields.join("");
+    }
 
-        const groupsHtml: string[] = tierGroups.map((group) => {
-            const labelY: number = group.verticalOffset + this.PADDING;
-            const nodesY: number = labelY + TIER_LABEL_HEIGHT;
-            return `
-                <!-- Tier Label -->
-                <text
-                    x="${this.PADDING}"
-                    y="${labelY + 25}"
-                    font-size="18"
-                    font-weight="bold"
-                    fill="var(--vscode-foreground)"
-                >
-                    ${group.displayName}
-                </text>
+    private renderFieldGroup(fieldGroup: IFieldGroup): string {
+        const FIELD_LABEL_HEIGHT: number = 40;
 
-                <!-- Tier Separator Line -->
-                <line
-                    x1="${this.PADDING}"
-                    y1="${labelY + 30}"
-                    x2="${(group.maxColumn + 1) * this.CELL_WIDTH + this.PADDING}"
-                    y2="${labelY + 30}"
-                    stroke="var(--vscode-panel-border)"
-                    stroke-width="1"
-                />
+        const labelY: number = fieldGroup.verticalOffset + this.PADDING;
+        const nodesY: number = labelY + FIELD_LABEL_HEIGHT;
 
-                <!-- Research Nodes -->
-                ${this.renderNodesForTier(group, nodesY)}
-            `;
-        });
+        const label_x: number = this.PADDING;
+        const label_y: number = labelY + 25;
 
-        return groupsHtml.join("");
+        const seperator_x1: number = this.PADDING;
+        const seperator_y1: number = labelY + 30;
+        const seperator_x2: number = ResearchRenderer.MAX_COLUMN_COUNT * this.CELL_WIDTH + this.PADDING;
+        const seperator_y2: number = labelY + 30;
+
+        return `
+        <g>
+            <!-- Field Label -->
+            <text
+                x="${label_x}"
+                y="${label_y}"
+                font-size="18"
+                font-weight="bold"
+                fill="var(--vscode-foreground)"
+            >
+                ${fieldGroup.nameDisplay}
+            </text>
+
+            <!-- Field Separator Line -->
+            <line
+                x1="${seperator_x1}"
+                y1="${seperator_y1}"
+                x2="${seperator_x2}"
+                y2="${seperator_y2}"
+                stroke="var(--vscode-panel-border)"
+                stroke-width="1"
+            />
+
+            <!-- Background Grid -->
+            ${this.renderFieldGrid(fieldGroup, fieldGroup.verticalOffset)}
+
+            <!-- Tier Dividers -->
+            ${this.renderTierDividers(fieldGroup, fieldGroup.verticalOffset)}
+
+            <!-- Research Nodes (rendered on top) -->
+            ${this.renderFieldSubjects(fieldGroup, nodesY)}
+        </g>
+        `;
     }
 
     /**
-     * Renders research nodes for a specific tier group.
+     * Renders research nodes for a specific field group.
      */
-    private renderNodesForTier(group: ITierGroup, offsetY: number): string {
-        const nodes: string[] = group.subjects.map((node) => this.renderNode(node, offsetY, group));
-        return nodes.join("");
+    private renderFieldSubjects(field: IFieldGroup, offsetY: number): string {
+        const subjects: string[] = field.subjects.map((subject) => this.renderNode(subject, offsetY, field));
+        return subjects.join("");
     }
 
     /**
-     * Renders prerequisite connections between nodes, accounting for tier offsets.
+     * Renders prerequisite connections between nodes, accounting for field offsets.
      */
-    private renderConnections(data: IResearchSubject[], tierGroups: ITierGroup[], enabled: boolean): string {
+    private renderConnections(subjects: IResearchSubject[], fields: IFieldGroup[], enabled: boolean): string {
         if (!enabled) {
             return "";
         }
 
         const connections: string[] = [];
-        const nodeMap: Map<string, IResearchSubject> = new Map(data.map((subject) => [subject.id, subject]));
+        const subjectMap: Map<string, IResearchSubject> = new Map(subjects.map((subject) => [subject.id, subject]));
 
-        // Build a map of node ID to tier offset
-        const tierOffsetMap: Map<string, number> = new Map();
-        const TIER_LABEL_HEIGHT: number = 40;
+        // Build a map of subject ID to field offset.
+        const fieldOffsetMap: Map<string, number> = new Map();
+        const FIELD_LABEL_HEIGHT: number = 40;
 
-        for (const group of tierGroups) {
-            const offsetY: number = group.verticalOffset + this.PADDING + TIER_LABEL_HEIGHT;
-            for (const subject of group.subjects) {
-                tierOffsetMap.set(subject.id, offsetY);
+        for (const field of fields) {
+            const offsetY: number = field.verticalOffset + this.PADDING + FIELD_LABEL_HEIGHT;
+            for (const subject of field.subjects) {
+                fieldOffsetMap.set(subject.id, offsetY);
             }
         }
 
         const nodeWidth: number = this.CELL_WIDTH - 20;
         const nodeHeight: number = this.CELL_HEIGHT - 20;
 
-        for (const node of data) {
-            if (!node.prerequisites || node.prerequisites.length === 0) {
+        for (const subject of subjects) {
+            if (!subject.prerequisites || subject.prerequisites.length === 0) {
                 continue;
             }
 
-            const [toColumn, toRow]: Point = node.field_coord;
-            const toOffsetY: number = tierOffsetMap.get(node.id) || 0;
+            const [toColumn, toRow]: Point = subject.field_coord;
+            const toOffsetY: number = fieldOffsetMap.get(subject.id) || 0;
             const toCenterX: number = toColumn * this.CELL_WIDTH + this.PADDING + this.CELL_WIDTH / 2;
             const toCenterY: number = toRow * this.CELL_HEIGHT + toOffsetY + this.CELL_HEIGHT / 2;
 
-            for (const prerequisite_group of node.prerequisites) {
+            for (const prerequisite_group of subject.prerequisites) {
                 for (const prerequisite_id of prerequisite_group) {
-                    const prerequisite_node: IResearchSubject | undefined = nodeMap.get(prerequisite_id);
+                    const prerequisite_node: IResearchSubject | undefined = subjectMap.get(prerequisite_id);
                     if (!prerequisite_node) {
                         Log.warn(`<ResearchRenderer::renderConnections> Prerequisite node not found: ${prerequisite_id}`);
                         continue;
                     }
 
                     const [fromColumn, fromRow]: Point = prerequisite_node.field_coord;
-                    const fromOffsetY: number = tierOffsetMap.get(prerequisite_id) || 0;
+                    const fromOffsetY: number = fieldOffsetMap.get(prerequisite_id) || 0;
                     const fromCenterX: number = fromColumn * this.CELL_WIDTH + this.PADDING + this.CELL_WIDTH / 2;
                     const fromCenterY: number = fromRow * this.CELL_HEIGHT + fromOffsetY + this.CELL_HEIGHT / 2;
 
@@ -596,15 +636,10 @@ export class ResearchRenderer {
         `;
     }
 
-    // private renderNodes(data: IResearchSubject[]): string {
-    //     const nodes: string[] = data.map((node) => this.renderNode(node));
-    //     return nodes.join("");
-    // }
-
     /**
      * Renders a single research node at its tier-relative position.
      */
-    private renderNode(node: IResearchSubject, tierOffsetY: number, group: ITierGroup): string {
+    private renderNode(node: IResearchSubject, tierOffsetY: number, group: IFieldGroup): string {
         const [column, row]: Point = node.field_coord;
         const x: number = column * this.CELL_WIDTH + this.PADDING;
         const y: number = row * this.CELL_HEIGHT + tierOffsetY;
@@ -629,7 +664,7 @@ export class ResearchRenderer {
             >
                 <div class="research-tier">Tier ${node.tier}</div>
                 <div class="research-name">${node.name}</div>
-                <div class="research-field">${group.displayName}</div>
+                <div class="research-field">${group.nameDisplay} [${column}, ${row}]</div>
             </div>
         </foreignObject>
         `;
@@ -664,27 +699,173 @@ export class ResearchRenderer {
             y: centerY + distanceToEdge * directionY
         };
     }
+
+    /**
+     * Renders the background grid for a field group showing all possible cells.
+     * @param group The field group to render grid for.
+     * @param offsetY The vertical offset for this field.
+     * @returns SVG markup for the grid background.
+     */
+    private renderFieldGrid(group: IFieldGroup, offsetY: number): string {
+        const gridElements: string[] = [];
+        const FIELD_LABEL_HEIGHT: number = 40;
+        const gridStartY: number = offsetY + FIELD_LABEL_HEIGHT;
+
+        // Calculate the grid dimensions.
+        // TODO: Ensure at least 3 rows?
+        const maxRows: number = Math.max(group.maxRow, 2) + 1;
+        const totalColumns: number = ResearchRenderer.MAX_COLUMN_COUNT;
+
+        // Render the grid cells.
+        for (let row: number = 0; row < maxRows; row++) {
+            for (let column: number = 0; column < totalColumns; column++) {
+                const x: number = column * this.CELL_WIDTH + this.PADDING;
+                const y: number = row * this.CELL_HEIGHT + gridStartY;
+
+                // Check if this cell is occupied by a research node.
+                const isOccupied: boolean = group.subjects.some(this.isCellOccupied.bind(this, column, row));
+
+                // Set fill color based on cell occupancy.
+                let fill: string;
+                if (isOccupied) {
+                    fill = "none";
+                    // TODO: Play with the fill color for occupied cells.
+                    // backgroundFill = "var(--vscode-editor-background)";
+                } else {
+                    fill = "var(--vscode-editor-lineHighlightBackground)";
+                }
+
+                // Render the grid cell background.
+                const rectangleWidth: number = this.CELL_WIDTH - 20;
+                const rectangleHeight: number = this.CELL_HEIGHT - 20;
+                gridElements.push(`
+                    <rect
+                        x="${x}"
+                        y="${y}"
+                        width="${rectangleWidth}"
+                        height="${rectangleHeight}"
+                        fill="${fill}"
+                        stroke="var(--vscode-panel-border)"
+                        stroke-width="1"
+                        opacity="0.3"
+                    />
+                `);
+
+                // Render the coordinates on ALL cells.
+                const textX: number = x + (this.CELL_WIDTH - 20) / 2;
+                const textY: number = y + (this.CELL_HEIGHT - 20) / 2;
+                gridElements.push(`
+                    <text
+                        x="${textX}"
+                        y="${textY}"
+                        text-anchor="middle"
+                        dominant-baseline="middle"
+                        font-size="10"
+                        fill="var(--vscode-descriptionForeground)"
+                        opacity="0.5"
+                        pointer-events="none"
+                    >
+                        [${column},${row}]
+                    </text>
+                `);
+            }
+        }
+
+        return gridElements.join("");
+    }
+
+    /**
+     * Checks if a grid cell is occupied by a research subject.
+     * @param column The column coordinate to check.
+     * @param row The row coordinate to check.
+     * @param subject The research subject to check against.
+     * @returns True if the subject occupies this cell.
+     */
+    private isCellOccupied(column: number, row: number, subject: IResearchSubject): boolean {
+        const [subjectColumn, subjectRow]: Point = subject.field_coord;
+        return subjectColumn === column && subjectRow === row;
+    }
+
+    /**
+     * Renders vertical tier divider lines and labels.
+     * @param group The field group.
+     * @param offsetY The vertical offset for this field.
+     * @returns SVG markup for tier dividers.
+     */
+    private renderTierDividers(group: IFieldGroup, offsetY: number): string {
+        const dividers: string[] = [];
+        const FIELD_LABEL_HEIGHT: number = 40;
+        const gridStartY: number = offsetY + FIELD_LABEL_HEIGHT;
+        const maxRows: number = Math.max(group.maxRow, 2) + 1;
+        const gridHeight: number = maxRows * this.CELL_HEIGHT;
+
+        // Render the divider for each tier.
+        for (let tier: number = 0; tier <= ResearchRenderer.MAX_TIER_COUNT; tier++) {
+            const column: number = tier * ResearchRenderer.PER_TIER_COLUMN_COUNT;
+            const x: number = column * this.CELL_WIDTH + this.PADDING;
+
+            // Create vertical divider line.
+            const divider_x1: number = x - 10;
+            const divider_y1: number = gridStartY;
+            const divider_x2: number = x - 10;
+            const divider_y2: number = gridStartY + gridHeight;
+            const divider_color: string = "var(--vscode-input-foreground)";
+            dividers.push(`
+                <line
+                    x1="${divider_x1}"
+                    y1="${divider_y1}"
+                    x2="${divider_x2}"
+                    y2="${divider_y2}"
+                    stroke="${divider_color}"
+                    stroke-width="2"
+                    opacity="0.6"
+                />
+            `);
+
+            // Create tier label, skip the last divider.
+            if (tier < ResearchRenderer.MAX_TIER_COUNT) {
+                const tierCenterX: number = x + (ResearchRenderer.PER_TIER_COLUMN_COUNT * this.CELL_WIDTH) / 2;
+                // TODO: Use localized tier names.
+                const tierLabel: string = `Tier ${tier}`;
+                const labelY: number = gridStartY - 10;
+                dividers.push(`
+                    <text
+                        x="${tierCenterX}"
+                        y="${labelY}"
+                        text-anchor="middle"
+                        font-size="12"
+                        font-weight="bold"
+                        fill="var(--vscode-descriptionForeground)"
+                    >
+                        ${tierLabel}
+                    </text>
+                `);
+            }
+        }
+
+        return dividers.join("");
+    }
 }
 
 /**
- * Represents a grouped tier of research subjects.
+ * Represents a field group of research subjects.
  */
-interface ITierGroup {
-    /** The tier field name. (`Civilian_industry`) */
-    tierName: string;
+interface IFieldGroup {
+    /** The research field name. (`Civilian_industry`) */
+    name: string;
 
     /** The display name. (`Industry`) */
-    displayName: string;
+    nameDisplay: string;
 
-    /** Research subjects in this tier. */
+    /** Research subjects in this research field. */
     subjects: IResearchSubject[];
 
-    /** Maximum column coordinate in this tier. */
+    /** Maximum column coordinate in this research field. */
     maxColumn: number;
 
-    /** Maximum row coordinate in this tier. */
+    /** Maximum row coordinate in this research field. */
     maxRow: number;
 
-    /** Vertical offset for rendering (calculated). */
+    /** Vertical offset for rendering. */
     verticalOffset: number;
 }

@@ -290,7 +290,7 @@ export class ResearchRenderer {
     private renderPlayerSelector(players: string[]): void {
         const selector = document.getElementById(ResearchRenderer.PLAYER_SELECTOR_ID) as HTMLSelectElement;
         if (!selector) {
-            console.error("Player selector element not found");
+            Log.error("Player selector element not found");
             return;
         }
 
@@ -336,7 +336,7 @@ export class ResearchRenderer {
     private filterAndRender(): void {
         // Use bind() to capture `this` context.
         this.dataFiltered = this.data.filter(this.filterByDomain.bind(this));
-        console.log(`<ResearchRenderer::filterAndRender> Rendering ${this.dataFiltered.length} nodes for domain: ${this.domainSelection}`);
+        Log.info(`<ResearchRenderer::filterAndRender> Rendering ${this.dataFiltered.length} nodes for domain: ${this.domainSelection}`);
         this.render(this.dataFiltered);
     }
 

@@ -100,9 +100,7 @@ export class ResearchPanel {
     private static getHtml(webview: vscode.Webview): string {
         const scriptPath = vscode.Uri.joinPath(ResearchPanel.viewResourceRoot, "index.js");
         const scriptUri: vscode.Uri = webview.asWebviewUri(scriptPath);
-
         const nonce: string = ResearchPanel.getNonce();
-
         return `
             <!DOCTYPE html>
             <html lang="en">
@@ -113,40 +111,6 @@ export class ResearchPanel {
                 <title>${ResearchPanel.VIEW_TITLE}</title>
             </head>
             <body>
-                <div class="header">
-
-                    <div>
-                        <label for="player-selector" class="control-label">Player:</label>
-                        <select id="player-selector" class="player-selector">
-                            <option value="">Loading players...</option>
-                        </select>
-                    </div>
-
-                    <div id="domain-tabs" class="domain-tabs">
-                        <button id="tab-civilian" class="domain-tab active" data-domain="civilian">
-                            Civilian
-                        </button>
-                        <button id="tab-military" class="domain-tab" data-domain="military">
-                            Military
-                        </button>
-                    </div>
-
-                    <div class="zoom-controls">
-                        <button id="zoom-out" class="zoom-button" title="Zoom Out (Ctrl+-)">-</button>
-                        <span id="zoom-level" class="zoom-level">100%</span>
-                        <button id="zoom-in" class="zoom-button" title="Zoom In (Ctrl++)">+</button>
-                        <button id="zoom-reset" class="zoom-button" title="Reset Zoom (Ctrl+0)">⊙</button>
-                    </div>
-
-                    <div>
-                        <label for="node-connection-selector" class="control-label">Connections:</label>
-                        <input id="node-connection-selector" type="checkbox" class="node-connection-selector"></input>
-                    </div>
-
-                </div>
-
-                <div id="research-tree-container"></div>
-
                 <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>

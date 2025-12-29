@@ -3,6 +3,8 @@ import { VSCode, acquireVsCodeApi } from "./vscode";
 import { Log } from "./log";
 import { ResearchRenderer } from "./renderer";
 import * as shared from "@soase/shared";
+import { ConnectionControl, DomainSelect, Header, PlayerSelect, ZoomControl } from "./dom-header";
+import { ResearchContainer } from "./dom-container";
 
 /**
  * The main application class for the research visualizer.
@@ -23,6 +25,12 @@ class Application {
      */
     constructor() {
         Log.initialize(this.vscode);
+        Header.define();
+        ResearchContainer.define();
+        PlayerSelect.define();
+        DomainSelect.define();
+        ZoomControl.define();
+        ConnectionControl.define();
 
         // Instantiate the renderer.
         this.renderer = new ResearchRenderer(this.vscode);

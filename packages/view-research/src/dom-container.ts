@@ -1,6 +1,6 @@
 import { IResearchSubject } from "@soase/shared";
 import { DataController } from "./data";
-import { Layout } from "./dom-layout";
+import { Layout, MessageText } from "./dom-layout";
 import { ConnectionRenderer } from "./research-connection";
 import { IFieldGroup, FieldLayout } from "./research-field";
 import { GridRenderer, GridLayout } from "./research-grid";
@@ -49,7 +49,7 @@ export class ResearchView {
 
     public render(data: IResearchSubject[]): void {
         if (data.length === 0) {
-            this.container.innerHTML = `<div style="padding: 20px;">No ${this.dataController.domainSelection} research data available</div>`;
+            this.container.replaceChildren(MessageText.create(`No ${this.dataController.domainSelection} research data available`));
             return;
         }
 

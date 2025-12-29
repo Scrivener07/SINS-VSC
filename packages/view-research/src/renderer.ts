@@ -2,8 +2,9 @@ import { VSCode } from "./vscode";
 import { Log } from "./log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
 import { DataController } from "./data";
-import { DomainSelect, Header } from "./dom-header";
-import { ResearchContainer, ResearchView } from "./dom-container";
+import { Header } from "./dom-header";
+import { ResearchContainer } from "./dom-container";
+import { MessageText } from "./dom-layout";
 
 /* Features:
 - Research tree visualizer with tier grouping.
@@ -79,17 +80,10 @@ export class ResearchRenderer {
 
     private player_updateOptions(players: string[]): void {
         if (this.header.player.populate(players)) {
-            this.container.replaceChildren(ResearchRenderer.createMessageText("Select a player to view research tree"));
+            this.container.replaceChildren(MessageText.create("Select a player to view research tree"));
         } else {
-            this.container.replaceChildren(ResearchRenderer.createMessageText("No player data available"));
+            this.container.replaceChildren(MessageText.create("No player data available"));
         }
-    }
-
-    private static createMessageText(text: string): HTMLDivElement {
-        const division: HTMLDivElement = document.createElement("div");
-        division.style.padding = "20px";
-        division.textContent = text;
-        return division;
     }
 
     private player_OnChange(e: Event): void {

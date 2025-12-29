@@ -4,7 +4,7 @@ import { Log } from "./log";
 import { ResearchRenderer } from "./renderer";
 import * as shared from "@soase/shared";
 import { ConnectionControl, DomainSelect, Header, PlayerSelect, ZoomControl } from "./dom-header";
-import { ResearchContainer } from "./dom-container";
+import { ResearchView } from "./dom-container";
 
 /**
  * The main application class for the research visualizer.
@@ -26,7 +26,7 @@ class Application {
     constructor() {
         Log.initialize(this.vscode);
         Header.define();
-        ResearchContainer.define();
+        ResearchView.define();
         PlayerSelect.define();
         DomainSelect.define();
         ZoomControl.define();

@@ -7,7 +7,7 @@ export class ConnectionRenderer {
     /**
      * Renders prerequisite connections between nodes, accounting for field offsets.
      */
-    public renderConnections(subjects: IResearchSubject[], fields: IFieldGroup[], enabled: boolean): string {
+    public static renderConnections(subjects: IResearchSubject[], fields: IFieldGroup[], enabled: boolean): string {
         if (!enabled) {
             return "";
         }
@@ -97,7 +97,7 @@ export class ConnectionRenderer {
     }
 }
 
-export class Connection {
+class Connection {
     /**
      * Calculates the point where a line at the given angle intersects the edge of a rectangle.
      * @param centerX The X coordinate of the rectangle center.

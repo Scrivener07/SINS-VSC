@@ -20,7 +20,7 @@ export class GridRenderer {
      * @param offsetY The vertical offset for this field.
      * @returns SVG markup for the grid background.
      */
-    public renderFieldGrid(group: IFieldGroup, offsetY: number): string {
+    public static renderFieldGrid(group: IFieldGroup, offsetY: number): string {
         const gridElements: string[] = [];
 
         const gridStartY: number = offsetY + FieldLayout.FIELD_LABEL_HEIGHT;

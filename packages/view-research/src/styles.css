@@ -83,7 +83,7 @@ body {
 
 /*--------------------------------------------------*/
 
-#research-tree-container {
+#research-viewer {
     flex: 1; /* Take remaining space */
     overflow: auto; /* Enable scrolling within the container */
     position: relative;
@@ -92,7 +92,7 @@ body {
 }
 
 /* For absolute positioning for nodes */
-#research-tree-container > * {
+#research-viewer > * {
     position: absolute;
 }
 
@@ -138,7 +138,7 @@ body {
 }
 
 /* Apply zoom transform to SVG */
-#research-tree-container svg {
+#research-viewer svg {
     transform-origin: top left;
     transition: transform 0.2s ease-out;
 }

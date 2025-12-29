@@ -3,7 +3,7 @@ import { Log } from "./log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
 import { DataController } from "./data";
 import { Header } from "./dom-header";
-import { ResearchContainer } from "./dom-container";
+import { ResearchView } from "./dom-container";
 import { MessageText } from "./dom-layout";
 
 /* Features:
@@ -35,7 +35,7 @@ export class ResearchRenderer {
     private readonly dataController: DataController;
 
     private readonly header: Header;
-    private readonly container: ResearchContainer;
+    private readonly container: ResearchView;
 
     /** The currently selected player ID. */
     private playerSelection: string | null = null;
@@ -56,7 +56,7 @@ export class ResearchRenderer {
         this.header.connections.checkbox.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
         document.body.appendChild(this.header);
 
-        this.container = new ResearchContainer(this.dataController);
+        this.container = new ResearchView(this.dataController);
         this.container.addEventListener("click", (e) => this.node_OnClick(e));
         document.body.appendChild(this.container);
     }
@@ -118,8 +118,8 @@ export class ResearchRenderer {
 
     private nodeConnection_OnChange(e: Event): void {
         const target = e.target as HTMLInputElement;
-        this.container.view.nodeConnectionsEnabled = target.checked;
-        this.container.view.render(this.dataController.dataFiltered);
+        this.container.nodeConnectionsEnabled = target.checked;
+        this.container.render(this.dataController.dataFiltered);
     }
 
     private node_OnClick(e: PointerEvent): void {
@@ -137,7 +137,7 @@ export class ResearchRenderer {
      */
     private filterAndRender(): void {
         this.dataController.doFilter();
-        this.container.view.render(this.dataController.dataFiltered);
+        this.container.render(this.dataController.dataFiltered);
     }
 
     private setData(data: IResearchSubject[]): void {

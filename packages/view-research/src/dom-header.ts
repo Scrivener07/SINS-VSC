@@ -21,7 +21,7 @@ export class Header extends HTMLDivElement {
 
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("research-header", Header, options);
+        customElements.define("sins-research-header", Header, options);
     }
 }
 
@@ -53,7 +53,7 @@ export class PlayerSelect extends HTMLDivElement {
 
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("player-control", PlayerSelect, options);
+        customElements.define("sins-player-control", PlayerSelect, options);
     }
 
     public populate(players: string[]): boolean {
@@ -91,7 +91,8 @@ export class PlayerSelect extends HTMLDivElement {
 
 export class DomainSelect extends HTMLDivElement {
     /** The ID of the domain tabs container. */
-    public static readonly DOMAIN_TABS_ID: string = "domain-tabs";
+    private static readonly DOMAIN_TABS_ID: string = "domain-tabs";
+    private static readonly DOMAIN_TAB_CLASS: string = "domain-tab";
 
     public readonly civilian: HTMLButtonElement;
     public readonly military: HTMLButtonElement;
@@ -111,15 +112,31 @@ export class DomainSelect extends HTMLDivElement {
     private static createTabButton(id: string, domain: string, label: string, isActive: boolean): HTMLButtonElement {
         const button: HTMLButtonElement = document.createElement("button");
         button.id = id;
-        button.className = isActive ? "domain-tab active" : "domain-tab";
+        button.className = isActive ? `${DomainSelect.DOMAIN_TAB_CLASS} active` : DomainSelect.DOMAIN_TAB_CLASS;
         button.dataset.domain = domain;
         button.textContent = label;
         return button;
     }
 
+    public setActive(button: HTMLButtonElement) {
+        const tabs: NodeListOf<Element> = document.querySelectorAll(`.${DomainSelect.DOMAIN_TAB_CLASS}`);
+        for (const tab of tabs) {
+            tab.classList.remove("active");
+        }
+        button.classList.add("active");
+    }
+
+    public setVisible(isVisible: boolean): void {
+        if (isVisible) {
+            this.style.display = "block";
+        } else {
+            this.style.display = "none";
+        }
+    }
+
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("domain-control", DomainSelect, options);
+        customElements.define("sins-domain-control", DomainSelect, options);
     }
 }
 
@@ -154,13 +171,13 @@ export class ZoomControl extends HTMLDivElement {
 
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("zoom-control", ZoomControl, options);
+        customElements.define("sins-zoom-control", ZoomControl, options);
     }
 }
 
 export class ConnectionControl extends HTMLDivElement {
     /** The ID of the node connection selector element. */
-    public static readonly NODE_CONNECTION_SELECTOR_ID: string = "node-connection-selector";
+    private static readonly NODE_CONNECTION_SELECTOR_ID: string = "node-connection-selector";
 
     public readonly checkbox: HTMLInputElement;
 
@@ -183,6 +200,6 @@ export class ConnectionControl extends HTMLDivElement {
 
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("connection-control", ConnectionControl, options);
+        customElements.define("sins-connection-control", ConnectionControl, options);
     }
 }

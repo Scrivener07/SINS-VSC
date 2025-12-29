@@ -73,16 +73,23 @@ export class ResearchRenderer {
                 this.setData(message.data);
                 break;
             default:
-                Log.warn(`<ResearchRenderer::onMessage> Unhandled message type: ${message.type}`);
+                Log.warn(`<ResearchRenderer::onMessage> Unhandled message type: ${message.type}`, message);
         }
     }
 
     private player_updateOptions(players: string[]): void {
         if (this.header.player.populate(players)) {
-            this.container.innerHTML = '<div style="padding: 20px;">Select a player to view research tree</div>';
+            this.container.replaceChildren(ResearchRenderer.createMessageText("Select a player to view research tree"));
         } else {
-            this.container.innerHTML = '<div style="padding: 20px;">No player data available</div>';
+            this.container.replaceChildren(ResearchRenderer.createMessageText("No player data available"));
         }
+    }
+
+    private static createMessageText(text: string): HTMLDivElement {
+        const division: HTMLDivElement = document.createElement("div");
+        division.style.padding = "20px";
+        division.textContent = text;
+        return division;
     }
 
     private player_OnChange(e: Event): void {
@@ -100,7 +107,7 @@ export class ResearchRenderer {
     }
 
     private domainTab_OnClick(e: Event): void {
-        const target = e.target as HTMLElement;
+        const target = e.target as HTMLButtonElement;
         const domain: string = target.dataset.domain;
 
         if (!domain || domain === this.dataController.domainSelection) {
@@ -108,11 +115,7 @@ export class ResearchRenderer {
         }
 
         // Update the active tab styling.
-        const tabs: NodeListOf<Element> = document.querySelectorAll(".domain-tab");
-        for (const tab of tabs) {
-            tab.classList.remove("active");
-        }
-        target.classList.add("active");
+        this.header.domain.setActive(target);
 
         // Update the selected domain and re-render.
         this.dataController.domainSelection = domain;
@@ -147,14 +150,7 @@ export class ResearchRenderer {
         this.dataController.data = data;
 
         // Show domain tabs if we have data.
-        const tabsContainer = document.getElementById(DomainSelect.DOMAIN_TABS_ID) as HTMLDivElement;
-        if (tabsContainer) {
-            if (data.length > 0) {
-                tabsContainer.style.display = "block";
-            } else {
-                tabsContainer.style.display = "none";
-            }
-        }
+        this.header.domain.setVisible(data.length > 0);
 
         this.filterAndRender();
     }

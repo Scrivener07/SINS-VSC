@@ -1,10 +1,11 @@
 import { VSCode } from "./vscode";
 import { Log } from "./log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
-import { DataController } from "./data";
-import { Header } from "./dom-header";
+import { DataController as ResearchModel } from "./data";
+import { Header as ToolbarView } from "./dom-header";
 import { ResearchView } from "./dom-container";
 import { MessageText } from "./dom-layout";
+import { ResearchSubject } from "./research-subject";
 
 /* Features:
 - Research tree visualizer with tier grouping.
@@ -26,43 +27,43 @@ import { MessageText } from "./dom-layout";
 */
 
 /**
- * Renders the research tree.
+ * The top-level orchestrator class for the research visualizer.
  */
-export class ResearchRenderer {
+export class ResearchPresenter {
     /** The VSCode API object provided to the webview. */
     private readonly vscode: VSCode;
 
-    private readonly dataController: DataController;
+    private readonly model: ResearchModel;
 
-    private readonly header: Header;
-    private readonly container: ResearchView;
+    private readonly toolbar: ToolbarView;
+    private readonly display: ResearchView;
 
     /** The currently selected player ID. */
     private playerSelection: string | null = null;
 
     /**
-     * Creates a new ResearchRenderer.
+     * Instantiates a new class instance with the given VSCode API object.
      * @param vscode The VSCode API object.
      */
     constructor(vscode: VSCode) {
-        Log.info("<ResearchRenderer::constructor> Renderer instantiated");
+        Log.info("<ResearchPresenter::constructor> Presenter instantiated");
         this.vscode = vscode;
-        this.dataController = new DataController();
+        this.model = new ResearchModel();
 
-        this.header = new Header();
-        this.header.player.select.addEventListener("change", (e) => this.player_OnChange(e));
-        this.header.domain.civilian.addEventListener("click", (e) => this.domainTab_OnClick(e));
-        this.header.domain.military.addEventListener("click", (e) => this.domainTab_OnClick(e));
-        this.header.connections.checkbox.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
-        document.body.appendChild(this.header);
+        this.toolbar = new ToolbarView();
+        this.toolbar.player.select.addEventListener("change", (e) => this.player_OnChange(e));
+        this.toolbar.domain.civilian.addEventListener("click", (e) => this.domainTab_OnClick(e));
+        this.toolbar.domain.military.addEventListener("click", (e) => this.domainTab_OnClick(e));
+        this.toolbar.connections.checkbox.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
+        document.body.appendChild(this.toolbar);
 
-        this.container = new ResearchView(this.dataController);
-        this.container.addEventListener("click", (e) => this.node_OnClick(e));
-        document.body.appendChild(this.container);
+        this.display = new ResearchView(this.model);
+        this.display.addEventListener("click", (e) => this.node_OnClick(e));
+        document.body.appendChild(this.display);
     }
 
     public onMessage(message: any): void {
-        Log.info("<ResearchRenderer::onMessage> Message received", message);
+        Log.info("<ResearchPresenter::onMessage> Message received", message);
         switch (message.type) {
             case ViewRequest.UPDATE:
                 this.setData(message.data);
@@ -74,15 +75,15 @@ export class ResearchRenderer {
                 this.setData(message.data);
                 break;
             default:
-                Log.warn(`<ResearchRenderer::onMessage> Unhandled message type: ${message.type}`, message);
+                Log.warn(`<ResearchPresenter::onMessage> Unhandled message type: ${message.type}`, message);
         }
     }
 
     private player_updateOptions(players: string[]): void {
-        if (this.header.player.populate(players)) {
-            this.container.replaceChildren(MessageText.create("Select a player to view research tree"));
+        if (this.toolbar.player.populate(players)) {
+            this.display.replaceChildren(MessageText.create("Select a player to view research tree"));
         } else {
-            this.container.replaceChildren(MessageText.create("No player data available"));
+            this.display.replaceChildren(MessageText.create("No player data available"));
         }
     }
 
@@ -104,27 +105,27 @@ export class ResearchRenderer {
         const target = e.target as HTMLButtonElement;
         const domain: string = target.dataset.domain;
 
-        if (!domain || domain === this.dataController.domainSelection) {
+        if (!domain || domain === this.model.domainSelection) {
             return;
         }
 
         // Update the active tab styling.
-        this.header.domain.setActive(target);
+        this.toolbar.domain.setActive(target);
 
         // Update the selected domain and re-render.
-        this.dataController.domainSelection = domain;
+        this.model.domainSelection = domain;
         this.filterAndRender();
     }
 
     private nodeConnection_OnChange(e: Event): void {
         const target = e.target as HTMLInputElement;
-        this.container.nodeConnectionsEnabled = target.checked;
-        this.container.render(this.dataController.dataFiltered);
+        this.display.nodeConnectionsEnabled = target.checked;
+        this.display.render(this.model.subjectsFiltered);
     }
 
     private node_OnClick(e: PointerEvent): void {
         const target: HTMLElement = e.target as HTMLElement;
-        const node: HTMLElement | null = target.closest(".research-node") as HTMLElement;
+        const node: HTMLElement | null = target.closest(`.${ResearchSubject.SUBJECT_NODE_CLASS}`) as HTMLElement;
         if (node) {
             const nodeId: string | undefined = node.dataset.id;
             const message: IWebViewMessage = { type: ViewResponse.FILE_OPEN, identifier: nodeId };
@@ -136,15 +137,15 @@ export class ResearchRenderer {
      * Filters the data by the selected domain and then renders the research tree.
      */
     private filterAndRender(): void {
-        this.dataController.doFilter();
-        this.container.render(this.dataController.dataFiltered);
+        this.model.doFilter();
+        this.display.render(this.model.subjectsFiltered);
     }
 
-    private setData(data: IResearchSubject[]): void {
-        this.dataController.data = data;
+    private setData(subjects: IResearchSubject[]): void {
+        this.model.subjects = subjects;
 
         // Show domain tabs if we have data.
-        this.header.domain.setVisible(data.length > 0);
+        this.toolbar.domain.setVisible(subjects.length > 0);
 
         this.filterAndRender();
     }

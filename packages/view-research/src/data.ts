@@ -6,22 +6,22 @@ export class DataController {
     public domainSelection: string = "civilian";
 
     /** The full research data for the selected player. */
-    public data: IResearchSubject[];
+    public subjects: IResearchSubject[];
 
     /** The currently filtered research data to render. */
-    public dataFiltered: IResearchSubject[];
+    public subjectsFiltered: IResearchSubject[];
 
     constructor() {
-        this.data = [];
-        this.dataFiltered = [];
+        this.subjects = [];
+        this.subjectsFiltered = [];
     }
 
     /**
      * Filters the data by the selected domain.
      */
     public doFilter(): void {
-        this.dataFiltered = this.data.filter(this.filterByDomain.bind(this));
-        Log.info(`<DataController::doFilter> Filtered ${this.dataFiltered.length} nodes for domain: ${this.domainSelection}`);
+        this.subjectsFiltered = this.subjects.filter(this.filterByDomain.bind(this));
+        Log.info(`<DataController::doFilter> Filtered ${this.subjectsFiltered.length} nodes for domain: ${this.domainSelection}`);
     }
 
     /**

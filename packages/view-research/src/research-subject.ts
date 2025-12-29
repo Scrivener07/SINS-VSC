@@ -3,6 +3,7 @@ import { IFieldGroup } from "./research-field";
 import { Layout } from "./dom-layout";
 
 export class ResearchSubject {
+    public static readonly SUBJECT_NODE_CLASS: string = "research-node";
     private static readonly SIZE_OFFSET: number = 20;
 
     /**
@@ -28,7 +29,7 @@ export class ResearchSubject {
         <foreignObject x="${x}" y="${y}" width="${nodeWidth}" height="${nodeHeight}">
             <div
                 xmlns="http://www.w3.org/1999/xhtml"
-                class="research-node"
+                class="${ResearchSubject.SUBJECT_NODE_CLASS}"
                 data-id="${node.id}"
                 style="
                     width: ${nodeWidth - ResearchSubject.SIZE_OFFSET}px;

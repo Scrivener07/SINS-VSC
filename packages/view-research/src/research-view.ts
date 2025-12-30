@@ -6,6 +6,7 @@ import { GridLayout } from "./research-render-grid";
 import { ZoomController } from "./zoom";
 import { ResearchModel } from "./research-model";
 import { SVG } from "./dom/svg";
+import { Dimension } from "./shared";
 
 /** The main container element for the research tree. */
 export class ResearchView extends HTMLDivElement {
@@ -43,6 +44,9 @@ export class ResearchView extends HTMLDivElement {
             this.model.setStatusMessage(null);
         }
 
+        // TODO: Clears the viewport entirely for now. Optimize to reuse existing elements.
+        this.viewport.innerHTML = "";
+
         // Group the research subjects by field.
         const fields: IField[] = FieldGrouping.groupByField(subjects);
 
@@ -50,34 +54,33 @@ export class ResearchView extends HTMLDivElement {
         FieldLayout.verticalOffsets(fields);
 
         // Determine and update the SVG viewport dimensions.
-        const [width, height] = ResearchView.getDimensions(fields);
-        this.viewport.setAttribute("width", width.toString());
-        this.viewport.setAttribute("height", height.toString());
+        const dimension: Dimension = ResearchView.getDimensions(fields);
+        this.viewport.setAttribute("width", dimension.width.toString());
+        this.viewport.setAttribute("height", dimension.height.toString());
 
-        // Generate the SVG content.
-        const content: string = `
-            ${Field.renderFieldGroups(fields)}
-            ${ConnectionRenderer.renderConnections(subjects, fields, this.model.nodeConnectionsEnabled)}
-        `;
+        // Generate the SVG field content.
+        const fieldElements: SVGGElement[] = Field.create_each(fields);
+        this.viewport.append(...fieldElements);
 
-        // Update the viewport content.
-        this.viewport.innerHTML = content;
+        // Generate the SVG connections content. (still using innerHTML for now)
+        this.viewport.innerHTML += ConnectionRenderer.renderConnections(subjects, fields, this.model.nodeConnectionsEnabled);
 
         // Reapply zoom level after rendering.
         this.zoom.setZoom(this.zoom.zoomLevel);
     }
 
-    private static getDimensions(fields: IField[]): [number, number] {
+    private static getDimensions(fields: IField[]): Dimension {
         // Use fixed width based on the grid maximum columns.
         const maxWidth: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH;
 
         // Calculate the base dimensions needed for the SVG.
-        const maxRows: number = Math.max(...fields.map((group) => group.maxRow), 2) + 1;
+        // TODO: See `FieldLayout.verticalOffsets` for potential DRY violation.
+        const maxRows: number = Math.max(...fields.map((field) => field.maxRow), 2) + 1;
         const totalHeight: number = fields.length * (FieldLayout.FIELD_LABEL_HEIGHT + maxRows * Layout.CELL_HEIGHT + FieldLayout.FIELD_SPACING);
 
         // Caculate the final SVG dimensions after padding.
         const width: number = maxWidth + Layout.PADDING * 2;
         const height: number = totalHeight + Layout.PADDING * 2;
-        return [width, height];
+        return { width, height };
     }
 }

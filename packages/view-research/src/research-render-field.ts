@@ -3,6 +3,7 @@ import { Layout } from "./layout";
 import { GridLayout, GridRenderer } from "./research-render-grid";
 import { ResearchSubject } from "./research-render-subject";
 import { Tier } from "./research-render-tier";
+import { SVG } from "./dom/svg";
 
 /**
  * Represents a field group of research subjects.
@@ -39,6 +40,10 @@ export class FieldLayout {
 
     /**
      * Calculates vertical offsets for each field group so they don't overlap.
+     *
+     * Each field's `verticalOffset` property is updated in place.
+     *
+     * @param fields The array of field groups to calculate offsets for.
      */
     public static verticalOffsets(fields: IField[]): void {
         let offset: number = 0;
@@ -76,7 +81,7 @@ export class FieldGrouping {
             fieldMap.get(fieldName)!.push(subject);
         }
 
-        // Convert to IFieldGroup array.
+        // Convert to field array.
         const fields: IField[] = [];
         for (const [fieldName, subjects] of fieldMap.entries()) {
             // Find the maximum column and row for layout calculations.
@@ -101,18 +106,18 @@ export class FieldGrouping {
 
     /**
      * Compares two field groups by their minimum tier number.
-     * @param group This field group.
+     * @param field This field group.
      * @param other The other field group.
      * @returns Negative if `group_a < group_b`, positive if `group_a > group_b`, zero if equal.
      */
-    private static compareFieldTiers(group: IField, other: IField): number {
-        const tierA: number = Math.min(...group.subjects.map((subject) => subject.tier));
+    private static compareFieldTiers(field: IField, other: IField): number {
+        const tierA: number = Math.min(...field.subjects.map((subject) => subject.tier));
         const tierB: number = Math.min(...other.subjects.map((subject) => subject.tier));
         return tierA - tierB;
     }
 
     /**
-     * Extracts the display name from a field name.
+     * Extracts the display name from a field name key.
      * Example: "Civilian_industry" -> "Industry"
      *
      * TODO: This should be done by looking up the field name in a localization file.
@@ -130,13 +135,17 @@ export class Field {
     /**
      * Renders all field groups with labels and subjects.
      */
-    public static renderFieldGroups(fieldGroups: IField[]): string {
-        const html_fields: string[] = fieldGroups.map((group) => this.renderFieldGroup(group));
-        return html_fields.join("");
+    public static create_each(fields: IField[]): SVGGElement[] {
+        const elements: SVGGElement[] = [];
+        for (const field of fields) {
+            const element: SVGGElement = this.create(field);
+            elements.push(element);
+        }
+        return elements;
     }
 
-    private static renderFieldGroup(fieldGroup: IField): string {
-        const labelY: number = fieldGroup.verticalOffset + Layout.PADDING;
+    private static create(field: IField): SVGGElement {
+        const labelY: number = field.verticalOffset + Layout.PADDING;
         const nodesY: number = labelY + FieldLayout.FIELD_LABEL_HEIGHT;
 
         const label_x: number = Layout.PADDING;
@@ -147,38 +156,34 @@ export class Field {
         const seperator_x2: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH + Layout.PADDING;
         const seperator_y2: number = labelY + 30;
 
-        return `
-        <g>
-            <!-- Field Label -->
-            <text
-                x="${label_x}"
-                y="${label_y}"
-                font-size="18"
-                font-weight="bold"
-                fill="var(--vscode-foreground)"
-            >
-                ${fieldGroup.nameDisplay}
-            </text>
+        // Create SVG group for the field.
+        const svg_group = SVG.create("g");
 
-            <!-- Field Separator Line -->
-            <line
-                x1="${seperator_x1}"
-                y1="${seperator_y1}"
-                x2="${seperator_x2}"
-                y2="${seperator_y2}"
-                stroke="var(--vscode-panel-border)"
-                stroke-width="1"
-            />
+        // Create field label.
+        const svg_text = SVG.create("text");
+        svg_text.setAttribute("x", label_x.toString());
+        svg_text.setAttribute("y", label_y.toString());
+        svg_text.setAttribute("font-size", "18");
+        svg_text.setAttribute("font-weight", "bold");
+        svg_text.setAttribute("fill", "var(--vscode-foreground)");
+        svg_text.textContent = field.nameDisplay;
+        svg_group.appendChild(svg_text);
 
-            <!-- Background Grid -->
-            ${GridRenderer.renderFieldGrid(fieldGroup, fieldGroup.verticalOffset)}
+        // Create separator line.
+        const svg_line = SVG.create("line");
+        svg_line.setAttribute("x1", seperator_x1.toString());
+        svg_line.setAttribute("y1", seperator_y1.toString());
+        svg_line.setAttribute("x2", seperator_x2.toString());
+        svg_line.setAttribute("y2", seperator_y2.toString());
+        svg_line.setAttribute("stroke", "var(--vscode-panel-border)");
+        svg_line.setAttribute("stroke-width", "1");
+        svg_group.appendChild(svg_line);
 
-            <!-- Tier Dividers -->
-            ${Tier.renderTierDividers(fieldGroup, fieldGroup.verticalOffset)}
+        // Create field grid, tiers, and subjects. (still using innerHTML for now)
+        svg_group.innerHTML += GridRenderer.renderFieldGrid(field, field.verticalOffset);
+        svg_group.innerHTML += Tier.renderTierDividers(field, field.verticalOffset);
+        svg_group.innerHTML += ResearchSubject.renderSubjects(field, nodesY);
 
-            <!-- Research Nodes (rendered on top) -->
-            ${ResearchSubject.renderSubjects(fieldGroup, nodesY)}
-        </g>
-        `;
+        return svg_group;
     }
 }

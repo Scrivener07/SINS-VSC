@@ -1,4 +1,4 @@
-import { IResearchSubject, Point } from "@soase/shared";
+import { IResearchSubject, Coordinate } from "@soase/shared";
 import { IField } from "./research-render-field";
 import { Layout } from "./layout";
 
@@ -18,7 +18,7 @@ export class ResearchSubject {
      * Renders a single research node at its tier-relative position.
      */
     private static renderSubject(node: IResearchSubject, tierOffsetY: number, group: IField): string {
-        const [column, row]: Point = node.field_coord;
+        const [column, row]: Coordinate = node.field_coord;
         const x: number = column * Layout.CELL_WIDTH + Layout.PADDING;
         const y: number = row * Layout.CELL_HEIGHT + tierOffsetY;
 

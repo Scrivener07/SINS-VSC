@@ -1,4 +1,4 @@
-import { IResearchSubject, Point } from "@soase/shared";
+import { IResearchSubject, Coordinate } from "@soase/shared";
 import { Layout } from "./layout";
 import { FieldLayout, IField } from "./research-render-field";
 
@@ -96,7 +96,7 @@ export class GridRenderer {
      * @returns True if the subject occupies this cell.
      */
     private static isCellOccupied(subject: IResearchSubject, column: number, row: number): boolean {
-        const [subjectColumn, subjectRow]: Point = subject.field_coord;
+        const [subjectColumn, subjectRow]: Coordinate = subject.field_coord;
         return subjectColumn === column && subjectRow === row;
     }
 }

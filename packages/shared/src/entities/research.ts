@@ -7,7 +7,7 @@ export interface IResearchSubject {
     id: string;
     name: string;
     field: string;
-    field_coord: Point;
+    field_coord: Coordinate;
     tier: number;
     prerequisites: Prerequisites;
 }
@@ -15,7 +15,7 @@ export interface IResearchSubject {
 /**
  * Represents a 2D point with X and Y coordinates.
  */
-export type Point = [number, number];
+export type Coordinate = [number, number];
 
 /**
  * Array of prerequisite groups. Each inner array represents an AND group.

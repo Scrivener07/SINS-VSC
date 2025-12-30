@@ -1,5 +1,5 @@
 import { IResearchSubject, Point } from "@soase/shared";
-import { IFieldGroup } from "./research-render-field";
+import { IField } from "./research-render-field";
 import { Layout } from "./layout";
 
 export class ResearchSubject {
@@ -9,7 +9,7 @@ export class ResearchSubject {
     /**
      * Renders research nodes for a specific field group.
      */
-    public static renderSubjects(field: IFieldGroup, offsetY: number): string {
+    public static renderSubjects(field: IField, offsetY: number): string {
         const subjects: string[] = field.subjects.map((subject) => ResearchSubject.renderSubject(subject, offsetY, field));
         return subjects.join("");
     }
@@ -17,7 +17,7 @@ export class ResearchSubject {
     /**
      * Renders a single research node at its tier-relative position.
      */
-    private static renderSubject(node: IResearchSubject, tierOffsetY: number, group: IFieldGroup): string {
+    private static renderSubject(node: IResearchSubject, tierOffsetY: number, group: IField): string {
         const [column, row]: Point = node.field_coord;
         const x: number = column * Layout.CELL_WIDTH + Layout.PADDING;
         const y: number = row * Layout.CELL_HEIGHT + tierOffsetY;

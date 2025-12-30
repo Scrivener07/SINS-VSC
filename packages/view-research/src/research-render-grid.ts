@@ -1,6 +1,6 @@
 import { IResearchSubject, Point } from "@soase/shared";
 import { Layout } from "./layout";
-import { FieldLayout, IFieldGroup } from "./research-render-field";
+import { FieldLayout, IField } from "./research-render-field";
 
 export class GridLayout {
     /** The maximum number of tiers in the research grid from `research.uniforms`. */
@@ -20,7 +20,7 @@ export class GridRenderer {
      * @param offsetY The vertical offset for this field.
      * @returns SVG markup for the grid background.
      */
-    public static renderFieldGrid(group: IFieldGroup, offsetY: number): string {
+    public static renderFieldGrid(group: IField, offsetY: number): string {
         const gridElements: string[] = [];
 
         const gridStartY: number = offsetY + FieldLayout.FIELD_LABEL_HEIGHT;

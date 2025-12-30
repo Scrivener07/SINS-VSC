@@ -1,13 +1,13 @@
 import { Log } from "./services/log";
 import { IResearchSubject, Point } from "@soase/shared";
 import { Layout } from "./layout";
-import { IFieldGroup } from "./research-render-field";
+import { IField } from "./research-render-field";
 
 export class ConnectionRenderer {
     /**
      * Renders prerequisite connections between nodes, accounting for field offsets.
      */
-    public static renderConnections(subjects: IResearchSubject[], fields: IFieldGroup[], enabled: boolean): string {
+    public static renderConnections(subjects: IResearchSubject[], fields: IField[], enabled: boolean): string {
         if (!enabled) {
             return "";
         }

@@ -7,7 +7,7 @@ import { Tier } from "./research-render-tier";
 /**
  * Represents a field group of research subjects.
  */
-export interface IFieldGroup {
+export interface IField {
     /** The research field name. (`Civilian_industry`) */
     name: string;
 
@@ -17,10 +17,10 @@ export interface IFieldGroup {
     /** Research subjects in this research field. */
     subjects: IResearchSubject[];
 
-    /** Maximum column coordinate in this research field. */
+    /** Maximum column coordinate in this research field. This is zero-based. */
     maxColumn: number;
 
-    /** Maximum row coordinate in this research field. */
+    /** Maximum row coordinate in this research field. This is zero-based. */
     maxRow: number;
 
     /** Vertical offset for rendering. */
@@ -37,26 +37,24 @@ export class FieldLayout {
     /** Spacing between fields. */
     public static readonly FIELD_SPACING: number = 60;
 
-    // TODO: This should have side affects, but doesnt.
     /**
      * Calculates vertical offsets for each field group so they don't overlap.
      */
-    public static calculateFieldOffsets(fields: IFieldGroup[]): void {
-        // Calculate maximum rows needed across all fields.
-        // Use the maximum to ensure consistent grid height.
-        // Minimum 3 rows (0, 1, 2)
-        // TODO: Reconsider using a row minimum after some testing.
-        const maxRows: number = Math.max(...fields.map((group) => group.maxRow), 2) + 1;
-
-        // Assign the vertical offsets.
+    public static verticalOffsets(fields: IField[]): void {
         let offset: number = 0;
         for (const field of fields) {
+            // Assign the offset from the last iteration.
             field.verticalOffset = offset;
 
-            // Use consistent grid height for all fields
-            const fieldHeight: number = maxRows * Layout.CELL_HEIGHT;
+            // Calculate the number of rows in this field.
+            const rowCount: number = field.maxRow + 1;
+            const rowCountMin: number = 3; // Minimum 3 rows
 
-            // Next group starts after this group's height + label + spacing.
+            // Use this field's row count to calculate its height.
+            const fieldRows: number = Math.max(rowCount, rowCountMin);
+            const fieldHeight: number = fieldRows * Layout.CELL_HEIGHT;
+
+            // Update offset for use by the next iteration.
             offset += FieldLayout.FIELD_LABEL_HEIGHT + fieldHeight + FieldLayout.FIELD_SPACING;
         }
     }
@@ -66,7 +64,7 @@ export class FieldGrouping {
     /**
      * Groups research subjects by their research field.
      */
-    public static groupByField(subjects: IResearchSubject[]): IFieldGroup[] {
+    public static groupByField(subjects: IResearchSubject[]): IField[] {
         const fieldMap: Map<string, IResearchSubject[]> = new Map();
 
         // Group the subjects by their field.
@@ -79,13 +77,13 @@ export class FieldGrouping {
         }
 
         // Convert to IFieldGroup array.
-        const fields: IFieldGroup[] = [];
+        const fields: IField[] = [];
         for (const [fieldName, subjects] of fieldMap.entries()) {
             // Find the maximum column and row for layout calculations.
             const maxColumn: number = Math.max(...subjects.map((subject) => subject.field_coord[0]));
             const maxRow: number = Math.max(...subjects.map((subject) => subject.field_coord[1]));
 
-            const field: IFieldGroup = {
+            const field: IField = {
                 name: fieldName,
                 nameDisplay: FieldGrouping.extractFieldDisplayName(fieldName),
                 subjects: subjects,
@@ -107,7 +105,7 @@ export class FieldGrouping {
      * @param other The other field group.
      * @returns Negative if `group_a < group_b`, positive if `group_a > group_b`, zero if equal.
      */
-    private static compareFieldTiers(group: IFieldGroup, other: IFieldGroup): number {
+    private static compareFieldTiers(group: IField, other: IField): number {
         const tierA: number = Math.min(...group.subjects.map((subject) => subject.tier));
         const tierB: number = Math.min(...other.subjects.map((subject) => subject.tier));
         return tierA - tierB;
@@ -132,12 +130,12 @@ export class Field {
     /**
      * Renders all field groups with labels and subjects.
      */
-    public static renderFieldGroups(fieldGroups: IFieldGroup[]): string {
+    public static renderFieldGroups(fieldGroups: IField[]): string {
         const html_fields: string[] = fieldGroups.map((group) => this.renderFieldGroup(group));
         return html_fields.join("");
     }
 
-    private static renderFieldGroup(fieldGroup: IFieldGroup): string {
+    private static renderFieldGroup(fieldGroup: IField): string {
         const labelY: number = fieldGroup.verticalOffset + Layout.PADDING;
         const nodesY: number = labelY + FieldLayout.FIELD_LABEL_HEIGHT;
 

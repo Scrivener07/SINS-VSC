@@ -1,7 +1,7 @@
 import { IResearchSubject } from "@soase/shared";
-import { Layout, MessageText } from "./layout";
+import { Layout } from "./layout";
 import { ConnectionRenderer } from "./research-render-connection";
-import { IFieldGroup, FieldLayout, FieldGrouping, Field } from "./research-render-field";
+import { IField, FieldLayout, FieldGrouping, Field } from "./research-render-field";
 import { GridLayout } from "./research-render-grid";
 import { ZoomController } from "./zoom";
 import { ResearchModel } from "./research-model";
@@ -13,18 +13,19 @@ export class ResearchView extends HTMLDivElement {
     private static readonly CONTAINER_ID: string = "research-viewer";
 
     private readonly model: ResearchModel;
-    private readonly zoomController: ZoomController;
+    private readonly zoom: ZoomController;
 
     private readonly viewport: SVGSVGElement;
 
-    constructor(dataController: ResearchModel) {
+    constructor(model: ResearchModel) {
         super();
         this.id = ResearchView.CONTAINER_ID;
 
-        this.model = dataController;
-        this.zoomController = new ZoomController(this);
+        this.model = model;
+        this.zoom = new ZoomController(this);
 
         this.viewport = SVG.create("svg");
+        this.viewport.style.display = "block";
         this.appendChild(this.viewport);
     }
 
@@ -33,8 +34,8 @@ export class ResearchView extends HTMLDivElement {
         customElements.define("sins-research-viewer", ResearchView, options);
     }
 
-    public render(data: IResearchSubject[]): void {
-        if (data.length === 0) {
+    public render(subjects: IResearchSubject[]): void {
+        if (subjects.length === 0) {
             this.viewport.innerHTML = "";
             this.model.setStatusMessage(`No ${this.model.domainSelection} research data available.`);
             return;
@@ -43,12 +44,31 @@ export class ResearchView extends HTMLDivElement {
         }
 
         // Group the research subjects by field.
-        const fields: IFieldGroup[] = FieldGrouping.groupByField(data);
+        const fields: IField[] = FieldGrouping.groupByField(subjects);
 
         // Calculate the vertical offsets for each field group.
-        FieldLayout.calculateFieldOffsets(fields);
+        FieldLayout.verticalOffsets(fields);
 
-        // Use fixed width based on MAX_COLUMN_COUNT.
+        // Determine and update the SVG viewport dimensions.
+        const [width, height] = ResearchView.getDimensions(fields);
+        this.viewport.setAttribute("width", width.toString());
+        this.viewport.setAttribute("height", height.toString());
+
+        // Generate the SVG content.
+        const content: string = `
+            ${Field.renderFieldGroups(fields)}
+            ${ConnectionRenderer.renderConnections(subjects, fields, this.model.nodeConnectionsEnabled)}
+        `;
+
+        // Update the viewport content.
+        this.viewport.innerHTML = content;
+
+        // Reapply zoom level after rendering.
+        this.zoom.setZoom(this.zoom.zoomLevel);
+    }
+
+    private static getDimensions(fields: IField[]): [number, number] {
+        // Use fixed width based on the grid maximum columns.
         const maxWidth: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH;
 
         // Calculate the base dimensions needed for the SVG.
@@ -58,22 +78,6 @@ export class ResearchView extends HTMLDivElement {
         // Caculate the final SVG dimensions after padding.
         const width: number = maxWidth + Layout.PADDING * 2;
         const height: number = totalHeight + Layout.PADDING * 2;
-
-        // Update viewport dimensions.
-        this.viewport.setAttribute("width", width.toString());
-        this.viewport.setAttribute("height", height.toString());
-        this.viewport.style.display = "block";
-
-        // Generate the SVG content.
-        const content: string = `
-            ${Field.renderFieldGroups(fields)}
-            ${ConnectionRenderer.renderConnections(data, fields, this.model.nodeConnectionsEnabled)}
-        `;
-
-        // Update viewport content
-        this.viewport.innerHTML = content;
-
-        // Reapply zoom level after rendering.
-        this.zoomController.setZoom(this.zoomController.zoomLevel);
+        return [width, height];
     }
 }

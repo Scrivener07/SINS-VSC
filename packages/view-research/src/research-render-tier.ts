@@ -1,5 +1,5 @@
 import { Layout } from "./layout";
-import { IFieldGroup, FieldLayout } from "./research-render-field";
+import { IField, FieldLayout } from "./research-render-field";
 import { GridLayout } from "./research-render-grid";
 
 export class Tier {
@@ -9,7 +9,7 @@ export class Tier {
      * @param offsetY The vertical offset for this field.
      * @returns SVG markup for tier dividers.
      */
-    public static renderTierDividers(group: IFieldGroup, offsetY: number): string {
+    public static renderTierDividers(group: IField, offsetY: number): string {
         const dividers: string[] = [];
         const gridStartY: number = offsetY + FieldLayout.FIELD_LABEL_HEIGHT;
         const maxRows: number = Math.max(group.maxRow, 2) + 1;

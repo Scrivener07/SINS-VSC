@@ -1,6 +1,6 @@
-import { Layout } from "./dom-layout";
-import { IFieldGroup, FieldLayout } from "./research-field";
-import { GridLayout } from "./research-grid";
+import { Layout } from "./layout";
+import { IFieldGroup, FieldLayout } from "./research-render-field";
+import { GridLayout } from "./research-render-grid";
 
 export class Tier {
     /**

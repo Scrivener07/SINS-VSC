@@ -1,6 +1,6 @@
 import { IResearchSubject, Point } from "@soase/shared";
-import { IFieldGroup } from "./research-field";
-import { Layout } from "./dom-layout";
+import { IFieldGroup } from "./research-render-field";
+import { Layout } from "./layout";
 
 export class ResearchSubject {
     public static readonly SUBJECT_NODE_CLASS: string = "research-node";

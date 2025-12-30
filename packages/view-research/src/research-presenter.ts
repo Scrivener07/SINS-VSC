@@ -1,11 +1,11 @@
-import { VSCode } from "./vscode";
-import { Log } from "./log";
+import { VSCode } from "./services/vscode";
+import { Log } from "./services/log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
-import { DataController as ResearchModel } from "./data";
-import { Header as ToolbarView } from "./dom-header";
-import { ResearchView } from "./dom-container";
-import { MessageText } from "./dom-layout";
-import { ResearchSubject } from "./research-subject";
+import { ToolbarView } from "./toolbar-view";
+import { ResearchView } from "./research-view";
+import { MessageText } from "./layout";
+import { ResearchSubject } from "./research-render-subject";
+import { ResearchDomain, ResearchModel } from "./research-model";
 
 /* Features:
 - Research tree visualizer with tier grouping.
@@ -38,15 +38,12 @@ export class ResearchPresenter {
     private readonly toolbar: ToolbarView;
     private readonly display: ResearchView;
 
-    /** The currently selected player ID. */
-    private playerSelection: string | null = null;
-
     /**
      * Instantiates a new class instance with the given VSCode API object.
      * @param vscode The VSCode API object.
      */
     constructor(vscode: VSCode) {
-        Log.info("<ResearchPresenter::constructor> Presenter instantiated");
+        Log.info("<ResearchPresenter::constructor> Instantiating");
         this.vscode = vscode;
         this.model = new ResearchModel();
 
@@ -65,14 +62,14 @@ export class ResearchPresenter {
     public onMessage(message: any): void {
         Log.info("<ResearchPresenter::onMessage> Message received", message);
         switch (message.type) {
-            case ViewRequest.UPDATE:
-                this.setData(message.data);
-                break;
             case ViewRequest.PLAYER_LIST:
                 this.player_updateOptions(message.data);
                 break;
             case ViewResponse.UPDATE_RESEARCH:
-                this.setData(message.data);
+                this.player_updateSubjects(message.data);
+                break;
+            case ViewRequest.UPDATE:
+                this.player_updateSubjects(message.data);
                 break;
             default:
                 Log.warn(`<ResearchPresenter::onMessage> Unhandled message type: ${message.type}`, message);
@@ -80,22 +77,29 @@ export class ResearchPresenter {
     }
 
     private player_updateOptions(players: string[]): void {
-        if (this.toolbar.player.populate(players)) {
-            this.display.replaceChildren(MessageText.create("Select a player to view research tree"));
+        this.model.players = players;
+
+        if (this.model.players.length > 0) {
+            if (this.toolbar.player.populate(players)) {
+                this.display.replaceChildren(MessageText.create("Select a player to view research tree."));
+            } else {
+                this.toolbar.player.populate([]);
+                this.display.replaceChildren(MessageText.create("Failed to populate player list."));
+            }
         } else {
-            this.display.replaceChildren(MessageText.create("No player data available"));
+            this.display.replaceChildren(MessageText.create("No player data is available."));
         }
     }
 
     private player_OnChange(e: Event): void {
         const target = e.target as HTMLSelectElement;
-        this.playerSelection = target.value;
+        this.model.playerSelection = target.value;
 
-        if (this.playerSelection) {
+        if (this.model.playerSelection) {
             // Request research data for selected player.
             const message: IWebViewMessage = {
                 type: ViewResponse.PLAYER_SELECT,
-                identifier: this.playerSelection
+                identifier: this.model.playerSelection
             };
             this.vscode.postMessage(message);
         }
@@ -113,8 +117,8 @@ export class ResearchPresenter {
         this.toolbar.domain.setActive(target);
 
         // Update the selected domain and re-render.
-        this.model.domainSelection = domain;
-        this.filterAndRender();
+        this.model.setDomain(domain as ResearchDomain);
+        this.display.render(this.model.subjectsFiltered);
     }
 
     private nodeConnection_OnChange(e: Event): void {
@@ -133,20 +137,11 @@ export class ResearchPresenter {
         }
     }
 
-    /**
-     * Filters the data by the selected domain and then renders the research tree.
-     */
-    private filterAndRender(): void {
-        this.model.doFilter();
-        this.display.render(this.model.subjectsFiltered);
-    }
-
-    private setData(subjects: IResearchSubject[]): void {
-        this.model.subjects = subjects;
+    private player_updateSubjects(subjects: IResearchSubject[]): void {
+        this.model.setSubjects(subjects);
 
         // Show domain tabs if we have data.
         this.toolbar.domain.setVisible(subjects.length > 0);
-
-        this.filterAndRender();
+        this.display.render(this.model.subjectsFiltered);
     }
 }

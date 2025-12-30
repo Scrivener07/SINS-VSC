@@ -1,10 +1,10 @@
 import "./styles.css";
-import { VSCode, acquireVsCodeApi } from "./vscode";
-import { Log } from "./log";
 import { ViewResponse } from "@soase/shared";
-import { ResearchPresenter } from "./renderer";
-import { ConnectionControl, DomainSelect, Header, PlayerSelect, ZoomControl } from "./dom-header";
-import { ResearchView } from "./dom-container";
+import { VSCode, acquireVsCodeApi } from "./services/vscode";
+import { Log } from "./services/log";
+import { ResearchPresenter } from "./research-presenter";
+import { ToolbarView, ConnectionControl, DomainSelect, PlayerSelect, ZoomControl } from "./toolbar-view";
+import { ResearchView } from "./research-view";
 
 /**
  * The main application class for the research visualizer.
@@ -41,7 +41,7 @@ class Application {
      * Defines all custom elements used in the application.
      */
     private static defines(): void {
-        Header.define();
+        ToolbarView.define();
         ResearchView.define();
         PlayerSelect.define();
         DomainSelect.define();
@@ -51,10 +51,10 @@ class Application {
 
     /**
      * Handles message events from the extension host.
+     * Delegates all message events to the presenter.
      * @param event The message event.
      */
     private onMessage(event: MessageEvent<any>): void {
-        // Delegate message events to the renderer.
         this.presenter.onMessage(event.data);
     }
 }

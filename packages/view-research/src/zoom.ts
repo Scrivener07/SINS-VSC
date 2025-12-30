@@ -1,4 +1,4 @@
-import { Log } from "./log";
+import { Log } from "./services/log";
 
 export class ZoomController {
     /** The main container element for the research tree. */

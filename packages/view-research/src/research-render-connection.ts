@@ -1,7 +1,7 @@
-import { Log } from "./log";
+import { Log } from "./services/log";
 import { IResearchSubject, Point } from "@soase/shared";
-import { IFieldGroup } from "./research-field";
-import { Layout } from "./dom-layout";
+import { Layout } from "./layout";
+import { IFieldGroup } from "./research-render-field";
 
 export class ConnectionRenderer {
     /**

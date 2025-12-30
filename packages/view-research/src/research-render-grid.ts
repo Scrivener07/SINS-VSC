@@ -1,6 +1,6 @@
 import { IResearchSubject, Point } from "@soase/shared";
-import { Layout } from "./dom-layout";
-import { FieldLayout, IFieldGroup } from "./research-field";
+import { Layout } from "./layout";
+import { FieldLayout, IFieldGroup } from "./research-render-field";
 
 export class GridLayout {
     /** The maximum number of tiers in the research grid from `research.uniforms`. */

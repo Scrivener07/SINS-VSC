@@ -1,22 +1,22 @@
 import { IResearchSubject } from "@soase/shared";
-import { DataController } from "./data";
-import { Layout, MessageText } from "./dom-layout";
-import { ConnectionRenderer } from "./research-connection";
-import { IFieldGroup, FieldLayout, FieldGrouping, Field } from "./research-field";
-import { GridLayout } from "./research-grid";
+import { Layout, MessageText } from "./layout";
+import { ConnectionRenderer } from "./research-render-connection";
+import { IFieldGroup, FieldLayout, FieldGrouping, Field } from "./research-render-field";
+import { GridLayout } from "./research-render-grid";
 import { ZoomController } from "./zoom";
+import { ResearchModel } from "./research-model";
 
 /** The main container element for the research tree. */
 export class ResearchView extends HTMLDivElement {
     /** The ID of the main container element. */
     private static readonly CONTAINER_ID: string = "research-viewer";
 
-    private readonly dataController: DataController;
+    private readonly dataController: ResearchModel;
     private readonly zoomController: ZoomController;
 
     public nodeConnectionsEnabled: boolean = false;
 
-    constructor(dataController: DataController) {
+    constructor(dataController: ResearchModel) {
         super();
         this.id = ResearchView.CONTAINER_ID;
 

@@ -1,4 +1,4 @@
-export class Header extends HTMLDivElement {
+export class ToolbarView extends HTMLDivElement {
     public readonly player: PlayerSelect;
     public readonly domain: DomainSelect;
     private readonly zoomSection: ZoomControl;
@@ -21,7 +21,7 @@ export class Header extends HTMLDivElement {
 
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
-        customElements.define("sins-research-header", Header, options);
+        customElements.define("sins-research-header", ToolbarView, options);
     }
 }
 

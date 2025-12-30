@@ -147,7 +147,11 @@ export class ResearchPanel {
         switch (message.type) {
             case ViewResponse.LOG:
                 const log: ILogMessage = message.data;
-                console[log.level](log.text, log.data);
+                if (log.data) {
+                    console[log.level](log.text, log.data);
+                } else {
+                    console[log.level](log.text);
+                }
                 break;
             case ViewResponse.READY:
                 await this.update_PlayerList();

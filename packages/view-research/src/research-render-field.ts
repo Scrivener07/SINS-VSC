@@ -1,8 +1,8 @@
 import { IResearchSubject } from "@soase/shared";
-import { Layout } from "./dom-layout";
-import { GridLayout, GridRenderer } from "./research-grid";
-import { ResearchSubject } from "./research-subject";
-import { Tier } from "./research-tier";
+import { Layout } from "./layout";
+import { GridLayout, GridRenderer } from "./research-render-grid";
+import { ResearchSubject } from "./research-render-subject";
+import { Tier } from "./research-render-tier";
 
 /**
  * Represents a field group of research subjects.

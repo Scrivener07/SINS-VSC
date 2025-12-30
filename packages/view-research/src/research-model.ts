@@ -1,7 +1,9 @@
 import { IResearchSubject } from "@soase/shared";
 import { Log } from "./services/log";
 
-export class ResearchModel {
+export class ResearchModel extends EventTarget {
+    public static readonly STATUS_CHANGED: string = "statusMessageChanged";
+
     /** The available player identifiers. */
     public players: string[];
 
@@ -17,12 +19,23 @@ export class ResearchModel {
     /** The currently filtered research data to render. */
     public subjectsFiltered: IResearchSubject[];
 
+    /** Determines if node connections are visibly enabled. */
+    public nodeConnectionsEnabled: boolean;
+
+    private _statusMessage: string | null;
+    public get statusMessage(): string | null {
+        return this._statusMessage;
+    }
+
     constructor() {
+        super();
         this.players = [];
         this.playerSelection = null;
-        this.domainSelection = ResearchDomain.CIVILIAN;
+        this.domainSelection = ResearchDomain.Civilian;
         this.subjects = [];
         this.subjectsFiltered = [];
+        this.nodeConnectionsEnabled = false;
+        this._statusMessage = null;
     }
 
     public setDomain(domain: ResearchDomain): void {
@@ -54,9 +67,16 @@ export class ResearchModel {
         const nodeDomain: string = node.field?.toLowerCase() || "";
         return nodeDomain.includes(this.domainSelection);
     }
+
+    public setStatusMessage(message: string | null): void {
+        if (this._statusMessage !== message) {
+            this._statusMessage = message;
+            this.dispatchEvent(new CustomEvent<string | null>(ResearchModel.STATUS_CHANGED, { detail: message }));
+        }
+    }
 }
 
 export enum ResearchDomain {
-    CIVILIAN = "civilian",
-    MILITARY = "military"
+    Civilian = "civilian",
+    Military = "military"
 }

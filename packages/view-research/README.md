@@ -1,3 +1,24 @@
+### Features:
+- Research tree visualizer with tier grouping.
+- Zoom controls (mouse wheel, buttons, keyboard).
+- Domain filtering (Civilian/Military tabs).
+- Prerequisite connections (toggleable).
+- VS Code theme integration.
+
+
+### TODO:
+- Reduce the signal to noise ratio of logging to only show warnings\errors in production.
+- Fix the layout alignments and offsets.
+- Flip the arrow direction to point at the prerequisite node instead of away from it. (debatable)
+- The name "tier" is inappropriatly used for "field" groupings in some places. Refactor to use "field" instead of "tier" where applicable.
+- Add scalable architecture for research subject icons/images and other resources. (CSP complexity)
+- Add stats for subject counts per total\domain\tier.
+- Add background grid with column\row divisions, label cells with coordinates.
+- Add ALL domain view option for cross-domain prerequisites.
+- Add option to only show prerequisite connections for hovered nodes.
+
+
+# Research
 Research is split into two domains, civilian and military.
 Each domain is further split into "fields" which are varied between each domain and faction.
 

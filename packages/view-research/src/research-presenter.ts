@@ -7,25 +7,6 @@ import { MessageText } from "./layout";
 import { ResearchSubject } from "./research-render-subject";
 import { ResearchDomain, ResearchModel } from "./research-model";
 
-/* Features:
-- Research tree visualizer with tier grouping.
-- Zoom controls (mouse wheel, buttons, keyboard).
-- Domain filtering (Civilian/Military tabs).
-- Prerequisite connections (toggleable).
-- VS Code theme integration.
-*/
-
-/* TODO:
-- Fix the layout alignments and offsets.
-- Flip the arrow direction to point at the prerequisite node instead of away from it. (debatable)
-- The name "tier" is inappropriatly used for "field" groupings in some places. Refactor to use "field" instead of "tier" where applicable.
-- Add scalable architecture for research subject icons/images and other resources. (CSP complexity)
-- Add stats for subject counts per total\domain\tier.
-- Add background grid with column\row divisions, label cells with coordinates.
-- Add ALL domain view option for cross-domain prerequisites.
-- Add option to only show prerequisite connections for hovered nodes.
-*/
-
 /**
  * The top-level orchestrator class for the research visualizer.
  */
@@ -36,6 +17,10 @@ export class ResearchPresenter {
     private readonly model: ResearchModel;
 
     private readonly toolbar: ToolbarView;
+
+    /** A container for user-facing messages. */
+    private readonly messageContainer: HTMLDivElement;
+
     private readonly display: ResearchView;
 
     /**
@@ -46,6 +31,7 @@ export class ResearchPresenter {
         Log.info("<ResearchPresenter::constructor> Instantiating");
         this.vscode = vscode;
         this.model = new ResearchModel();
+        this.model.addEventListener(ResearchModel.STATUS_CHANGED, (e) => this.onStatusChanged(e as CustomEvent<string | null>));
 
         this.toolbar = new ToolbarView();
         this.toolbar.player.select.addEventListener("change", (e) => this.player_OnChange(e));
@@ -54,9 +40,22 @@ export class ResearchPresenter {
         this.toolbar.connections.checkbox.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
         document.body.appendChild(this.toolbar);
 
+        // Create message container for user-facing messages
+        this.messageContainer = document.createElement("div");
+        document.body.appendChild(this.messageContainer);
+
         this.display = new ResearchView(this.model);
         this.display.addEventListener("click", (e) => this.node_OnClick(e));
         document.body.appendChild(this.display);
+    }
+
+    private onStatusChanged(e: CustomEvent<string | null>): void {
+        if (e.detail) {
+            const element: HTMLDivElement = MessageText.create(e.detail);
+            this.messageContainer.replaceChildren(element);
+        } else {
+            this.messageContainer.replaceChildren();
+        }
     }
 
     public onMessage(message: any): void {
@@ -81,14 +80,22 @@ export class ResearchPresenter {
 
         if (this.model.players.length > 0) {
             if (this.toolbar.player.populate(players)) {
-                this.display.replaceChildren(MessageText.create("Select a player to view research tree."));
+                this.model.setStatusMessage("Select a player to view research tree.");
             } else {
                 this.toolbar.player.populate([]);
-                this.display.replaceChildren(MessageText.create("Failed to populate player list."));
+                this.model.setStatusMessage("Failed to populate player list.");
             }
         } else {
-            this.display.replaceChildren(MessageText.create("No player data is available."));
+            this.model.setStatusMessage("No player data is available.");
         }
+    }
+
+    private player_updateSubjects(subjects: IResearchSubject[]): void {
+        this.model.setSubjects(subjects);
+
+        // Show domain tabs if we have data.
+        this.toolbar.domain.setVisible(subjects.length > 0);
+        this.display.render(this.model.subjectsFiltered);
     }
 
     private player_OnChange(e: Event): void {
@@ -123,7 +130,7 @@ export class ResearchPresenter {
 
     private nodeConnection_OnChange(e: Event): void {
         const target = e.target as HTMLInputElement;
-        this.display.nodeConnectionsEnabled = target.checked;
+        this.model.nodeConnectionsEnabled = target.checked;
         this.display.render(this.model.subjectsFiltered);
     }
 
@@ -135,13 +142,5 @@ export class ResearchPresenter {
             const message: IWebViewMessage = { type: ViewResponse.FILE_OPEN, identifier: nodeId };
             this.vscode.postMessage(message);
         }
-    }
-
-    private player_updateSubjects(subjects: IResearchSubject[]): void {
-        this.model.setSubjects(subjects);
-
-        // Show domain tabs if we have data.
-        this.toolbar.domain.setVisible(subjects.length > 0);
-        this.display.render(this.model.subjectsFiltered);
     }
 }

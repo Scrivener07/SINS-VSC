@@ -1,6 +1,6 @@
 import { IResearchSubject } from "@soase/shared";
 import { Layout } from "./layout";
-import { ConnectionRenderer } from "./research-render-connection";
+import { Connection } from "./research-render-connection";
 import { IField, FieldLayout, FieldGrouping, Field } from "./research-render-field";
 import { GridLayout } from "./research-render-grid";
 import { ZoomController } from "./zoom";
@@ -17,6 +17,8 @@ export class ResearchView extends HTMLDivElement {
     private readonly zoom: ZoomController;
 
     private readonly viewport: SVGSVGElement;
+    private readonly definitions: SVGDefsElement;
+    private readonly content: SVGGElement;
 
     constructor(model: ResearchModel) {
         super();
@@ -25,9 +27,23 @@ export class ResearchView extends HTMLDivElement {
         this.model = model;
         this.zoom = new ZoomController(this);
 
+        // Create the SVG viewport.
         this.viewport = SVG.create("svg");
         this.viewport.style.display = "block";
+
+        // Create the shared definitions element.
+        this.definitions = SVG.create("defs");
+        this.viewport.appendChild(this.definitions);
+
+        // Create content group.
+        this.content = SVG.create("g");
+        this.viewport.appendChild(this.content);
+
+        // Append the viewport to the main DOM.
         this.appendChild(this.viewport);
+
+        // Add reusable definitions for connections.
+        this.definitions.append(...Connection.definitions());
     }
 
     public static define(): void {
@@ -37,15 +53,15 @@ export class ResearchView extends HTMLDivElement {
 
     public render(subjects: IResearchSubject[]): void {
         if (subjects.length === 0) {
-            this.viewport.innerHTML = "";
+            this.content.innerHTML = "";
             this.model.setStatusMessage(`No ${this.model.domainSelection} research data available.`);
             return;
         } else {
             this.model.setStatusMessage(null);
         }
 
-        // TODO: Clears the viewport entirely for now. Optimize to reuse existing elements.
-        this.viewport.innerHTML = "";
+        // TODO: Clears the viewport content entirely for now. Optimize to reuse existing elements.
+        this.content.innerHTML = "";
 
         // Group the research subjects by field.
         const fields: IField[] = FieldGrouping.groupByField(subjects);
@@ -60,15 +76,21 @@ export class ResearchView extends HTMLDivElement {
 
         // Generate the SVG field content.
         const fieldElements: SVGGElement[] = Field.create_each(fields);
-        this.viewport.append(...fieldElements);
+        this.content.append(...fieldElements);
 
         // Generate the SVG connections content. (still using innerHTML for now)
-        this.viewport.innerHTML += ConnectionRenderer.renderConnections(subjects, fields, this.model.nodeConnectionsEnabled);
+        const connectionGroup: SVGGElement = Connection.create(subjects, fields, this.model.nodeConnectionsEnabled);
+        this.content.append(connectionGroup);
 
         // Reapply zoom level after rendering.
         this.zoom.setZoom(this.zoom.zoomLevel);
     }
 
+    /**
+     * Calculates the overall SVG dimensions based on the field layouts.
+     * @param fields The array of field groups.
+     * @returns The SVG dimensions.
+     */
     private static getDimensions(fields: IField[]): Dimension {
         // Use fixed width based on the grid maximum columns.
         const maxWidth: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH;
@@ -79,8 +101,9 @@ export class ResearchView extends HTMLDivElement {
         const totalHeight: number = fields.length * (FieldLayout.FIELD_LABEL_HEIGHT + maxRows * Layout.CELL_HEIGHT + FieldLayout.FIELD_SPACING);
 
         // Caculate the final SVG dimensions after padding.
-        const width: number = maxWidth + Layout.PADDING * 2;
-        const height: number = totalHeight + Layout.PADDING * 2;
-        return { width, height };
+        return {
+            width: maxWidth + Layout.PADDING * 2,
+            height: totalHeight + Layout.PADDING * 2
+        };
     }
 }

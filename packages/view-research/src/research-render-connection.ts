@@ -3,49 +3,65 @@ import { IResearchSubject, Coordinate } from "@soase/shared";
 import { Layout } from "./layout";
 import { IField } from "./research-render-field";
 import { Angle, Dimension, Distance, Point, Vector } from "./shared";
+import { SVG } from "./dom/svg";
 
-export class ConnectionRenderer {
+/**
+ * Renders prerequisite connections between research subject nodes.
+ */
+export class Connection {
+    /**
+     * Creates the reusable SVG definition elements needed for connections.
+     * @returns An array of SVG elements.
+     */
+    public static definitions(): SVGElement[] {
+        const arrowhead: SVGMarkerElement = SVG.create("marker");
+        {
+            arrowhead.setAttribute("id", "arrowhead");
+            arrowhead.setAttribute("markerWidth", "10");
+            arrowhead.setAttribute("markerHeight", "7");
+            arrowhead.setAttribute("refX", "9");
+            arrowhead.setAttribute("refY", "3.5");
+            arrowhead.setAttribute("orient", "auto");
+
+            const arrow: SVGPolygonElement = SVG.create("polygon");
+            arrow.setAttribute("points", "0 0, 10 3.5, 0 7");
+            arrow.setAttribute("fill", "var(--vscode-editorLineNumber-foreground)");
+            arrowhead.appendChild(arrow);
+        }
+        return [arrowhead];
+    }
+
     /**
      * Renders prerequisite connections between nodes, accounting for field offsets.
+     * @param subjects The array of research subjects.
+     * @param fields The array of research fields.
+     * @param enabled Determines if connections are enabled.
+     * @returns An SVG group element containing the connection lines.
      */
-    public static renderConnections(subjects: IResearchSubject[], fields: IField[], enabled: boolean): string {
+    public static create(subjects: IResearchSubject[], fields: IField[], enabled: boolean): SVGGElement {
+        const group: SVGGElement = SVG.create("g");
         if (!enabled) {
-            return "";
+            return group;
         }
 
         // Build a map of subject ID to field offset.
-        const fieldOffsetMap: Map<string, number> = ConnectionRenderer.getOffsets(fields);
+        const fieldOffsetMap: Map<string, number> = Connection.getOffsets(fields);
 
         // Generate the connection lines.
-        const connections: string[] = ConnectionRenderer.createLines(subjects, fieldOffsetMap);
-
-        return `
-			<defs>
-				<marker
-					id="arrowhead"
-					markerWidth="10"
-					markerHeight="7"
-					refX="9"
-					refY="3.5"
-					orient="auto"
-				>
-					<polygon
-						points="0 0, 10 3.5, 0 7"
-						fill="var(--vscode-editorLineNumber-foreground)"
-					/>
-				</marker>
-			</defs>
-			${connections.join("")}
-		`;
+        const connections: SVGLineElement[] = Connection.createLines(subjects, fieldOffsetMap);
+        group.append(...connections);
+        return group;
     }
 
-    private static createLines(subjects: IResearchSubject[], fieldOffsetMap: Map<string, number>): string[] {
-        const connections: string[] = [];
+    private static createLines(subjects: IResearchSubject[], fieldOffsetMap: Map<string, number>): SVGLineElement[] {
+        const connections: SVGLineElement[] = [];
         const subjectMap: Map<string, IResearchSubject> = new Map(subjects.map((subject) => [subject.id, subject]));
 
         const PADDING: number = 20;
-        const nodeWidth: number = Layout.CELL_WIDTH - PADDING;
-        const nodeHeight: number = Layout.CELL_HEIGHT - PADDING;
+        const nodeSize: Dimension = {
+            width: Layout.CELL_WIDTH - PADDING,
+            height: Layout.CELL_HEIGHT - PADDING
+        };
 
         for (const subject of subjects) {
             if (!subject.prerequisites || subject.prerequisites.length === 0) {
@@ -53,7 +69,7 @@ export class ConnectionRenderer {
             }
 
             // Get the center point of the target node.
-            const toCenter: Point = Connection.findCenter(subject, fieldOffsetMap);
+            const toCenter: Point = Connect.findCenter(subject, fieldOffsetMap);
 
             for (const prerequisite_group of subject.prerequisites) {
                 for (const prerequisite_id of prerequisite_group) {
@@ -65,36 +81,46 @@ export class ConnectionRenderer {
                     }
 
                     // Get the center point of the prerequisite node.
-                    const fromCenter: Point = Connection.findCenter(prerequisite_node, fieldOffsetMap);
+                    const fromCenter: Point = Connect.findCenter(prerequisite_node, fieldOffsetMap);
 
                     // Calculate the distance-delta and angle.
-                    const angle: number = Connection.findAngle(toCenter, fromCenter);
+                    const angle: Angle = Connect.findAngle(toCenter, fromCenter);
 
                     // Calculate the rectangle edge points for the line.
                     const dimension: Dimension = {
-                        width: nodeWidth - PADDING,
-                        height: nodeHeight - PADDING
+                        width: nodeSize.width - PADDING,
+                        height: nodeSize.height - PADDING
                     };
 
-                    const fromEdge: Point = Connection.findRectangleEdge(fromCenter, dimension, angle);
-                    const toEdge: Point = Connection.findRectangleEdge(toCenter, dimension, angle + Math.PI);
+                    // Calculate the edge points.
+                    const fromEdge: Point = Connect.findRectangleEdge(fromCenter, dimension, angle);
+                    const toEdge: Point = Connect.findRectangleEdge(toCenter, dimension, angle + Math.PI);
 
-                    const line: string = `
-                    	<line
-                    		x1="${fromEdge.x}"
-                    		y1="${fromEdge.y}"
-                    		x2="${toEdge.x}"
-                    		y2="${toEdge.y}"
-                    		stroke="var(--vscode-editorLineNumber-foreground)"
-                    		stroke-width="2"
-                    		marker-end="url(#arrowhead)"
-                    	/>
-                    `;
+                    // Create the SVG line element.
+                    const line: SVGLineElement = Connection.createLine(fromEdge, toEdge);
                     connections.push(line);
                 }
             }
         }
         return connections;
+    }
+
+    /**
+     * Creates an SVG line element between two edge points.
+     * @param fromEdge The starting point of the line.
+     * @param toEdge The ending point of the line.
+     * @returns An SVG line element.
+     */
+    private static createLine(fromEdge: Point, toEdge: Point): SVGLineElement {
+        const line: SVGLineElement = SVG.create("line");
+        line.setAttribute("x1", fromEdge.x.toString());
+        line.setAttribute("y1", fromEdge.y.toString());
+        line.setAttribute("x2", toEdge.x.toString());
+        line.setAttribute("y2", toEdge.y.toString());
+        line.setAttribute("stroke", "var(--vscode-editorLineNumber-foreground)");
+        line.setAttribute("stroke-width", "2");
+        line.setAttribute("marker-end", "url(#arrowhead)");
+        return line;
     }
 
     /**
@@ -115,7 +141,16 @@ export class ConnectionRenderer {
     }
 }
 
-class Connection {
+/**
+ * An internal helper class for connection geometry calculations.
+ */
+class Connect {
+    /**
+     * Calculates the center point of a research subject node.
+     * @param subject The research subject.
+     * @param fieldOffsets A map of subject ID to field vertical offset Y positions.
+     * @returns The center point of the subject node.
+     */
     public static findCenter(subject: IResearchSubject, fieldOffsets: Map<string, number>): Point {
         const [column, row]: Coordinate = subject.field_coord;
         const offsetY: number = fieldOffsets.get(subject.id) || 0;
@@ -132,7 +167,7 @@ class Connection {
      * @param fromCenter The origin point.
      * @returns The angle in radians.
      */
-    public static findAngle(toCenter: Point, fromCenter: Point): number {
+    public static findAngle(toCenter: Point, fromCenter: Point): Angle {
         const distanceX: number = toCenter.x - fromCenter.x;
         const distanceY: number = toCenter.y - fromCenter.y;
         const angle: Angle = Math.atan2(distanceY, distanceX);

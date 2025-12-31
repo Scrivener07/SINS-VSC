@@ -1,6 +1,8 @@
 import { IResearchSubject, Coordinate } from "@soase/shared";
 import { Layout } from "./layout";
 import { FieldLayout, IField } from "./research-render-field";
+import { Dimension, Point } from "./shared";
+import { SVG } from "./dom/svg";
 
 export class GridLayout {
     /** The maximum number of tiers in the research grid from `research.uniforms`. */
@@ -13,79 +15,75 @@ export class GridLayout {
     public static readonly MAX_COLUMN_COUNT: number = GridLayout.MAX_TIER_COUNT * GridLayout.PER_TIER_COLUMN_COUNT;
 }
 
-export class GridRenderer {
+export class Grid {
     /**
      * Renders the background grid for a field group showing all possible cells.
-     * @param group The field group to render grid for.
+     * @param field The field group to render grid for.
      * @param offsetY The vertical offset for this field.
      * @returns SVG markup for the grid background.
      */
-    public static renderFieldGrid(group: IField, offsetY: number): string {
-        const gridElements: string[] = [];
+    public static create(field: IField): SVGGElement {
+        const group: SVGGElement = SVG.create("g");
 
-        const gridStartY: number = offsetY + FieldLayout.FIELD_LABEL_HEIGHT;
+        const gridStartY: number = field.verticalOffset + FieldLayout.FIELD_LABEL_HEIGHT;
 
         // Calculate the grid dimensions.
-        // TODO: Ensure at least 3 rows?
-        const maxRows: number = Math.max(group.maxRow, 2) + 1;
-        const totalColumns: number = GridLayout.MAX_COLUMN_COUNT;
+        const maxRows: number = Math.max(field.maxRow + 1, 3);
 
         // Render the grid cells.
         for (let row: number = 0; row < maxRows; row++) {
-            for (let column: number = 0; column < totalColumns; column++) {
-                const x: number = column * Layout.CELL_WIDTH + Layout.PADDING;
-                const y: number = row * Layout.CELL_HEIGHT + gridStartY;
-
-                // Check if this cell is occupied by a research node.
-                const isOccupied: boolean = group.subjects.some((subject) => GridRenderer.isCellOccupied(subject, column, row));
+            for (let column: number = 0; column < GridLayout.MAX_COLUMN_COUNT; column++) {
+                // Check if this cell is occupied by any research node.
+                const isOccupied: boolean = field.subjects.some((subject) => Grid.isCellOccupied(subject, column, row));
 
                 // Set fill color based on cell occupancy.
                 let fill: string;
                 if (isOccupied) {
                     fill = "none";
-                    // TODO: Play with the fill color for occupied cells.
-                    // backgroundFill = "var(--vscode-editor-background)";
                 } else {
                     fill = "var(--vscode-editor-lineHighlightBackground)";
                 }
 
                 // Render the grid cell background.
-                const rectangleWidth: number = Layout.CELL_WIDTH - 20;
-                const rectangleHeight: number = Layout.CELL_HEIGHT - 20;
-                gridElements.push(`
-                    <rect
-                        x="${x}"
-                        y="${y}"
-                        width="${rectangleWidth}"
-                        height="${rectangleHeight}"
-                        fill="${fill}"
-                        stroke="var(--vscode-panel-border)"
-                        stroke-width="1"
-                        opacity="0.3"
-                    />
-                `);
+                const position: Point = {
+                    x: column * Layout.CELL_WIDTH + Layout.PADDING,
+                    y: row * Layout.CELL_HEIGHT + gridStartY
+                };
+                const size: Dimension = {
+                    width: Layout.CELL_WIDTH - Layout.PADDING,
+                    height: Layout.CELL_HEIGHT - Layout.PADDING
+                };
+                const rectangle: SVGRectElement = SVG.create("rect");
+                rectangle.setAttribute("x", position.x.toString());
+                rectangle.setAttribute("y", position.y.toString());
+                rectangle.setAttribute("width", size.width.toString());
+                rectangle.setAttribute("height", size.height.toString());
+                rectangle.setAttribute("fill", fill);
+                rectangle.setAttribute("stroke", "var(--vscode-panel-border)");
+                rectangle.setAttribute("stroke-width", "1");
+                rectangle.setAttribute("opacity", "0.3");
+                group.appendChild(rectangle);
 
                 // Render the coordinates on ALL cells.
-                const textX: number = x + (Layout.CELL_WIDTH - 20) / 2;
-                const textY: number = y + (Layout.CELL_HEIGHT - 20) / 2;
-                gridElements.push(`
-                    <text
-                        x="${textX}"
-                        y="${textY}"
-                        text-anchor="middle"
-                        dominant-baseline="middle"
-                        font-size="10"
-                        fill="var(--vscode-descriptionForeground)"
-                        opacity="0.5"
-                        pointer-events="none"
-                    >
-                        [${column},${row}]
-                    </text>
-                `);
+                const textPosition: Point = {
+                    x: position.x + (Layout.CELL_WIDTH - Layout.PADDING) / 2,
+                    y: position.y + (Layout.CELL_HEIGHT - Layout.PADDING) / 2
+                };
+                const text: SVGTextElement = SVG.create("text");
+                text.setAttribute("x", textPosition.x.toString());
+                text.setAttribute("y", textPosition.y.toString());
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "middle");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("fill", "var(--vscode-descriptionForeground)");
+                text.setAttribute("opacity", "0.5");
+                text.setAttribute("pointer-events", "none");
+                text.textContent = `[${column},${row}]`;
+                group.appendChild(text);
             }
         }
 
-        return gridElements.join("");
+        return group;
     }
 
     /**

@@ -1,9 +1,10 @@
 import { IResearchSubject } from "@soase/shared";
 import { Layout } from "./layout";
-import { GridLayout, GridRenderer } from "./research-render-grid";
+import { GridLayout, Grid } from "./research-render-grid";
 import { ResearchSubject } from "./research-render-subject";
 import { Tier } from "./research-render-tier";
 import { SVG } from "./dom/svg";
+import { Point } from "./shared";
 
 /**
  * Represents a field group of research subjects.
@@ -24,7 +25,7 @@ export interface IField {
     /** Maximum row coordinate in this research field. This is zero-based. */
     maxRow: number;
 
-    /** Vertical offset for rendering. */
+    /** Vertical origin offset for rendering. */
     verticalOffset: number;
 }
 
@@ -136,54 +137,74 @@ export class Field {
      * Renders all field groups with labels and subjects.
      */
     public static create_each(fields: IField[]): SVGGElement[] {
-        const elements: SVGGElement[] = [];
+        const groups: SVGGElement[] = [];
         for (const field of fields) {
-            const element: SVGGElement = this.create(field);
-            elements.push(element);
+            const group: SVGGElement = this.create(field);
+            groups.push(group);
         }
-        return elements;
+        return groups;
     }
 
     private static create(field: IField): SVGGElement {
-        const labelY: number = field.verticalOffset + Layout.PADDING;
-        const nodesY: number = labelY + FieldLayout.FIELD_LABEL_HEIGHT;
-
-        const label_x: number = Layout.PADDING;
-        const label_y: number = labelY + 25;
-
-        const seperator_x1: number = Layout.PADDING;
-        const seperator_y1: number = labelY + 30;
-        const seperator_x2: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH + Layout.PADDING;
-        const seperator_y2: number = labelY + 30;
+        // The padded vertical origin for this field.
+        const PADDED_VERTICAL: number = field.verticalOffset + Layout.PADDING;
 
         // Create SVG group for the field.
-        const svg_group = SVG.create("g");
+        const group: SVGGElement = SVG.create("g");
 
         // Create field label.
-        const svg_text = SVG.create("text");
-        svg_text.setAttribute("x", label_x.toString());
-        svg_text.setAttribute("y", label_y.toString());
-        svg_text.setAttribute("font-size", "18");
-        svg_text.setAttribute("font-weight", "bold");
-        svg_text.setAttribute("fill", "var(--vscode-foreground)");
-        svg_text.textContent = field.nameDisplay;
-        svg_group.appendChild(svg_text);
+        {
+            const position: Point = {
+                x: Layout.PADDING,
+                y: PADDED_VERTICAL
+            };
 
-        // Create separator line.
-        const svg_line = SVG.create("line");
-        svg_line.setAttribute("x1", seperator_x1.toString());
-        svg_line.setAttribute("y1", seperator_y1.toString());
-        svg_line.setAttribute("x2", seperator_x2.toString());
-        svg_line.setAttribute("y2", seperator_y2.toString());
-        svg_line.setAttribute("stroke", "var(--vscode-panel-border)");
-        svg_line.setAttribute("stroke-width", "1");
-        svg_group.appendChild(svg_line);
+            const text: SVGTextElement = SVG.create("text");
+            text.setAttribute("x", position.x.toString());
+            text.setAttribute("y", position.y.toString());
+            text.setAttribute("font-size", "18");
+            text.setAttribute("font-weight", "bold");
+            text.setAttribute("fill", "var(--vscode-foreground)");
+            text.textContent = field.nameDisplay;
+            group.appendChild(text);
+        }
 
-        // Create field grid, tiers, and subjects. (still using innerHTML for now)
-        svg_group.innerHTML += GridRenderer.renderFieldGrid(field, field.verticalOffset);
-        svg_group.innerHTML += Tier.renderTierDividers(field, field.verticalOffset);
-        svg_group.innerHTML += ResearchSubject.renderSubjects(field, nodesY);
+        // Create horizontal separator line.
+        {
+            const VERTICAL: number = 15;
 
-        return svg_group;
+            const start: Point = {
+                x: Layout.PADDING,
+                y: PADDED_VERTICAL + VERTICAL
+            };
+
+            const end: Point = {
+                x: GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH, // + Layout.PADDING,
+                y: PADDED_VERTICAL + VERTICAL
+            };
+
+            const separator: SVGLineElement = SVG.create("line");
+            separator.setAttribute("x1", start.x.toString());
+            separator.setAttribute("y1", start.y.toString());
+            separator.setAttribute("x2", end.x.toString());
+            separator.setAttribute("y2", end.y.toString());
+            separator.setAttribute("stroke", "var(--vscode-panel-border)");
+            separator.setAttribute("stroke-width", "2");
+            group.appendChild(separator);
+        }
+
+        // Create grid and tier dividers.
+        {
+            group.appendChild(Grid.create(field));
+            group.appendChild(Tier.create(field));
+        }
+
+        // Create research subject nodes.
+        {
+            const offsetY: number = PADDED_VERTICAL + FieldLayout.FIELD_LABEL_HEIGHT;
+            group.append(...ResearchSubject.create_each(field, offsetY));
+        }
+
+        return group;
     }
 }

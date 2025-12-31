@@ -8,16 +8,24 @@ import { ResearchModel } from "./research-model";
 import { SVG } from "./dom/svg";
 import { Dimension } from "./shared";
 
-/** The main container element for the research tree. */
+/** The main container element for the research viewport. */
 export class ResearchView extends HTMLDivElement {
     /** The ID of the main container element. */
     private static readonly CONTAINER_ID: string = "research-viewer";
 
+    /** The research data model. */
     private readonly model: ResearchModel;
+
+    /** A controller for handling zoom interactions. */
     private readonly zoom: ZoomController;
 
+    /** The primary SVG viewport element. */
     private readonly viewport: SVGSVGElement;
+
+    /** The SVG definitions element for reusable components. */
     private readonly definitions: SVGDefsElement;
+
+    /** The top-level content group for the SVG viewport. */
     private readonly content: SVGGElement;
 
     constructor(model: ResearchModel) {

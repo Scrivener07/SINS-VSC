@@ -1,38 +1,24 @@
 import { IResearchSubject, Coordinate } from "@soase/shared";
-import { Layout } from "./layout";
-import { FieldLayout, IField } from "./research-render-field";
-import { Dimension, Point } from "./shared";
 import { SVG } from "./dom/svg";
-
-export class GridLayout {
-    /** The maximum number of tiers in the research grid from `research.uniforms`. */
-    public static readonly MAX_TIER_COUNT: number = 5;
-
-    /** The number of columns per tier from `research.uniforms`. */
-    public static readonly PER_TIER_COLUMN_COUNT: number = 2;
-
-    /** The total number of columns in the research grid. */
-    public static readonly MAX_COLUMN_COUNT: number = GridLayout.MAX_TIER_COUNT * GridLayout.PER_TIER_COLUMN_COUNT;
-}
+import { IField } from "./field";
+import { GridLayout, Layout, FieldLayout } from "./layout";
+import { Point, Dimension } from "./shared";
 
 export class Grid {
     /**
      * Renders the background grid for a field group showing all possible cells.
      * @param field The field group to render grid for.
-     * @param offsetY The vertical offset for this field.
      * @returns SVG markup for the grid background.
      */
     public static create(field: IField): SVGGElement {
         const group: SVGGElement = SVG.create("g");
 
-        const gridStartY: number = field.verticalOffset + FieldLayout.FIELD_LABEL_HEIGHT;
-
         // Calculate the grid dimensions.
-        const maxRows: number = Math.max(field.maxRow + 1, 3);
+        const rowCount: number = field.lastRow + 1;
 
         // Render the grid cells.
-        for (let row: number = 0; row < maxRows; row++) {
-            for (let column: number = 0; column < GridLayout.MAX_COLUMN_COUNT; column++) {
+        for (let row: number = 0; row < rowCount; row++) {
+            for (let column: number = 0; column < GridLayout.COLUMN_COUNT; column++) {
                 // Check if this cell is occupied by any research node.
                 const isOccupied: boolean = field.subjects.some((subject) => Grid.isCellOccupied(subject, column, row));
 
@@ -47,12 +33,14 @@ export class Grid {
                 // Render the grid cell background.
                 const position: Point = {
                     x: column * Layout.CELL_WIDTH + Layout.PADDING,
-                    y: row * Layout.CELL_HEIGHT + gridStartY
+                    y: row * Layout.CELL_HEIGHT
                 };
+
                 const size: Dimension = {
                     width: Layout.CELL_WIDTH - Layout.PADDING,
                     height: Layout.CELL_HEIGHT - Layout.PADDING
                 };
+
                 const rectangle: SVGRectElement = SVG.create("rect");
                 rectangle.setAttribute("x", position.x.toString());
                 rectangle.setAttribute("y", position.y.toString());
@@ -66,6 +54,7 @@ export class Grid {
 
                 // Render the coordinates on ALL cells.
                 const textPosition: Point = {
+                    // Position for center of cell.
                     x: position.x + (Layout.CELL_WIDTH - Layout.PADDING) / 2,
                     y: position.y + (Layout.CELL_HEIGHT - Layout.PADDING) / 2
                 };
@@ -96,5 +85,69 @@ export class Grid {
     private static isCellOccupied(subject: IResearchSubject, column: number, row: number): boolean {
         const [subjectColumn, subjectRow]: Coordinate = subject.field_coord;
         return subjectColumn === column && subjectRow === row;
+    }
+}
+
+export class Tier {
+    /**
+     * Renders vertical tier divider lines and labels.
+     * @param field The field group.
+     * @param offsetY The vertical offset for this field.
+     * @returns SVG markup for tier dividers.
+     */
+    public static create(field: IField): SVGGElement {
+        const dividers: SVGGElement = SVG.create("g");
+
+        const gridHeight: number = (field.lastRow + 1) * Layout.CELL_HEIGHT;
+
+        // Render the divider for each tier.
+        for (let tier: number = 0; tier <= GridLayout.TIER_COUNT; tier++) {
+            const column: number = tier * GridLayout.COLUMN_PER_TIER_COUNT;
+            const x: number = column * Layout.CELL_WIDTH + Layout.PADDING;
+
+            // Create vertical divider line.
+            {
+                // Center point of the cell padding space.
+                const HORIZONTAL_OFFSET_CENTER: number = Layout.PADDING / 2;
+
+                const start: Point = {
+                    x: x - HORIZONTAL_OFFSET_CENTER,
+                    y: -Layout.PADDING
+                };
+
+                const end: Point = {
+                    x: x - HORIZONTAL_OFFSET_CENTER,
+                    y: gridHeight - Layout.PADDING
+                };
+
+                const line = SVG.create("line");
+                line.setAttribute("x1", start.x.toString());
+                line.setAttribute("y1", start.y.toString());
+                line.setAttribute("x2", end.x.toString());
+                line.setAttribute("y2", end.y.toString());
+                line.setAttribute("stroke", "var(--vscode-input-foreground)");
+                line.setAttribute("stroke-width", "2");
+                line.setAttribute("opacity", "0.6");
+                dividers.appendChild(line);
+            }
+
+            // Create tier label, skip the last divider.
+            if (tier < GridLayout.TIER_COUNT) {
+                const tierCenterX: number = x + (GridLayout.COLUMN_PER_TIER_COUNT * Layout.CELL_WIDTH) / 2;
+                const labelY: number = -(FieldLayout.FIELD_LABEL_HEIGHT / 2);
+
+                const label: SVGTextElement = SVG.create("text");
+                label.setAttribute("x", tierCenterX.toString());
+                label.setAttribute("y", labelY.toString());
+                label.setAttribute("text-anchor", "middle");
+                label.setAttribute("font-size", "12");
+                label.setAttribute("font-weight", "bold");
+                label.setAttribute("fill", "var(--vscode-descriptionForeground)");
+                label.textContent = `Tier ${tier}`;
+                dividers.appendChild(label);
+            }
+        }
+
+        return dividers;
     }
 }

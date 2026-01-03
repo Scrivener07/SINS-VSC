@@ -1,20 +1,19 @@
 import { IResearchSubject, Coordinate } from "@soase/shared";
-import { IField } from "./research-render-field";
-import { Layout } from "./layout";
-import { Dimension, Point } from "./shared";
 import { SVG } from "./dom/svg";
+import { IField } from "./field";
+import { Layout } from "./layout";
+import { Point, Dimension } from "./shared";
 
-export class ResearchSubject {
+export class SubjectNode {
     public static readonly SUBJECT_NODE_CLASS: string = "research-node";
-    private static readonly SIZE_OFFSET: number = 20;
 
     /**
      * Renders research nodes for a specific field group.
      */
-    public static create_each(field: IField, offsetY: number): SVGForeignObjectElement[] {
+    public static create_each(field: IField): SVGForeignObjectElement[] {
         const nodes: SVGForeignObjectElement[] = [];
         for (const subject of field.subjects) {
-            nodes.push(ResearchSubject.create(field, offsetY, subject));
+            nodes.push(SubjectNode.create(field, subject));
         }
         return nodes;
     }
@@ -22,22 +21,17 @@ export class ResearchSubject {
     /**
      * Renders a single research node at its tier-relative position.
      */
-    private static create(field: IField, offsetY: number, subject: IResearchSubject): SVGForeignObjectElement {
+    private static create(field: IField, subject: IResearchSubject): SVGForeignObjectElement {
         const [column, row]: Coordinate = subject.field_coord;
 
         const position: Point = {
             x: column * Layout.CELL_WIDTH + Layout.PADDING,
-            y: row * Layout.CELL_HEIGHT + offsetY
+            y: row * Layout.CELL_HEIGHT
         };
 
         const size: Dimension = {
-            width: Layout.CELL_WIDTH - ResearchSubject.SIZE_OFFSET,
-            height: Layout.CELL_HEIGHT - ResearchSubject.SIZE_OFFSET
-        };
-
-        const paddedSize: Dimension = {
-            width: size.width - ResearchSubject.SIZE_OFFSET,
-            height: size.height - ResearchSubject.SIZE_OFFSET
+            width: Layout.CELL_WIDTH - Layout.PADDING,
+            height: Layout.CELL_HEIGHT - Layout.PADDING
         };
 
         const foreignObject: SVGForeignObjectElement = SVG.create("foreignObject");
@@ -45,14 +39,14 @@ export class ResearchSubject {
         foreignObject.setAttribute("y", position.y.toString());
         foreignObject.setAttribute("width", size.width.toString());
         foreignObject.setAttribute("height", size.height.toString());
+        foreignObject.style.overflow = "visible";
         {
             const content: HTMLDivElement = document.createElement("div");
             content.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
             content.setAttribute("data-id", subject.id);
-            content.className = ResearchSubject.SUBJECT_NODE_CLASS;
-            content.style.width = `${paddedSize.width}px`;
-            content.style.height = `${paddedSize.height}px`;
-            content.style.padding = "10px";
+            content.className = SubjectNode.SUBJECT_NODE_CLASS;
+            content.style.width = `${size.width}px`;
+            content.style.height = `${size.height}px`;
 
             const researchTier: HTMLDivElement = document.createElement("div");
             researchTier.className = "research-tier";

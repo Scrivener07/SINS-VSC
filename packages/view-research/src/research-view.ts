@@ -1,12 +1,12 @@
 import { IResearchSubject } from "@soase/shared";
-import { Layout } from "./layout";
+import { FieldLayout, GridLayout, Layout } from "./layout";
 import { Connection } from "./research-render-connection";
-import { IField, FieldLayout, FieldGrouping, Field } from "./research-render-field";
-import { GridLayout } from "./research-render-grid";
+import { Field } from "./research-render-field";
 import { ZoomController } from "./zoom";
 import { ResearchModel } from "./research-model";
 import { SVG } from "./dom/svg";
 import { Dimension } from "./shared";
+import { FieldGrouping, IField } from "./field";
 
 /** The main container element for the research viewport. */
 export class ResearchView extends HTMLDivElement {
@@ -86,7 +86,7 @@ export class ResearchView extends HTMLDivElement {
         const fieldElements: SVGGElement[] = Field.create_each(fields);
         this.content.append(...fieldElements);
 
-        // Generate the SVG connections content. (still using innerHTML for now)
+        // Generate the SVG connection overlay content.
         const connectionGroup: SVGGElement = Connection.create(subjects, fields, this.model.nodeConnectionsEnabled);
         this.content.append(connectionGroup);
 
@@ -101,11 +101,11 @@ export class ResearchView extends HTMLDivElement {
      */
     private static getDimensions(fields: IField[]): Dimension {
         // Use fixed width based on the grid maximum columns.
-        const maxWidth: number = GridLayout.MAX_COLUMN_COUNT * Layout.CELL_WIDTH;
+        const maxWidth: number = GridLayout.COLUMN_COUNT * Layout.CELL_WIDTH;
 
         // Calculate the base dimensions needed for the SVG.
         // TODO: See `FieldLayout.verticalOffsets` for potential DRY violation.
-        const maxRows: number = Math.max(...fields.map((field) => field.maxRow), 2) + 1;
+        const maxRows: number = Math.max(...fields.map((field) => field.lastRow + 1), 3);
         const totalHeight: number = fields.length * (FieldLayout.FIELD_LABEL_HEIGHT + maxRows * Layout.CELL_HEIGHT + FieldLayout.FIELD_SPACING);
 
         // Caculate the final SVG dimensions after padding.

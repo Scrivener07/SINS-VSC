@@ -3,9 +3,9 @@ import { Log } from "./services/log";
 import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
 import { ToolbarView } from "./toolbar-view";
 import { ResearchView } from "./research-view";
-import { MessageText } from "./layout";
-import { ResearchSubject } from "./research-render-subject";
 import { ResearchDomain, ResearchModel } from "./research-model";
+import { StatusText } from "./status";
+import { SubjectNode } from "./research-render-subject";
 
 /**
  * The top-level orchestrator class for the research visualizer.
@@ -51,7 +51,7 @@ export class ResearchPresenter {
 
     private onStatusChanged(e: CustomEvent<string | null>): void {
         if (e.detail) {
-            const element: HTMLDivElement = MessageText.create(e.detail);
+            const element: HTMLDivElement = StatusText.create(e.detail);
             this.messageContainer.replaceChildren(element);
         } else {
             this.messageContainer.replaceChildren();
@@ -135,8 +135,9 @@ export class ResearchPresenter {
     }
 
     private node_OnClick(e: PointerEvent): void {
+        Log.info("<ResearchPresenter::node_OnClick> Click event");
         const target: HTMLElement = e.target as HTMLElement;
-        const node: HTMLElement | null = target.closest(`.${ResearchSubject.SUBJECT_NODE_CLASS}`) as HTMLElement;
+        const node: HTMLElement | null = target.closest(`.${SubjectNode.SUBJECT_NODE_CLASS}`) as HTMLElement;
         if (node) {
             const nodeId: string | undefined = node.dataset.id;
             const message: IWebViewMessage = { type: ViewResponse.FILE_OPEN, identifier: nodeId };

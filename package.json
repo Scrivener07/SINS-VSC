@@ -117,9 +117,19 @@
 			},
 			{
 				"command": "soase.research.visualizer.open",
-				"title": "Open Research Visualizer"
+				"title": "Open Research Visualizer",
+				"icon": "$(graph)"
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "soase.research.visualizer.open",
+					"group": "navigation",
+					"when": "editorLangId == 'soase'"
+				}
+			]
+		}
 	},
 	"workspaces": [
 		"packages/*"

@@ -1,9 +1,9 @@
 import { Log } from "./services/log";
 import { IResearchSubject, Coordinate } from "@soase/shared";
 import { Layout } from "./layout";
-import { IField } from "./research-render-field";
 import { Angle, Dimension, Distance, Point, Vector } from "./shared";
 import { SVG } from "./dom/svg";
+import { IField } from "./field";
 
 /**
  * Renders prerequisite connections between research subject nodes.

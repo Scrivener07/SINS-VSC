@@ -1,8 +1,8 @@
 import { IResearchSubject, Coordinate } from "@soase/shared";
-import { SVG } from "./dom/svg";
-import { IField } from "./field";
-import { Layout } from "./layout";
-import { Point, Dimension } from "./shared";
+import { SVG } from "../dom/svg";
+import { IField } from "../field";
+import { Layout } from "../layout";
+import { Point, Dimension } from "../shared";
 
 export class SubjectNode {
     public static readonly SUBJECT_NODE_CLASS: string = "research-node";

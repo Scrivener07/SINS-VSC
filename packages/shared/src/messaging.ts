@@ -34,6 +34,9 @@ export interface ILogMessage {
  * The names of the requests sent from the client to the webview.
  */
 export enum ViewRequest {
+    /** Sends the research uniform data to the webview. */
+    UNIFORMS = "uniforms",
+
     /** Sends the list of players to the webview. */
     PLAYER_LIST = "playerList",
 

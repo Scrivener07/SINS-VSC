@@ -1,11 +1,11 @@
 import { VSCode } from "./services/vscode";
 import { Log } from "./services/log";
-import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject } from "@soase/shared";
+import { IWebViewMessage, ViewRequest, ViewResponse, IResearchSubject, IResearchUniform } from "@soase/shared";
 import { ToolbarView } from "./toolbar-view";
 import { ResearchView } from "./research-view";
 import { ResearchDomain, ResearchModel } from "./research-model";
 import { StatusText } from "./status";
-import { SubjectNode } from "./research-render-subject";
+import { SubjectNode } from "./render/research-subject";
 
 /**
  * The top-level orchestrator class for the research visualizer.
@@ -61,6 +61,9 @@ export class ResearchPresenter {
     public onMessage(message: any): void {
         Log.info("<ResearchPresenter::onMessage> Message received", message);
         switch (message.type) {
+            case ViewRequest.UNIFORMS:
+                this.research_uniforms(message.data);
+                break;
             case ViewRequest.PLAYER_LIST:
                 this.player_updateOptions(message.data);
                 break;
@@ -73,6 +76,10 @@ export class ResearchPresenter {
             default:
                 Log.warn(`<ResearchPresenter::onMessage> Unhandled message type: ${message.type}`, message);
         }
+    }
+
+    private research_uniforms(uniforms: IResearchUniform): void {
+        this.model.setUniforms(uniforms);
     }
 
     private player_updateOptions(players: string[]): void {

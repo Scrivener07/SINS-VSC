@@ -2,6 +2,9 @@
  * The names of the requests sent from the client to the server.
  */
 export enum ServerRequest {
+    /** A request to get the file path for a uniform by ID. */
+    GET_UNIFORM_PATH = "soase/uniform/file_path",
+
     /** A request to get the list of player IDs. */
     GET_PLAYER_IDS = "soase/entity/player_ids",
 
@@ -17,6 +20,11 @@ export enum ServerRequest {
  */
 export interface IRequestEntityPath {
     /** The identifier of the entity. */
+    identifier: string;
+}
+
+export interface IRequestUniformPath {
+    /** The identifier of the uniform. */
     identifier: string;
 }
 

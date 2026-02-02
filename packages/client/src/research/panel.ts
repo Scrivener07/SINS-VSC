@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
-import { ILogMessage, IResearchSubject, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
+import { ILogMessage, IResearchSubject, IResearchUniform, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
 import { ClientManager } from "../client";
 import { ResearchDataService } from "./data";
 
@@ -155,6 +155,7 @@ export class ResearchPanel {
                 break;
             case ViewResponse.READY:
                 await this.update_PlayerList();
+                await this.update_ResearchUniforms();
                 break;
             case ViewResponse.PLAYER_SELECT:
                 if (message.identifier) {
@@ -166,6 +167,15 @@ export class ResearchPanel {
                 break;
             default:
                 console.warn(`<ResearchPanel::onDidReceiveMessage> Unhandled message type: ${message.type}`);
+        }
+    }
+
+    private async update_ResearchUniforms(): Promise<void> {
+        const uniforms: IResearchUniform | undefined | null = await this.dataService?.getResearchUniform();
+        if (uniforms) {
+            this.panel.webview.postMessage({ type: ViewRequest.UNIFORMS, data: uniforms });
+        } else {
+            console.warn("<ResearchPanel::update_ResearchUniforms> No research uniform data received.");
         }
     }
 

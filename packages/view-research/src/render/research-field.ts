@@ -1,29 +1,30 @@
-import { FieldLayout, GridLayout, Layout } from "./layout";
-import { SVG } from "./dom/svg";
-import { Point } from "./shared";
-import { IField } from "./field";
-import { Log } from "./services/log";
-import { Grid, Tier } from "./research-render-grid";
-import { SubjectNode } from "./research-render-subject";
+import { FieldLayout, Layout } from "../layout";
+import { SVG } from "../dom/svg";
+import { Point } from "../shared";
+import { IField } from "../field";
+import { Log } from "../services/log";
+import { Grid, Tier } from "./research-grid";
+import { SubjectNode } from "./research-subject";
+import { ResearchModel } from "../research-model";
 
 export class Field {
     /**
      * Renders all field groups with labels and subjects.
      */
-    public static create_each(fields: IField[]): SVGGElement[] {
+    public static create_each(model: ResearchModel, fields: IField[]): SVGGElement[] {
         const groups: SVGGElement[] = [];
         for (const field of fields) {
             // The padded vertical origin for this field.
             const PADDED_VERTICAL: number = field.verticalOffset + Layout.PADDING;
 
-            const group: SVGGElement = this.create(field);
+            const group: SVGGElement = this.create(model, field);
             group.setAttribute("transform", `translate(${Layout.PADDING}, ${PADDED_VERTICAL})`);
             groups.push(group);
         }
         return groups;
     }
 
-    private static create(field: IField): SVGGElement {
+    private static create(model: ResearchModel, field: IField): SVGGElement {
         // Create SVG group for the field.
         const group: SVGGElement = SVG.create("g");
 
@@ -58,7 +59,7 @@ export class Field {
             };
 
             const end: Point = {
-                x: GridLayout.COLUMN_COUNT * Layout.CELL_WIDTH + Layout.PADDING,
+                x: model.grid.column_count * Layout.CELL_WIDTH + Layout.PADDING,
                 y: position.y
             };
 
@@ -80,10 +81,10 @@ export class Field {
             background_group.setAttribute("transform", `translate(0, ${offsetY})`);
             group.appendChild(background_group);
 
-            const grid: SVGGElement = Grid.create(field);
+            const grid: SVGGElement = Grid.create(model, field);
             background_group.appendChild(grid);
 
-            const tiers: SVGGElement = Tier.create(field);
+            const tiers: SVGGElement = Tier.create(model, field);
             background_group.appendChild(tiers);
         }
 

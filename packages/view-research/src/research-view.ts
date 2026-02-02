@@ -1,12 +1,12 @@
 import { IResearchSubject } from "@soase/shared";
-import { FieldLayout, GridLayout, Layout } from "./layout";
-import { Connection } from "./research-render-connection";
-import { Field } from "./research-render-field";
+import { FieldLayout, Layout } from "./layout";
 import { ZoomController } from "./zoom";
 import { ResearchModel } from "./research-model";
 import { SVG } from "./dom/svg";
 import { Dimension } from "./shared";
 import { FieldGrouping, IField } from "./field";
+import { Connection } from "./render/research-connection";
+import { Field } from "./render/research-field";
 
 /** The main container element for the research viewport. */
 export class ResearchView extends HTMLDivElement {
@@ -78,12 +78,12 @@ export class ResearchView extends HTMLDivElement {
         FieldLayout.verticalOffsets(fields);
 
         // Determine and update the SVG viewport dimensions.
-        const dimension: Dimension = ResearchView.getDimensions(fields);
+        const dimension: Dimension = Layout.getDimensions(this.model, fields);
         this.viewport.setAttribute("width", dimension.width.toString());
         this.viewport.setAttribute("height", dimension.height.toString());
 
         // Generate the SVG field content.
-        const fieldElements: SVGGElement[] = Field.create_each(fields);
+        const fieldElements: SVGGElement[] = Field.create_each(this.model, fields);
         this.content.append(...fieldElements);
 
         // Generate the SVG connection overlay content.
@@ -92,26 +92,5 @@ export class ResearchView extends HTMLDivElement {
 
         // Reapply zoom level after rendering.
         this.zoom.setZoom(this.zoom.zoomLevel);
-    }
-
-    /**
-     * Calculates the overall SVG dimensions based on the field layouts.
-     * @param fields The array of field groups.
-     * @returns The SVG dimensions.
-     */
-    private static getDimensions(fields: IField[]): Dimension {
-        // Use fixed width based on the grid maximum columns.
-        const maxWidth: number = GridLayout.COLUMN_COUNT * Layout.CELL_WIDTH;
-
-        // Calculate the base dimensions needed for the SVG.
-        // TODO: See `FieldLayout.verticalOffsets` for potential DRY violation.
-        const maxRows: number = Math.max(...fields.map((field) => field.lastRow + 1), 3);
-        const totalHeight: number = fields.length * (FieldLayout.FIELD_LABEL_HEIGHT + maxRows * Layout.CELL_HEIGHT + FieldLayout.FIELD_SPACING);
-
-        // Caculate the final SVG dimensions after padding.
-        return {
-            width: maxWidth + Layout.PADDING * 2,
-            height: totalHeight + Layout.PADDING * 2
-        };
     }
 }

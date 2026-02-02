@@ -1,4 +1,5 @@
 import { IField } from "./field";
+import { ResearchModel } from "./research-model";
 import { Dimension } from "./shared";
 
 export class Layout {
@@ -10,6 +11,27 @@ export class Layout {
 
     /** The padding around the research tree. */
     public static readonly PADDING: number = 20;
+
+    /**
+     * Calculates the overall SVG dimensions based on the field layouts.
+     * @param fields The array of field groups.
+     * @returns The SVG dimensions.
+     */
+    public static getDimensions(model: ResearchModel, fields: IField[]): Dimension {
+        // Use fixed width based on the grid maximum columns.
+        const maxWidth: number = model.grid.column_count * Layout.CELL_WIDTH;
+
+        // Calculate the base dimensions needed for the SVG.
+        // TODO: See `FieldLayout.verticalOffsets` for potential DRY violation.
+        const maxRows: number = Math.max(...fields.map((field) => field.lastRow + 1), 3);
+        const totalHeight: number = fields.length * (FieldLayout.FIELD_LABEL_HEIGHT + maxRows * Layout.CELL_HEIGHT + FieldLayout.FIELD_SPACING);
+
+        // Caculate the final SVG dimensions after padding.
+        return {
+            width: maxWidth + Layout.PADDING * 2,
+            height: totalHeight + Layout.PADDING * 2
+        };
+    }
 }
 
 /**
@@ -54,13 +76,13 @@ export class FieldLayout {
     }
 }
 
-export class GridLayout {
-    /** The maximum number of tiers in the research grid from `research.uniforms`. */
-    public static readonly TIER_COUNT: number = 5;
+// export class GridLayout {
+//     /** The maximum number of tiers in the research grid from `research.uniforms`. */
+//     public static readonly TIER_COUNT: number = 5;
 
-    /** The number of columns per tier from `research.uniforms`. */
-    public static readonly COLUMN_PER_TIER_COUNT: number = 2;
+//     /** The number of columns per tier from `research.uniforms`. */
+//     public static readonly COLUMN_PER_TIER_COUNT: number = 2;
 
-    /** The total number of columns in the research grid. */
-    public static readonly COLUMN_COUNT: number = GridLayout.TIER_COUNT * GridLayout.COLUMN_PER_TIER_COUNT;
-}
+//     /** The total number of columns in the research grid. */
+//     public static readonly COLUMN_COUNT: number = GridLayout.TIER_COUNT * GridLayout.COLUMN_PER_TIER_COUNT;
+// }

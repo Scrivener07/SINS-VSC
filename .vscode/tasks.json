@@ -35,6 +35,20 @@
 			"group": "build",
 			"problemMatcher": []
 		},
+        {
+			// A watcher build task for the shared package.
+            "label": "watch-shared",
+            "type": "npm",
+            "script": "watch",
+            "path": "packages/shared",
+            "problemMatcher": "$tsc-watch",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never",
+                "group": "watchers"
+            },
+            "group": "build"
+        },
 		{
 			// The default build task starts a watcher instance.
 			"type": "npm",
@@ -48,7 +62,8 @@
 			"group": {
 				"kind": "build",
 				"isDefault": true
-			}
+			},
+            "dependsOn": ["watch-shared"]
 		},
 		{
 			"type": "npm",

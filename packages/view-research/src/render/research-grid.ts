@@ -1,8 +1,9 @@
 import { IResearchSubject, Coordinate } from "@soase/shared";
-import { SVG } from "./dom/svg";
-import { IField } from "./field";
-import { GridLayout, Layout, FieldLayout } from "./layout";
-import { Point, Dimension } from "./shared";
+import { SVG } from "../dom/svg";
+import { IField } from "../field";
+import { Layout, FieldLayout } from "../layout";
+import { Point, Dimension } from "../shared";
+import { ResearchModel } from "../research-model";
 
 export class Grid {
     /**
@@ -10,7 +11,7 @@ export class Grid {
      * @param field The field group to render grid for.
      * @returns SVG markup for the grid background.
      */
-    public static create(field: IField): SVGGElement {
+    public static create(model: ResearchModel, field: IField): SVGGElement {
         const group: SVGGElement = SVG.create("g");
 
         // Calculate the grid dimensions.
@@ -18,7 +19,7 @@ export class Grid {
 
         // Render the grid cells.
         for (let row: number = 0; row < rowCount; row++) {
-            for (let column: number = 0; column < GridLayout.COLUMN_COUNT; column++) {
+            for (let column: number = 0; column < model.grid.column_count; column++) {
                 // Check if this cell is occupied by any research node.
                 const isOccupied: boolean = field.subjects.some((subject) => Grid.isCellOccupied(subject, column, row));
 
@@ -95,14 +96,14 @@ export class Tier {
      * @param offsetY The vertical offset for this field.
      * @returns SVG markup for tier dividers.
      */
-    public static create(field: IField): SVGGElement {
+    public static create(model: ResearchModel, field: IField): SVGGElement {
         const dividers: SVGGElement = SVG.create("g");
 
         const gridHeight: number = (field.lastRow + 1) * Layout.CELL_HEIGHT;
 
         // Render the divider for each tier.
-        for (let tier: number = 0; tier <= GridLayout.TIER_COUNT; tier++) {
-            const column: number = tier * GridLayout.COLUMN_PER_TIER_COUNT;
+        for (let tier: number = 0; tier <= model.grid.tier_count; tier++) {
+            const column: number = tier * model.grid.column_per_tier_count;
             const x: number = column * Layout.CELL_WIDTH + Layout.PADDING;
 
             // Create vertical divider line.
@@ -132,8 +133,8 @@ export class Tier {
             }
 
             // Create tier label, skip the last divider.
-            if (tier < GridLayout.TIER_COUNT) {
-                const tierCenterX: number = x + (GridLayout.COLUMN_PER_TIER_COUNT * Layout.CELL_WIDTH) / 2;
+            if (tier < model.grid.tier_count) {
+                const tierCenterX: number = x + (model.grid.column_per_tier_count * Layout.CELL_WIDTH) / 2;
                 const labelY: number = -(FieldLayout.FIELD_LABEL_HEIGHT / 2);
 
                 const label: SVGTextElement = SVG.create("text");
@@ -143,7 +144,7 @@ export class Tier {
                 label.setAttribute("font-size", "12");
                 label.setAttribute("font-weight", "bold");
                 label.setAttribute("fill", "var(--vscode-descriptionForeground)");
-                label.textContent = `Tier ${tier}`;
+                label.textContent = model.grid.getTierLabelFor(tier);
                 dividers.appendChild(label);
             }
         }

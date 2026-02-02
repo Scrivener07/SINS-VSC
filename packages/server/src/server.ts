@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import * as shared from "@soase/shared";
-import { ServerRequest, IRequestEntityPath, IRequestLocalization } from "@soase/shared";
+import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath } from "@soase/shared";
 import {
     createConnection,
     TextDocuments,
@@ -120,6 +120,7 @@ class SinsLanguageServer {
 
         // Named client requests.
         this.connection.onRequest(ServerRequest.GET_PLAYER_IDS, () => this.request_getPlayerIdentifiers());
+        this.connection.onRequest(ServerRequest.GET_UNIFORM_PATH, (params: IRequestUniformPath) => this.request_getUniformPath(params.identifier));
         this.connection.onRequest(ServerRequest.GET_ENTITY_PATH, (params: IRequestEntityPath) => this.request_getEntityPath(params.identifier));
         this.connection.onRequest(ServerRequest.GET_LOCALIZATION, (params: IRequestLocalization) =>
             this.request_getLocalization(params.language, params.key)
@@ -139,6 +140,23 @@ class SinsLanguageServer {
 
     //--------------------------------------------------
 
+    private request_getUniformPath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);
+        const paths: string[] | undefined = this.indexManager.getPaths(identifier);
+        if (paths) {
+            // Return the first path found.
+            if (paths.length > 1) {
+                console.warn(
+                    `<SinsLanguageServer::request_getUniformPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
+                );
+            }
+            return paths[0];
+        } else {
+            console.warn(`<SinsLanguageServer::request_getUniformPath> No paths found for identifier: ${identifier}`);
+            return undefined;
+        }
+    }
+
     /**
      * Gets the list of available player identifiers.
      *
@@ -147,7 +165,7 @@ class SinsLanguageServer {
      * @returns The list of player identifiers.
      */
     private request_getPlayerIdentifiers(): string[] {
-        console.info("<SinsLanguageServer::wip_getPlayerIdentifiers> Getting player IDs from cache.");
+        console.info("<SinsLanguageServer::request_getPlayerIdentifiers> Getting player IDs from cache.");
         const players: Set<string> = this.cacheManager.get("player");
         return Array.from(players);
     }

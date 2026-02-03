@@ -3,6 +3,7 @@ export class ToolbarView extends HTMLDivElement {
     public readonly domain: DomainSelect;
     private readonly zoomSection: ZoomControl;
     public readonly connections: ConnectionControl;
+    public readonly tierLabels: TierLabelControl;
 
     constructor() {
         super();
@@ -12,11 +13,13 @@ export class ToolbarView extends HTMLDivElement {
         this.domain = new DomainSelect();
         this.zoomSection = new ZoomControl();
         this.connections = new ConnectionControl();
+        this.tierLabels = new TierLabelControl();
 
         this.appendChild(this.player);
         this.appendChild(this.domain);
         this.appendChild(this.zoomSection);
         this.appendChild(this.connections);
+        this.appendChild(this.tierLabels);
     }
 
     public static define(): void {
@@ -201,5 +204,34 @@ export class ConnectionControl extends HTMLDivElement {
     public static define(): void {
         const options: ElementDefinitionOptions = { extends: "div" };
         customElements.define("sins-connection-control", ConnectionControl, options);
+    }
+}
+
+export class TierLabelControl extends HTMLDivElement {
+    /** The ID of the tier label selector element. */
+    private static readonly TIER_LABEL_SELECTOR_ID: string = "tier-label-selector";
+
+    public readonly checkbox: HTMLInputElement;
+
+    constructor() {
+        super();
+
+        const label: HTMLLabelElement = document.createElement("label");
+        label.htmlFor = TierLabelControl.TIER_LABEL_SELECTOR_ID;
+        label.className = "control-label";
+        label.textContent = "Tier Labels:";
+
+        this.checkbox = document.createElement("input");
+        this.checkbox.id = TierLabelControl.TIER_LABEL_SELECTOR_ID;
+        this.checkbox.type = "checkbox";
+        this.checkbox.className = "tier-label-selector";
+
+        this.appendChild(label);
+        this.appendChild(this.checkbox);
+    }
+
+    public static define(): void {
+        const options: ElementDefinitionOptions = { extends: "div" };
+        customElements.define("sins-tier-label-control", TierLabelControl, options);
     }
 }

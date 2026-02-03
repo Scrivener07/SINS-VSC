@@ -6,9 +6,11 @@ export class Configuration {
         return workspace.getConfiguration(shared.NAME);
     }
 
+    public static getInstallation(): string | undefined {
+        return this.copy().get<string>(shared.PROPERTIES.installation);
+    }
+
     public static getLanguage(): string {
         return this.copy().get<string>(shared.PROPERTIES.language) || "en";
     }
-
-    // Add more...
 }

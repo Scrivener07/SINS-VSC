@@ -47,21 +47,28 @@ export class SubjectNode {
             content.className = SubjectNode.SUBJECT_NODE_CLASS;
             content.style.width = `${size.width}px`;
             content.style.height = `${size.height}px`;
+            content.style.backgroundImage = `url(${subject.tooltip_picture})`;
+            content.style.backgroundSize = "cover";
+
+            const researchField: HTMLDivElement = document.createElement("div");
+            researchField.className = "research-field";
+            researchField.textContent = `${field.nameDisplay}`;
+            content.appendChild(researchField);
 
             const researchTier: HTMLDivElement = document.createElement("div");
             researchTier.className = "research-tier";
             researchTier.textContent = `Tier ${subject.tier}`;
             content.appendChild(researchTier);
 
+            const researchCoordinate: HTMLDivElement = document.createElement("div");
+            researchCoordinate.className = "research-coordinate";
+            researchCoordinate.textContent = `[${column}, ${row}]`;
+            content.appendChild(researchCoordinate);
+
             const researchName: HTMLDivElement = document.createElement("div");
             researchName.className = "research-name";
             researchName.textContent = subject.name;
             content.appendChild(researchName);
-
-            const researchField: HTMLDivElement = document.createElement("div");
-            researchField.className = "research-field";
-            researchField.textContent = `${field.nameDisplay} [${column}, ${row}]`;
-            content.appendChild(researchField);
 
             foreignObject.appendChild(content);
         }

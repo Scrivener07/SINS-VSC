@@ -38,6 +38,7 @@ export class ResearchPresenter {
         this.toolbar.domain.civilian.addEventListener("click", (e) => this.domainTab_OnClick(e));
         this.toolbar.domain.military.addEventListener("click", (e) => this.domainTab_OnClick(e));
         this.toolbar.connections.checkbox.addEventListener("change", (e) => this.nodeConnection_OnChange(e));
+        this.toolbar.tierLabels.checkbox.addEventListener("change", (e) => this.tierLabel_OnChange(e));
         document.body.appendChild(this.toolbar);
 
         // Create message container for user-facing messages
@@ -138,6 +139,13 @@ export class ResearchPresenter {
     private nodeConnection_OnChange(e: Event): void {
         const target = e.target as HTMLInputElement;
         this.model.nodeConnectionsEnabled = target.checked;
+        this.display.render(this.model.subjectsFiltered);
+    }
+
+    private tierLabel_OnChange(e: Event): void {
+        const target = e.target as HTMLInputElement;
+        this.model.grid.useTierName = !target.checked;
+        // Re-render the subjects.
         this.display.render(this.model.subjectsFiltered);
     }
 

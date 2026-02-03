@@ -131,6 +131,10 @@ export class ResearchDataService {
             // Get the localized name or fallback to localization key.
             const localizedName: string = (await this.getLocalization(language, json.name)) || json.name;
 
+            // Get the texture paths for HUD icon and tooltip picture.
+            const hud_icon_path: string | null = await this.getTexturePath(json.hud_icon);
+            const tooltip_picture: string | null = await this.getTexturePath(json.tooltip_picture);
+
             // Create subject matching ResearchNode interface.
             const research_subject: IResearchSubject = {
                 id: researchId,
@@ -138,7 +142,9 @@ export class ResearchDataService {
                 field: json.field || "unknown",
                 field_coord: json.field_coord || [0, 0],
                 tier: json.tier || 0,
-                prerequisites: json.prerequisites || []
+                prerequisites: json.prerequisites || [],
+                hud_icon: hud_icon_path || undefined,
+                tooltip_picture: tooltip_picture || undefined
             };
 
             return research_subject;
@@ -169,6 +175,11 @@ export class ResearchDataService {
             key: key
         };
         return await this.client.sendRequest<string | null>(ServerRequest.GET_LOCALIZATION, request);
+    }
+
+    private async getTexturePath(identifier: string): Promise<string | null> {
+        console.info(`<ResearchDataService::getTexturePath> Getting file path for ${identifier} texture.`);
+        return await this.client.sendRequest<string | null>(ServerRequest.GET_TEXTURE_PATH, identifier);
     }
 
     //--------------------------------------------------

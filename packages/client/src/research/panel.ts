@@ -3,6 +3,7 @@ import { LanguageClient } from "vscode-languageclient/node";
 import { ILogMessage, IResearchSubject, IResearchUniform, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
 import { ClientManager } from "../client";
 import { ResearchDataService } from "./data";
+import { GameInstallation } from "../environment";
 
 /**
  * Encapsulates the Research panel webview.
@@ -25,13 +26,16 @@ export class ResearchPanel {
      * This will reuse an existing panel or create new one if none exists.
      * @param context The extension context.
      */
-    public static show(context: vscode.ExtensionContext): void {
+    public static async show(context: vscode.ExtensionContext): Promise<void> {
         if (ResearchPanel.currentPanel) {
             ResearchPanel.currentPanel.panel.reveal(vscode.ViewColumn.One);
             return;
         }
 
         ResearchPanel.viewResourceRoot = vscode.Uri.joinPath(context.extensionUri, "dist", "view-research");
+
+        // TODO: Collect mod directories from workspace.
+        const gameInstallation: vscode.Uri = await GameInstallation.get();
 
         const panel: vscode.WebviewPanel = vscode.window.createWebviewPanel(
             ResearchPanel.VIEW_TYPE,
@@ -40,7 +44,11 @@ export class ResearchPanel {
             {
                 enableScripts: true,
                 retainContextWhenHidden: true,
-                localResourceRoots: [ResearchPanel.viewResourceRoot]
+                localResourceRoots: [
+                    // Root paths from which the webview can load local resources.
+                    ResearchPanel.viewResourceRoot,
+                    gameInstallation
+                ]
             }
         );
 
@@ -107,7 +115,7 @@ export class ResearchPanel {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${webview.cspSource};">
                 <title>${ResearchPanel.VIEW_TITLE}</title>
             </head>
             <body>
@@ -200,6 +208,18 @@ export class ResearchPanel {
     private async update_PlayerData(playerIdentifier: string): Promise<void> {
         const researchData: IResearchSubject[] | undefined = await this.dataService?.getResearchForPlayer(playerIdentifier);
         if (researchData) {
+            // Convert each file path into a webview URI.
+            for (const subject of researchData) {
+                if (subject.hud_icon) {
+                    const uri: vscode.Uri = vscode.Uri.file(subject.hud_icon);
+                    subject.hud_icon = this.panel.webview.asWebviewUri(uri).toString();
+                }
+                if (subject.tooltip_picture) {
+                    const uri: vscode.Uri = vscode.Uri.file(subject.tooltip_picture);
+                    subject.tooltip_picture = this.panel.webview.asWebviewUri(uri).toString();
+                }
+            }
+
             this.panel.webview.postMessage({ type: ViewResponse.UPDATE_RESEARCH, data: researchData });
         } else {
             console.warn("<ResearchPanel::update_PlayerData> No research data received.");

@@ -3,7 +3,7 @@ import { ViewResponse } from "@soase/shared";
 import { VSCode, acquireVsCodeApi } from "./services/vscode";
 import { Log } from "./services/log";
 import { ResearchPresenter } from "./research-presenter";
-import { ToolbarView, ConnectionControl, DomainSelect, PlayerSelect, ZoomControl } from "./toolbar-view";
+import { ToolbarView, ConnectionControl, DomainSelect, PlayerSelect, ZoomControl, TierLabelControl } from "./toolbar-view";
 import { ResearchView } from "./research-view";
 
 /**
@@ -47,6 +47,7 @@ class Application {
         DomainSelect.define();
         ZoomControl.define();
         ConnectionControl.define();
+        TierLabelControl.define();
     }
 
     /**

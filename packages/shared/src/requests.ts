@@ -3,16 +3,19 @@
  */
 export enum ServerRequest {
     /** A request to get the file path for a uniform by ID. */
-    GET_UNIFORM_PATH = "soase/uniform/file_path",
+    GET_UNIFORM_PATH = "soase/uniform/file_path/get",
 
     /** A request to get the list of player IDs. */
-    GET_PLAYER_IDS = "soase/entity/player_ids",
+    GET_PLAYER_IDS = "soase/entity/player_ids/get",
 
     /** A request to get the file path for an entity by ID. */
-    GET_ENTITY_PATH = "soase/entity/file_path",
+    GET_ENTITY_PATH = "soase/entity/file_path/get",
 
     /** A request to get a localized string. */
-    GET_LOCALIZATION = "soase/entity/localization"
+    GET_LOCALIZATION = "soase/entity/localization/get",
+
+    /** A request to get the file path for a texture by ID. */
+    GET_TEXTURE_PATH = "soase/texture/file_path/get"
 }
 
 /**

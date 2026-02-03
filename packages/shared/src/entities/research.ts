@@ -24,6 +24,8 @@ export interface IResearchSubject {
     field_coord: Coordinate;
     tier: number;
     prerequisites: Prerequisites;
+    hud_icon: string | undefined;
+    tooltip_picture: string | undefined;
 }
 
 /**

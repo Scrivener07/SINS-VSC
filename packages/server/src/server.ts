@@ -122,6 +122,7 @@ class SinsLanguageServer {
         this.connection.onRequest(ServerRequest.GET_PLAYER_IDS, () => this.request_getPlayerIdentifiers());
         this.connection.onRequest(ServerRequest.GET_UNIFORM_PATH, (params: IRequestUniformPath) => this.request_getUniformPath(params.identifier));
         this.connection.onRequest(ServerRequest.GET_ENTITY_PATH, (params: IRequestEntityPath) => this.request_getEntityPath(params.identifier));
+        this.connection.onRequest(ServerRequest.GET_TEXTURE_PATH, (params: string) => this.request_getTexturePath(params));
         this.connection.onRequest(ServerRequest.GET_LOCALIZATION, (params: IRequestLocalization) =>
             this.request_getLocalization(params.language, params.key)
         );
@@ -139,6 +140,17 @@ class SinsLanguageServer {
     }
 
     //--------------------------------------------------
+
+    private request_getTexturePath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
+        const path: string | undefined = this.textureManager.getPath(identifier);
+        if (path) {
+            return path;
+        } else {
+            console.warn(`<SinsLanguageServer::request_getTexturePath> No paths found for identifier: ${identifier}`);
+            return undefined;
+        }
+    }
 
     private request_getUniformPath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);

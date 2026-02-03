@@ -1,0 +1,235 @@
+/* VS Code Theme Variables: https://gist.github.com/estruyf/ba49203e1a7d6868e9320a4ea480c27a */
+
+html, body {
+    width: 100%; /* Use the maximum width */
+    height: 100%; /* Use the maximum height */
+    overflow: hidden; /* Prevent double scrollbars */
+    padding: 0;
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-editor-background);
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/*--------------------------------------------------*/
+
+.header {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+    background-color: var(--vscode-editor-background);
+}
+
+.control-label {
+    margin-right: 10px;
+}
+
+.player-selector {
+    padding: 4px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+    min-width: 200px;
+}
+
+.node-connection-selector {
+    padding: 4px 8px;
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 2px;
+}
+
+/*--------------------------------------------------*/
+
+.domain-tabs {
+    display: none;
+}
+
+.domain-tab {
+    padding: 8px 16px;
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.domain-tab:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.domain-tab.active {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-focusBorder);
+}
+
+.domain-tab:last-child {
+    margin-right: 0;
+}
+
+/*--------------------------------------------------*/
+
+#research-viewer {
+    flex: 1; /* Take remaining space */
+    overflow: auto; /* Enable scrolling within the container */
+    position: relative;
+    min-height: 0; /* Important for flex children */
+    width: 100%;
+}
+
+/* For absolute positioning for nodes */
+#research-viewer > * {
+    position: absolute;
+}
+
+/* Zooming */
+/*--------------------------------------------------*/
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.zoom-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.zoom-button:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.zoom-button:active {
+    transform: scale(0.95);
+}
+
+.zoom-level {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    min-width: 45px;
+    text-align: center;
+    user-select: none;
+}
+
+/* Apply zoom transform to SVG */
+#research-viewer svg {
+    transform-origin: top left;
+    transition: transform 0.2s ease-out;
+}
+
+
+/* SVG Canvas */
+/*--------------------------------------------------*/
+
+svg {
+    background-color: var(--vscode-editor-background);
+}
+
+.research-node {
+    /* added position-relative for mockup */
+    position: relative;
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+    border: 2px solid var(--vscode-panel-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.research-node {
+    position: relative;
+    overflow: hidden; /* clip children to rounded border */
+    border-radius: 8px;
+    background-clip: padding-box;
+}
+
+.research-node:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-focusBorder);
+    transform: scale(1.05);
+}
+
+.research-field {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    background-color: var(--vscode-button-secondaryBackground);
+    text-transform: capitalize;
+}
+
+.research-tier {
+    position: absolute;
+    top: 24px;
+    left: 8px;
+    margin: 0;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    background-color: var(--vscode-button-secondaryBackground);
+}
+
+.research-coordinate {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    background-color: var(--vscode-button-secondaryBackground);
+}
+
+.research-name {
+    font-size: 8px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.research-name {
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    margin: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--vscode-panel-border);
+    background-color: var(--vscode-button-secondaryBackground);
+    text-align: center;
+    box-sizing: border-box;
+}

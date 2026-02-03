@@ -1,0 +1,43 @@
+/**
+ * The names of the requests sent from the client to the server.
+ */
+export enum ServerRequest {
+    /** A request to get the file path for a uniform by ID. */
+    GET_UNIFORM_PATH = "soase/uniform/file_path/get",
+
+    /** A request to get the list of player IDs. */
+    GET_PLAYER_IDS = "soase/entity/player_ids/get",
+
+    /** A request to get the file path for an entity by ID. */
+    GET_ENTITY_PATH = "soase/entity/file_path/get",
+
+    /** A request to get a localized string. */
+    GET_LOCALIZATION = "soase/entity/localization/get",
+
+    /** A request to get the file path for a texture by ID. */
+    GET_TEXTURE_PATH = "soase/texture/file_path/get"
+}
+
+/**
+ * Request to get the file path for an entity by ID.
+ */
+export interface IRequestEntityPath {
+    /** The identifier of the entity. */
+    identifier: string;
+}
+
+export interface IRequestUniformPath {
+    /** The identifier of the uniform. */
+    identifier: string;
+}
+
+/**
+ * Request to get a localized string.
+ */
+export interface IRequestLocalization {
+    /** The language code. */
+    language: string;
+
+    /** The localization key. */
+    key: string;
+}

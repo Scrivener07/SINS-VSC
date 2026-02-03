@@ -55,8 +55,8 @@ export class TextureManager {
             const hover: Hover = {
                 contents: {
                     kind: MarkupKind.Markdown,
-                    value: markdown.join("\n\n"),
-                },
+                    value: markdown.join("\n\n")
+                }
             };
 
             return hover;
@@ -65,5 +65,9 @@ export class TextureManager {
             console.error(`Error reading texture file at ${fullPath}:`, error);
             return null;
         }
+    }
+
+    public getPath(key: string): string | undefined {
+        return this.cache.get(key);
     }
 }

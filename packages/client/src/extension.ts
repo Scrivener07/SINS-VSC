@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { HelloCommand } from "./commands";
 import { ClientManager } from "./client";
+import { ResearchOpenCommand } from "./research";
 
+//
 /**
  * An entry point for this extension.
  * This method is called when the extension is activated.
@@ -10,8 +12,9 @@ import { ClientManager } from "./client";
  */
 export function activate(context: vscode.ExtensionContext) {
     console.log("The extension has been activated.");
-    context.subscriptions.push(HelloCommand.register());
     ClientManager.activate(context);
+    context.subscriptions.push(HelloCommand.register());
+    context.subscriptions.push(ResearchOpenCommand.register(context));
 }
 
 /**

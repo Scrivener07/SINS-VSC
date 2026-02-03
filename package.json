@@ -17,6 +17,11 @@
 	"contributes": {
 		"configuration": {
 			"properties": {
+				"soase2-plugin.game-installation": {
+					"type": "string",
+					"scope": "window",
+					"description": "A directory path to the Sins of a Solar Empire 2 installation directory."
+				},
 				"soase2-plugin.language": {
 					"type": "string",
 					"scope": "application",
@@ -37,7 +42,7 @@
 						"tr",
 						"zh_cn"
 					],
-					"description": "Language code for localized_text"
+					"description": "A language code for the prefered primary `*.localized_text` dictionary to display."
 				}
 			}
 		},
@@ -114,8 +119,22 @@
 			{
 				"command": "soase.helloWorld",
 				"title": "Hello World"
+			},
+			{
+				"command": "soase.research.visualizer.open",
+				"title": "Open Research Visualizer",
+				"icon": "$(graph)"
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "soase.research.visualizer.open",
+					"group": "navigation",
+					"when": "editorLangId == 'soase'"
+				}
+			]
+		}
 	},
 	"workspaces": [
 		"packages/*"

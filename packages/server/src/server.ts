@@ -1,5 +1,4 @@
 import * as path from "path";
-import * as fs from "fs";
 import * as shared from "@soase/shared";
 import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath } from "@soase/shared";
 import {
@@ -19,96 +18,98 @@ import {
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { ASTNode, DocumentSymbol, getLanguageService, JSONDocument, LanguageService, Location, Range } from "vscode-json-languageservice";
-import { fileURLToPath } from "url";
-import { SchemaPatcher } from "./json-schema";
 import { JsonAST } from "./json-ast";
 import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager } from "./providers";
-import { EntityManifestManager, UniformManager, TextureManager, SchemaManager, LocalizationManager, IndexManager, CacheManager } from "./managers";
+import { SchemaManager } from "./managers";
 import { Validator } from "./validate";
 import { PointerType } from "./pointers";
+import { WorkspaceService } from "./managers/workspace";
+import { GameDataService } from "./data/service-game";
 
 /**
  * Encapsulates the Sins language server logic.
  */
 class SinsLanguageServer {
+    /** Indicates whether the server has been initialized.
+     *
+     * Since `onDidOpen`/`onDidChangeContent` events execute before the server
+     * actually initializes (ie: files already opened), we'll need to keep track of it via a variable
+     * to ensure full server initialization before validating any document.
+     */
+    private isInitialized: boolean;
+
     /** A connection to the VS Code client. */
     private connection: Connection;
-
-    /** A manager for open text documents. */
-    private documents: TextDocuments<TextDocument>;
-
-    /** A cached string to the workspace folder this server is operating on. */
-    private workspaceFolder: string | null = null;
 
     /** The JSON language service instance. */
     private jsonLanguageService: LanguageService;
 
-    /** The schema patcher to use. */
-    private schemaPatcher: SchemaPatcher;
+    /** A manager for open text documents. */
+    private documents: TextDocuments<TextDocument>;
 
+    /** The workspace service to use. */
+    private workspaceService: WorkspaceService;
+
+    private gameDataService: GameDataService;
+
+    /** The schema manager to use. */
     private schemaManager: SchemaManager;
 
-    /** The localization manager to use. */
-    private localizationManager: LocalizationManager;
-
+    /** The hover provider to use. */
     private hoverProvider: HoverProvider;
     private definitionProvider: DefinitionProvider;
     private completionManager: CompletionManager;
 
-    /** The texture manager to use. */
-    private textureManager: TextureManager;
-
-    private cacheManager: CacheManager;
-    private uniformManager: UniformManager;
-    private entityManifestManager: EntityManifestManager;
+    /** The diagnostic manager to use. */
     private diagnosticManager: DiagnosticManager;
 
-    /** The index manager to use. */
-    private indexManager: IndexManager;
-
+    /** The validator to use. */
     private validator: Validator;
 
+    /** The current language code in use. */
     private currentLanguageCode: string = "en";
+
+    /** The current entity type being processed. */
     private currentEntity: PointerType = PointerType.none;
-    private isInitialized: boolean;
+
+    /** The language server diagnostics collection. */
     private diagnostics: Diagnostic[] = [];
 
     constructor() {
+        this.isInitialized = false;
+
         // Create the LSP connection.
         this.connection = createConnection(ProposedFeatures.all);
-
-        // Create a manager for open text documents.
-        this.documents = new TextDocuments(TextDocument);
-
-        this.isInitialized = false;
-        this.diagnostics = [];
-        this.schemaManager = new SchemaManager();
-        this.schemaPatcher = new SchemaPatcher();
-        this.textureManager = new TextureManager();
-        this.completionManager = new CompletionManager();
-        this.cacheManager = new CacheManager();
-        this.uniformManager = new UniformManager();
-        this.entityManifestManager = new EntityManifestManager();
-        this.indexManager = new IndexManager(this.cacheManager, this.entityManifestManager, this.uniformManager);
-
-        this.localizationManager = new LocalizationManager();
-        this.hoverProvider = new HoverProvider(this.indexManager, this.localizationManager);
-        this.definitionProvider = new DefinitionProvider(this.cacheManager, this.indexManager, this.currentLanguageCode);
-        this.diagnosticManager = new DiagnosticManager(this.diagnostics);
 
         // Initialize the JSON language service.
         this.jsonLanguageService = getLanguageService({});
 
+        // Create a manager for open text documents.
+        this.documents = new TextDocuments(TextDocument);
+
+        // Create the workspace service.
+        this.workspaceService = new WorkspaceService();
+
+        // Create the data context service.
+        this.gameDataService = new GameDataService(this.currentLanguageCode);
+
+        // Create the language features.
+        this.diagnostics = [];
+        this.schemaManager = new SchemaManager();
+        this.completionManager = new CompletionManager();
+        this.hoverProvider = new HoverProvider(this.gameDataService.indexer, this.gameDataService.localization, this.gameDataService.textures);
+        this.definitionProvider = new DefinitionProvider(this.gameDataService.data, this.gameDataService.indexer, this.currentLanguageCode);
+        this.diagnosticManager = new DiagnosticManager(this.diagnostics);
         this.validator = new Validator(
             this.jsonLanguageService,
             this.diagnostics,
-            this.cacheManager,
-            this.entityManifestManager,
-            this.uniformManager,
-            this.diagnosticManager
+            this.diagnosticManager,
+            this.gameDataService.data,
+            this.gameDataService.manifests,
+            this.gameDataService.uniforms
         );
 
-        // Bind the connection event listeners.
+        // Bind the initialization event listeners.
         this.connection.onInitialize(this.onInitialize.bind(this));
         this.connection.onInitialized(this.onInitialized.bind(this));
 
@@ -118,7 +119,7 @@ class SinsLanguageServer {
         this.connection.onCompletion(this.onCompletion.bind(this));
         this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
 
-        // Named client requests.
+        // Bind the named client requests.
         this.connection.onRequest(ServerRequest.GET_PLAYER_IDS, () => this.request_getPlayerIdentifiers());
         this.connection.onRequest(ServerRequest.GET_UNIFORM_PATH, (params: IRequestUniformPath) => this.request_getUniformPath(params.identifier));
         this.connection.onRequest(ServerRequest.GET_ENTITY_PATH, (params: IRequestEntityPath) => this.request_getEntityPath(params.identifier));
@@ -139,89 +140,7 @@ class SinsLanguageServer {
         this.connection.listen();
     }
 
-    //--------------------------------------------------
-
-    private request_getTexturePath(identifier: string): string | undefined {
-        console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
-        const path: string | undefined = this.textureManager.getPath(identifier);
-        if (path) {
-            return path;
-        } else {
-            console.warn(`<SinsLanguageServer::request_getTexturePath> No paths found for identifier: ${identifier}`);
-            return undefined;
-        }
-    }
-
-    private request_getUniformPath(identifier: string): string | undefined {
-        console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.indexManager.getPaths(identifier);
-        if (paths) {
-            // Return the first path found.
-            if (paths.length > 1) {
-                console.warn(
-                    `<SinsLanguageServer::request_getUniformPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
-                );
-            }
-            return paths[0];
-        } else {
-            console.warn(`<SinsLanguageServer::request_getUniformPath> No paths found for identifier: ${identifier}`);
-            return undefined;
-        }
-    }
-
-    /**
-     * Gets the list of available player identifiers.
-     *
-     * NOTE: `Set<T>` is not serializable and must be converted to an array in order to move over the LSP.
-     * TODO: Possibly make this more generic by accepting an entity type parameter.
-     * @returns The list of player identifiers.
-     */
-    private request_getPlayerIdentifiers(): string[] {
-        console.info("<SinsLanguageServer::request_getPlayerIdentifiers> Getting player IDs from cache.");
-        const players: Set<string> = this.cacheManager.get("player");
-        return Array.from(players);
-    }
-
-    /**
-     * Gets the file path for a specific entity identifier.
-     * @param identifier The entity identifier.
-     * @returns The file path, or undefined if not found.
-     */
-    private request_getEntityPath(identifier: string): string | undefined {
-        console.info(`<SinsLanguageServer::request_getEntityPath> Getting file path for entity indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.indexManager.getPaths(identifier);
-        if (paths) {
-            // Return the first path found.
-            if (paths.length > 1) {
-                console.warn(
-                    `<SinsLanguageServer::request_getEntityPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
-                );
-            }
-            return paths[0];
-        } else {
-            console.warn(`<SinsLanguageServer::request_getEntityPath> No paths found for identifier: ${identifier}`);
-            return undefined;
-        }
-    }
-
-    /**
-     * Gets the localized string for a specific key and language.
-     * @param key The localization key.
-     * @param language The language code.
-     * @returns The localized string, or undefined if not found.
-     */
-    private request_getLocalization(language: string, key: string): string | undefined {
-        console.info(`<SinsLanguageServer::request_getLocalization> Getting localization for key: ${key} in language: ${language}`);
-        const localizations: Map<string, string> = this.localizationManager.get(language);
-        if (localizations) {
-            return localizations.get(key);
-        } else {
-            console.warn(`<SinsLanguageServer::request_getLocalization> No localization data found for key: ${key} in language: ${language}`);
-            return undefined;
-        }
-    }
-
-    //--------------------------------------------------
+    //#region Initialize
 
     /**
      * Called when the client starts the server.
@@ -230,9 +149,10 @@ class SinsLanguageServer {
      * @returns The server's capabilities.
      */
     private onInitialize(params: InitializeParams): InitializeResult {
-        // TODO: rootUri @deprecated — in favour of workspaceFolders
-        this.workspaceFolder = params.rootUri;
-        this.connection.console.info(`[Server(${process.pid}) ${this.workspaceFolder}] Initialization starting.`);
+        // Initialize the workspace service.
+        this.workspaceService.initialize(params);
+
+        this.connection.console.info(`[Server(${process.pid}) Initialization starting.`);
 
         this.jsonLanguageService.configure({ schemas: this.schemaManager.configure() });
 
@@ -262,14 +182,6 @@ class SinsLanguageServer {
     }
 
     /**
-     * Sends a data request to client.
-     */
-    private async sendRequest(req: string): Promise<string> {
-        // Using `sendRequest` creates client specific coupling on the agnostic server.
-        return this.connection.sendRequest(req).then((a: any) => a);
-    }
-
-    /**
      * Called after the handshake is complete.
      */
     private async onInitialized(): Promise<void> {
@@ -278,25 +190,37 @@ class SinsLanguageServer {
         // Get current language from vscode settings
         this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
 
-        // Initialize workspace data managers.
-        if (this.workspaceFolder) {
-            const fsPath: string = fileURLToPath(this.workspaceFolder);
-            await Promise.all([
-                this.indexManager.rebuildIndex(fsPath, this.currentLanguageCode),
-                this.localizationManager.loadFromWorkspace(fsPath).then(() => this.connection.console.info("Localization data loaded")),
-                this.textureManager.loadFromWorkspace(fsPath).then(() => this.connection.console.info("Texture data loaded"))
-            ]);
-            for (const doc of this.documents.all()) {
-                await this.validateTextDocument(doc);
-            }
-            /*
-				since onDidOpen/onDidChangeContent events execute before the server
-				actually initializes (ie: files already opened), we'll need to keep track of it via a variable
-				to ensure full server initialization before validating any document.
-			*/
-            this.isInitialized = true;
+        // Initialize game workspace data layer.
+        if (this.workspaceService.gameFolder) {
+            await this.gameDataService.create_game(this.workspaceService.gameFolder);
+        } else {
+            this.connection.console.warn("No game folder found in workspace. Skipping game layer initialization.");
+            return;
         }
+
+        // Initialize mod workspace data layer.
+        if (this.workspaceService.modFolder) {
+            await this.gameDataService.create_mod(this.workspaceService.modFolder);
+        } else {
+            this.connection.console.warn("No modification folder found in workspace. Skipping mod layer initialization.");
+            return;
+        }
+
+        // Load all data to populate caches before processing any documents.
+        await this.gameDataService.reload();
+
+        // Validate all open documents now that initialization is complete.
+        for (const document of this.documents.all()) {
+            await this.validateTextDocument(document);
+        }
+
+        // Mark the server as initialized.
+        this.isInitialized = true;
     }
+
+    //#endregion
+
+    //#region Documents
 
     /**
      * Called when a document is opened.
@@ -304,7 +228,7 @@ class SinsLanguageServer {
      */
     private onDidOpen(event: { document: TextDocument }): void {
         this.currentEntity = this.getCurrentEntityType(event.document.uri);
-        this.connection.console.info(`[Server(${process.pid}) ${this.workspaceFolder}] Document opened: ${event.document.uri}`);
+        this.connection.console.info(`[Server(${process.pid}) Document opened: ${event.document.uri}`);
     }
 
     private getCurrentEntityType(uri: string): PointerType {
@@ -365,6 +289,10 @@ class SinsLanguageServer {
         });
     }
 
+    //#endregion
+
+    //#region Features
+
     /**
      * Called when the user hovers over text.
      * @param params The parameters for the hover request.
@@ -384,8 +312,8 @@ class SinsLanguageServer {
 
         if (node && node.type === "string" && node.value) {
             if (JsonAST.isNodeValue(node)) {
-                if (context === PointerType.brush && this.workspaceFolder) {
-                    const textureHover: Hover | null = await this.textureManager.getHover(node.value);
+                if (context === PointerType.brush && this.workspaceService.gameFolder) {
+                    const textureHover: Hover | null = this.hoverProvider.getTexture(node.value);
                     if (textureHover) {
                         return textureHover;
                     }
@@ -467,8 +395,8 @@ class SinsLanguageServer {
                     range,
                     document,
                     offset,
-                    this.cacheManager,
-                    this.uniformManager
+                    this.gameDataService.data,
+                    this.gameDataService.uniforms
                 ) ?? (await this.jsonLanguageService.doComplete(document, params.position, jsonDocument))
             );
         }
@@ -542,6 +470,104 @@ class SinsLanguageServer {
         }
         return PointerType.none;
     }
+
+    //#endregion
+
+    //#region Requests
+
+    /**
+     * Sends a data request to client.
+     */
+    private async sendRequest(req: string): Promise<string> {
+        // Using `sendRequest` creates client specific coupling on the agnostic server.
+        return this.connection.sendRequest(req).then((a: any) => a);
+    }
+
+    private request_getTexturePath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
+        const path: string | undefined = this.gameDataService.textures.textures.get(identifier)?.value;
+        if (path) {
+            return path;
+        } else {
+            console.warn(`<SinsLanguageServer::request_getTexturePath> No paths found for identifier: ${identifier}`);
+            return undefined;
+        }
+    }
+
+    private request_getUniformPath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value;
+        if (paths) {
+            // Return the first path found.
+            if (paths.length > 1) {
+                console.warn(
+                    `<SinsLanguageServer::request_getUniformPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
+                );
+            }
+            return paths[0];
+        } else {
+            console.warn(`<SinsLanguageServer::request_getUniformPath> No paths found for identifier: ${identifier}`);
+            return undefined;
+        }
+    }
+
+    /**
+     * Gets the list of available player identifiers.
+     *
+     * NOTE: `Set<T>` is not serializable and must be converted to an array in order to move over the LSP.
+     * TODO: Possibly make this more generic by accepting an entity type parameter.
+     * @returns The list of player identifiers.
+     */
+    private request_getPlayerIdentifiers(): string[] {
+        console.info("<SinsLanguageServer::request_getPlayerIdentifiers> Getting player IDs from cache.");
+        const players: Set<string> | undefined = this.gameDataService.data.root.get("player")?.value;
+        if (players) {
+            return Array.from(players);
+        } else {
+            return [];
+        }
+    }
+
+    /**
+     * Gets the file path for a specific entity identifier.
+     * @param identifier The entity identifier.
+     * @returns The file path, or undefined if not found.
+     */
+    private request_getEntityPath(identifier: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getEntityPath> Getting file path for entity indentifier: ${identifier}`);
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value;
+        if (paths) {
+            // Return the first path found.
+            if (paths.length > 1) {
+                console.warn(
+                    `<SinsLanguageServer::request_getEntityPath> Multiple paths found for identifier: ${identifier}, returning the first one.`
+                );
+            }
+            return paths[0];
+        } else {
+            console.warn(`<SinsLanguageServer::request_getEntityPath> No paths found for identifier: ${identifier}`);
+            return undefined;
+        }
+    }
+
+    /**
+     * Gets the localized string for a specific key and language.
+     * @param key The localization key.
+     * @param language The language code.
+     * @returns The localized string, or undefined if not found.
+     */
+    private request_getLocalization(language: string, key: string): string | undefined {
+        console.info(`<SinsLanguageServer::request_getLocalization> Getting localization for key: ${key} in language: ${language}`);
+        const text: string | undefined = this.gameDataService.localization.get(language)?.get(key)?.value;
+        if (text) {
+            return text;
+        } else {
+            console.warn(`<SinsLanguageServer::request_getLocalization> No localization data found for key: ${key} in language: ${language}`);
+            return undefined;
+        }
+    }
+
+    //#endregion
 }
 
 // Start the language server instance.

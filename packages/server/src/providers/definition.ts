@@ -1,34 +1,36 @@
+import * as fs from "fs";
 import { pathToFileURL } from "url";
 import { Location, Range } from "vscode-json-languageservice";
-import { CacheManager, IndexManager } from "../managers";
-import * as fs from "fs";
 import { PointerType } from "../pointers";
+import { DataService, IndexerService } from "../data/service-game";
 
 export class DefinitionProvider {
-    private indexManager: IndexManager;
-    private cacheManager: CacheManager;
+    private indexer: IndexerService;
+    private dataManager: DataService;
     private currentLanguage: string;
 
-    constructor(cacheManager: CacheManager, indexManager: IndexManager, currentLanguage: string) {
-        this.cacheManager = cacheManager;
-        this.indexManager = indexManager;
+    constructor(dataManager: DataService, indexer: IndexerService, currentLanguage: string) {
+        this.dataManager = dataManager;
+        this.indexer = indexer;
         this.currentLanguage = currentLanguage;
     }
     public async goToDefinition(context: PointerType, identifier: string): Promise<Location[] | null> {
-        let paths: string[] | undefined = this.indexManager.getPaths(identifier);
+        let paths: string[] | undefined = this.indexer.index.get(identifier)?.value;
         let range: Range = Range.create({ character: 0, line: 0 }, { character: 0, line: 0 });
         if (context === PointerType.localized_text) {
-            paths = this.indexManager.getPaths(this.currentLanguage);
+            paths = this.indexer.index.get(this.currentLanguage)?.value;
 
-            const localisation = this.cacheManager.get("localized_text");
-            if (!localisation.has(identifier) || !paths) {
+            const localisation: Set<string> | undefined = this.dataManager.root.get("localized_text")?.value;
+            if (!localisation) {
+                return null;
+            } else if (!localisation.has(identifier) || !paths) {
                 return null;
             }
 
-            const text = await fs.promises.readFile(paths[0], "utf-8");
-            const lines = text.split("\n");
+            const text: string = await fs.promises.readFile(paths[0], "utf-8");
+            const lines: string[] = text.split("\n");
             for (let i = 0; i < lines.length; i++) {
-                const idx = lines[i].indexOf(`"${identifier}"`);
+                const idx: number = lines[i].indexOf(`"${identifier}"`);
                 if (idx !== -1) {
                     range = Range.create(
                         { line: i, character: idx },

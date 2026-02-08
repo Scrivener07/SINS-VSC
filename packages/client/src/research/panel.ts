@@ -65,7 +65,7 @@ export class ResearchPanel {
         this.context = context;
 
         // TODO: This should throw if unavailable, or be handled more gracefully in some other way.
-        const client: LanguageClient | undefined = this.getLanguageClient();
+        const client: LanguageClient | undefined = ClientManager.getLanguageClients();
         if (!client) {
             console.error("<ResearchPanel::constructor> No language client available.");
             return;
@@ -84,20 +84,6 @@ export class ResearchPanel {
             null,
             this.disposables
         );
-    }
-
-    /**
-     * Gets the language client instance.
-     * @returns The LanguageClient or undefined if not available.
-     */
-    private getLanguageClient(): LanguageClient | undefined {
-        const clients: Map<string, LanguageClient> = ClientManager.getLanguageClients();
-        if (clients && clients.size > 0) {
-            const client: [string, LanguageClient] = Array.from(clients)[0];
-            return client[1];
-        } else {
-            return undefined;
-        }
     }
 
     /**

@@ -12,23 +12,21 @@ import {
 import { LanguageClient, LanguageClientOptions, TransportKind, ServerOptions } from "vscode-languageclient/node";
 import { Configuration } from "./configuration";
 import * as shared from "@soase/shared";
+import { GameInstallation } from "./environment";
 
 export class ClientManager {
-    private static clients = new Map<string, LanguageClient>();
-    private static defaultClient: LanguageClient | undefined;
+    private static client: LanguageClient | undefined;
 
     /**
      * TODO: This has a timing problem.
      * If no soase documents have been opened yet, there will not be a language client instance available.
      */
-    public static getLanguageClients(): Map<string, LanguageClient> {
-        return ClientManager.clients;
+    public static getLanguageClients(): LanguageClient | undefined {
+        return ClientManager.client;
     }
 
     /** A file path to the server TypesScript module. */
     private static serverModule: string;
-
-    private static sortedWorkspaceFolders: string[] | undefined;
 
     private static outputChannel: OutputChannel;
     private static readonly CHANNEL_NAME: string = "Sins of a Solar Empire LSP";
@@ -61,11 +59,8 @@ export class ClientManager {
      */
     public static deactivate(): Thenable<void> {
         const promises: Thenable<void>[] = [];
-        if (this.defaultClient) {
-            promises.push(this.defaultClient.stop());
-        }
-        for (const client of this.clients.values()) {
-            promises.push(client.stop());
+        if (ClientManager.client) {
+            promises.push(ClientManager.client.stop());
         }
         return Promise.all(promises).then(() => undefined);
     }
@@ -75,13 +70,9 @@ export class ClientManager {
      * @param event The workspace folder change event.
      */
     private static onDidChangeWorkspaceFolders(event: WorkspaceFoldersChangeEvent) {
-        this.sortedWorkspaceFolders = undefined; // Reset cache
-        for (const folder of event.removed) {
-            const client: LanguageClient | undefined = this.clients.get(folder.uri.toString());
-            if (client) {
-                this.clients.delete(folder.uri.toString());
-                client.stop();
-            }
+        FolderStuff.sortedWorkspaceFolders = undefined; // Reset cache
+        if (ClientManager.client) {
+            ClientManager.client.stop();
         }
     }
 
@@ -89,87 +80,97 @@ export class ClientManager {
      * Handles workspace file opens.
      * @param document The document that was opened.
      */
-    private static didOpenTextDocument(document: TextDocument): void {
-        // Make sure only the specific language ID is handled.
-        if (document.languageId !== ClientManager.LANGUAGE_SINS || (document.uri.scheme !== "file" && document.uri.scheme !== "untitled")) {
+    private static async didOpenTextDocument(document: TextDocument): Promise<void> {
+        if (document.languageId !== ClientManager.LANGUAGE_SINS) {
+            // Make sure only the specific language ID is handled.
+            return;
+        } else if (document.uri.scheme !== "file" && document.uri.scheme !== "untitled") {
+            // Abort on unsaved files that are not using the default language client since they might not have a valid URI.
             return;
         }
 
-        const uri: Uri = document.uri;
-
-        // Untitled files go to the default client.
-        if (uri.scheme === "untitled" && !this.defaultClient) {
-            const serverOptions: ServerOptions = {
-                run: {
-                    module: this.serverModule,
-                    transport: TransportKind.ipc
-                },
-                debug: {
-                    module: this.serverModule,
-                    transport: TransportKind.ipc,
-                    // Do NOT use the fixed debug port here to avoid conflicts with the main server.
-                    options: {
-                        execArgv: ["--nolazy"] // Ensures all code is parsed before execution to allow setting breakpoints.
-                    }
-                }
-            };
-            const clientOptions: LanguageClientOptions = {
-                documentSelector: [{ scheme: "untitled", language: ClientManager.LANGUAGE_SINS }],
-                diagnosticCollectionName: ClientManager.CLIENT_ID,
-                outputChannel: this.outputChannel
-            };
-
-            this.defaultClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);
-            this.defaultClient.start();
+        if (await ClientManager.create_client(document.uri)) {
+            console.info(`Language client created for document: ${document.uri.toString()}`);
             return;
+        } else {
+            console.info(`No language client could be created for document: ${document.uri.toString()}`);
+        }
+    }
+
+    private static async create_client(documentUri: Uri): Promise<boolean> {
+        if (ClientManager.client) {
+            // A language client already exists. No need to create a new one.
+            return true;
         }
 
         // Files outside a folder cant be handled. This might depend on the language.
         // Single file languages like JSON might handle files outside the workspace folders.
-        let folder: WorkspaceFolder | undefined = Workspace.getWorkspaceFolder(uri);
+        const folder: WorkspaceFolder | undefined = Workspace.getWorkspaceFolder(documentUri);
         if (!folder) {
-            return;
+            return false;
         }
 
         // If we have nested workspace folders we only start a server on the outer most workspace folder.
-        folder = this.getOuterMostWorkspaceFolder(folder);
+        const rootFolder: WorkspaceFolder = FolderStuff.getOuterMostWorkspaceFolder(folder);
 
-        if (!this.clients.has(folder.uri.toString())) {
-            const serverOptions: ServerOptions = {
-                run: {
-                    module: this.serverModule,
-                    transport: TransportKind.ipc
-                },
-                debug: {
-                    module: this.serverModule,
-                    transport: TransportKind.ipc,
-                    options: {
-                        execArgv: [
-                            "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
-                            "--inspect=6010"
-                            // "--inspect-brk=6010"
-                        ]
-                    }
+        // Define the language server options.
+        const serverOptions: ServerOptions = {
+            run: {
+                module: this.serverModule,
+                transport: TransportKind.ipc
+            },
+            debug: {
+                module: this.serverModule,
+                transport: TransportKind.ipc,
+                options: {
+                    execArgv: [
+                        "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
+                        // "--inspect=6010"
+                        "--inspect-brk=6010"
+                    ]
                 }
-            };
+            }
+        };
 
-            const clientOptions: LanguageClientOptions = {
-                documentSelector: [{ scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${folder.uri.fsPath}/**/*` }],
-                diagnosticCollectionName: ClientManager.CLIENT_ID,
-                workspaceFolder: folder,
-                outputChannel: this.outputChannel
-            };
+        const vanilla: string = (await GameInstallation.get()).toString();
 
-            const client: LanguageClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);
-            client.start().then(() => {
-                client?.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
-            });
+        // Define the language client options.
+        const clientOptions: LanguageClientOptions = {
+            diagnosticCollectionName: ClientManager.CLIENT_ID,
+            outputChannel: this.outputChannel,
+            documentSelector: [
+                // Selects files within the root workspace folder.
+                { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${rootFolder.uri.fsPath}/**/*` }
+            ],
+            initializationOptions: {
+                vanilla: vanilla
+            }
+        };
 
-            this.clients.set(folder.uri.toString(), client);
-        }
+        // Instantiate the new language server client.
+        const client: LanguageClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);
+
+        // Start the new language server client. Then add request handlers for the language server.
+        client.start().then(() => {
+            client?.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
+        });
+
+        ClientManager.client = client;
+        return true;
     }
+}
 
-    private static getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
+// TODO: This is stupidly designed.
+class FolderStuff {
+    /** @deprecated */
+    public static sortedWorkspaceFolders: string[] | undefined;
+
+    /**
+     * Gets the outer most workspace folder for the given folder.
+     * @param folder The workspace folder to evaluate.
+     * @returns The outer most workspace folder.
+     */
+    public static getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
         const sorted: string[] = this.sortWorkspaceFolders();
         for (const element of sorted) {
             let uri: string = folder.uri.toString();
@@ -183,9 +184,13 @@ export class ClientManager {
         return folder;
     }
 
+    /**
+     * Sorts the workspace folders by their path length.
+     * @returns An array of sorted workspace folder URIs.
+     */
     private static sortWorkspaceFolders(): string[] {
-        if (this.sortedWorkspaceFolders === void 0) {
-            this.sortedWorkspaceFolders = Workspace.workspaceFolders
+        if (FolderStuff.sortedWorkspaceFolders === void 0) {
+            FolderStuff.sortedWorkspaceFolders = Workspace.workspaceFolders
                 ? Workspace.workspaceFolders
                       .map((folder) => {
                           let result: string = folder.uri.toString();
@@ -199,6 +204,6 @@ export class ClientManager {
                       })
                 : [];
         }
-        return this.sortedWorkspaceFolders;
+        return FolderStuff.sortedWorkspaceFolders;
     }
 }

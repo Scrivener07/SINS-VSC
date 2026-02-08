@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceManager } from "./workspace";
+import { WorkspaceSearch } from "./workspace";
 
 /**
  * Provides localization management for loading and retrieving localized text.
+ * @deprecated
  */
 export class LocalizationManager {
     /**
@@ -27,7 +28,7 @@ export class LocalizationManager {
         this.cache.clear();
         this.knownKeys.clear();
 
-        const files: string[] = await WorkspaceManager.findFiles(rootPath, ".localized_text");
+        const files: string[] = await WorkspaceSearch.findFiles(rootPath, ".localized_text");
 
         for (const file of files) {
             try {

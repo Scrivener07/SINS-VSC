@@ -1,8 +1,9 @@
-export { CacheManager, CacheStorage, CacheType } from "./cache";
-export { IndexManager } from "./data-manager";
+export { WorkspaceService, WorkspaceSearch } from "./workspace";
+export { CacheStorage } from "./cache";
+export { DataManager, DataType } from "./cache-data";
+export { IndexManager } from "./index-manager";
 export { LocalizationManager } from "./localization";
-export { EntityManifestType, EntityManifestManager } from "./manifest";
+export { ManifestType, ManifestManager } from "./cache-manifest";
 export { SchemaManager } from "./schema";
 export { TextureManager } from "./texture";
-export { WorkspaceManager } from "./workspace";
-export { UniformManager, UniformType } from "./uniform";
+export { UniformManager, UniformType } from "./cache-uniform";

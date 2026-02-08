@@ -12,8 +12,8 @@
  * A function that modifies a schema object in place.
  */
 
-
 /**
+ * @deprecated
  * Manages runtime patches for JSON schemas.
  */
 export class SchemaPatcher {

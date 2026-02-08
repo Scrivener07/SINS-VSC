@@ -1,10 +1,9 @@
 import * as path from "path";
-import { pathToFileURL } from "url";
-import { Hover, MarkupKind } from "vscode-languageserver/node";
-import { WorkspaceManager } from "./workspace";
+import { WorkspaceSearch } from "./workspace";
 
 /**
  * Manages texture files within the workspace.
+ * @deprecated
  */
 export class TextureManager {
     /**
@@ -15,7 +14,7 @@ export class TextureManager {
     public async loadFromWorkspace(rootPath: string): Promise<void> {
         this.cache.clear();
 
-        const files: string[] = await WorkspaceManager.findFiles(rootPath, ".png");
+        const files: string[] = await WorkspaceSearch.findFiles(rootPath, ".png");
         for (const file of files) {
             try {
                 const fileName: string = path.basename(file);
@@ -27,47 +26,5 @@ export class TextureManager {
         }
 
         console.log(`Loaded ${this.cache.size} texture keys for workspace '${rootPath}'`);
-    }
-
-    /**
-     * Provides hover support for texture files.
-     *
-     * TODO:
-     * - Add support for Direct Draw Surface (DDS).
-     *
-     * @param key The texture key value from the JSON (`"trader_light_frigate_hud_icon"`).
-     */
-    public async getHover(key: string): Promise<Hover | null> {
-        if (!this.cache.has(key)) {
-            return null;
-        }
-
-        const fullPath: string = this.cache.get(key) || "";
-
-        try {
-            const fileUrl: string = pathToFileURL(fullPath).toString();
-
-            const markdown: string[] = [];
-            markdown.push("**Texture Preview**");
-            markdown.push(`[image](${fileUrl})`);
-            markdown.push(`![${key}](${fileUrl})`);
-
-            const hover: Hover = {
-                contents: {
-                    kind: MarkupKind.Markdown,
-                    value: markdown.join("\n\n")
-                }
-            };
-
-            return hover;
-        } catch (error) {
-            // File not found or read error.
-            console.error(`Error reading texture file at ${fullPath}:`, error);
-            return null;
-        }
-    }
-
-    public getPath(key: string): string | undefined {
-        return this.cache.get(key);
     }
 }

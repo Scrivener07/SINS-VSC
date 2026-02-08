@@ -1,29 +1,20 @@
 import * as path from "path";
-import { CacheManager } from "./cache";
-import { EntityManifestManager } from "./manifest";
-import { WorkspaceManager } from "./workspace";
-import { UniformManager }   from "./uniform";
+import { WorkspaceSearch } from "./workspace";
 
 /**
  * Manages an index of files within the workspace for quick lookup by identifier.
+ * @deprecated
  */
 export class IndexManager {
     /**
      * Maps a filename (without extension) to a list of absolute file paths.
      *
      * Example: `"trader_loyalist" -> ["c:/sins2/entities/trader_loyalist.player"]`
+     *
+     * TODO:
+     * - The `.mod_meta_data` files are indexed with an empty string key (""). This should be improved to use a proper identifier.
      */
     private fileIndex: Map<string, string[]> = new Map();
-
-    private cacheManager: CacheManager;
-    private entityManifestManager: EntityManifestManager;
-    private uniformManager: UniformManager;
-
-    constructor(cacheManager: CacheManager, entityManifestManager: EntityManifestManager, uniformManager: UniformManager) {
-        this.cacheManager = cacheManager;
-        this.entityManifestManager = entityManifestManager;
-        this.uniformManager = uniformManager;
-    }
 
     /** Provides a list of file extensions for indexing. */
     private readonly fileExtensions: Set<string> = new Set([
@@ -79,30 +70,22 @@ export class IndexManager {
      * Indexes all relevant files in the given root path.
      * @param rootPath The root directory to index.
      */
-    public async rebuildIndex(rootPath: string, lang: string): Promise<void> {
-        this.entityManifestManager.clear();
-        this.uniformManager.clear();
-        this.cacheManager.clear();
+    public async rebuild(rootPath: string): Promise<void> {
         this.fileIndex.clear();
 
         console.time(`Indexing::'${rootPath}'`);
         for (const extension of this.fileExtensions) {
-            const files: string[] = await WorkspaceManager.findFiles(rootPath, extension);
+            const files: string[] = await WorkspaceSearch.findFiles(rootPath, extension);
             for (const file of files) {
                 this.addToIndex(file);
             }
         }
-
         console.timeEnd(`Indexing::'${rootPath}'`);
         console.log(`Indexed ${this.fileIndex.size} unique IDs in '${rootPath}'.`);
+    }
 
-        console.time(`Caching::'${rootPath}'`);
-        await this.cacheManager.loadCache(rootPath, lang);
-        await this.entityManifestManager.loadCache(rootPath);
-        await this.uniformManager.loadCache(rootPath);
-
-        console.timeEnd(`Caching::'${rootPath}'`);
-        console.log(`Cached ${this.cacheManager.size()} elements in '${rootPath}'.`);
+    public clear(): void {
+        this.fileIndex.clear();
     }
 
     /**

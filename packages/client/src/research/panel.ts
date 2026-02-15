@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 import { ILogMessage, IResearchSubject, IResearchUniform, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
-import { ClientManager } from "../client";
 import { ResearchDataService } from "./data";
-import { GameInstallation } from "../environment";
+import { GameDirectory } from "../environment";
+import { Services } from "../services";
 
 /**
  * Encapsulates the Research panel webview.
@@ -35,7 +35,7 @@ export class ResearchPanel {
         ResearchPanel.viewResourceRoot = vscode.Uri.joinPath(context.extensionUri, "dist", "view-research");
 
         // TODO: Collect mod directories from workspace.
-        const gameInstallation: vscode.Uri = await GameInstallation.get();
+        const gameInstallation: vscode.Uri = await GameDirectory.get();
 
         const panel: vscode.WebviewPanel = vscode.window.createWebviewPanel(
             ResearchPanel.VIEW_TYPE,
@@ -65,7 +65,7 @@ export class ResearchPanel {
         this.context = context;
 
         // TODO: This should throw if unavailable, or be handled more gracefully in some other way.
-        const client: LanguageClient | undefined = ClientManager.getLanguageClients();
+        const client: LanguageClient | undefined = Services.sins?.client;
         if (!client) {
             console.error("<ResearchPanel::constructor> No language client available.");
             return;

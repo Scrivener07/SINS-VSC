@@ -58,6 +58,25 @@ export class GameDataService {
         await this.manifests.reload();
         await this.uniforms.reload();
     }
+
+    /**
+     * Removes all providers associated with a specific folder.
+     * Called when a workspace folder is removed.
+     */
+    public removeFolder(rootPath: string): void {
+        // Each provider's identifier is the rootPath, so they can be matched directly.
+        this.indexer.index.removeProvider(rootPath);
+        this.textures.textures.removeProvider(rootPath);
+        this.data.root.removeProvider(rootPath);
+        this.manifests.root.removeProvider(rootPath);
+        this.uniforms.root.removeProvider(rootPath);
+
+        // Localization providers have identifiers like "rootPath::language".
+        for (const [language, root] of this.localization.languages) {
+            const identifier = `${rootPath}::${language}`;
+            root.removeProvider(identifier);
+        }
+    }
 }
 
 export class IndexerService {

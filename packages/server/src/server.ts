@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as shared from "@soase/shared";
-import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath } from "@soase/shared";
+import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath, ClientNotification } from "@soase/shared";
 import {
     createConnection,
     TextDocuments,
@@ -128,10 +128,17 @@ class SinsLanguageServer {
             this.request_getLocalization(params.language, params.key)
         );
 
+        // Bind the named server notifications.
+        this.connection.onNotification(ClientNotification.WORKSPACE_FOLDERS_CHANGED, (params: shared.IWorkspaceInfo) =>
+            this.onWorkspaceFoldersChanged(params)
+        );
+
         // Bind the document event listeners.
         this.documents.onDidOpen(this.onDidOpen.bind(this));
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
         this.documents.onDidClose(this.onDidClose.bind(this));
+
+        // this.connection.workspace.onDidChangeWorkspaceFolders();
 
         // Make the text document manager listen on the connection for open, change, and close text document events.
         this.documents.listen(this.connection);
@@ -195,15 +202,13 @@ class SinsLanguageServer {
             await this.gameDataService.create_game(this.workspaceService.gameFolder);
         } else {
             this.connection.console.warn("No game folder found in workspace. Skipping game layer initialization.");
+            this.connection.window.showWarningMessage("SINS: No game folder configured. Some features will be unavailable.");
             return;
         }
 
         // Initialize mod workspace data layer.
-        if (this.workspaceService.modFolder) {
-            await this.gameDataService.create_mod(this.workspaceService.modFolder);
-        } else {
-            this.connection.console.warn("No modification folder found in workspace. Skipping mod layer initialization.");
-            return;
+        for (const modFolder of this.workspaceService.modFolders) {
+            await this.gameDataService.create_mod(modFolder);
         }
 
         // Load all data to populate caches before processing any documents.
@@ -469,6 +474,82 @@ class SinsLanguageServer {
             }
         }
         return PointerType.none;
+    }
+
+    //#endregion
+
+    //#region Notifications
+
+    /**
+     * Incrementally updates providers when client workspace folders change.
+     */
+    private async onWorkspaceFoldersChanged(info: shared.IWorkspaceInfo): Promise<void> {
+        this.connection.console.info("Workspace folders changed. Updating providers...");
+
+        const oldGameFolder: string | null = this.workspaceService.gameFolder;
+        const oldModFolders: Set<string> = new Set(this.workspaceService.modFolders);
+
+        const newGameFolder: string | null = info.gameFolder;
+        const newModFolders: Set<string> = new Set(info.modFolders);
+
+        // Detect added and removed folders.
+        const added: string[] = [];
+        const removed: string[] = [];
+
+        // Check game folder.
+        if (oldGameFolder && newGameFolder !== oldGameFolder) {
+            removed.push(oldGameFolder);
+        }
+        if (newGameFolder && newGameFolder !== oldGameFolder) {
+            added.push(newGameFolder);
+        }
+
+        // Check mod folders.
+        for (const folder of oldModFolders) {
+            if (!newModFolders.has(folder)) {
+                removed.push(folder);
+            }
+        }
+        for (const folder of newModFolders) {
+            if (!oldModFolders.has(folder)) {
+                added.push(folder);
+            }
+        }
+
+        // Update workspace service state.
+        this.workspaceService.gameFolder = newGameFolder;
+        this.workspaceService.modFolders = Array.from(newModFolders);
+
+        // Remove providers for removed folders.
+        for (const folder of removed) {
+            this.connection.console.info(`Removing providers for: ${folder}`);
+            this.gameDataService.removeFolder(folder);
+        }
+
+        // Add providers for added folders.
+        for (const folder of added) {
+            if (folder === newGameFolder) {
+                this.connection.console.info(`Adding providers for: ${folder} (game)`);
+                await this.gameDataService.create_game(folder);
+            } else {
+                this.connection.console.info(`Adding providers for: ${folder} (mod)`);
+                await this.gameDataService.create_mod(folder);
+            }
+        }
+
+        // Only reload if something changed.
+        if (added.length > 0 || removed.length > 0) {
+            await this.gameDataService.reload();
+
+            // Re-validate all open documents.
+            for (const document of this.documents.all()) {
+                await this.validateTextDocument(document);
+            }
+
+            this.connection.console.info(`Providers updated: +${added.length} -${removed.length}`);
+        } else {
+            this.connection.console.info("No provider changes needed.");
+        }
     }
 
     //#endregion

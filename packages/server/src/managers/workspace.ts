@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { fileURLToPath } from "url";
 import { InitializeParams } from "vscode-languageserver/node";
+import * as shared from "@soase/shared";
 
 /**
  * Manages workspace directories and files.
@@ -12,21 +12,17 @@ export class WorkspaceService {
     /** A cached string to the vanilla game installation folder. */
     public gameFolder: string | null = null;
 
-    /** A cached string to the workspace folder this server is operating on. */
-    public modFolder: string | null = null;
+    /** A list of cached strings to the workspace folders this server is operating on. */
+    public modFolders: string[] = [];
 
     public initialize(parameters: InitializeParams): void {
-        // The vanilla game installation directory.
-        const vanilla: string = parameters.initializationOptions.vanilla;
-        this.gameFolder = fileURLToPath(vanilla);
-
-        // All workspace folders.
-        if (parameters.workspaceFolders) {
-            for (const folder of parameters.workspaceFolders) {
-                this.modFolder = fileURLToPath(folder.uri);
-                break; // TODO: Using only the first workspace folder for now.
-            }
+        const info: shared.IWorkspaceInfo = parameters.initializationOptions.info;
+        if (!info) {
+            console.warn("Initialization parameters missing workspace info. Server will run with limited functionality.");
+            return;
         }
+        this.gameFolder = info.gameFolder;
+        this.modFolders = info.modFolders;
     }
 }
 

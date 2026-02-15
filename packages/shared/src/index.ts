@@ -7,4 +7,7 @@ Examples of how to import from this package:
 export * from "./constants";
 export * from "./messaging";
 export * from "./requests";
+export * from "./notifications";
 export * from "./entities/research";
+export * from "./data/modifications";
+export * from "./info";

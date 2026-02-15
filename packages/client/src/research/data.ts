@@ -189,8 +189,8 @@ export class ResearchDataService {
      */
     private async readJsonFile(filePath: string): Promise<any> {
         const uri: vscode.Uri = vscode.Uri.file(filePath);
-        const content: Uint8Array = await vscode.workspace.fs.readFile(uri);
-        const json: string = content.toString();
-        return JSON.parse(json);
+        const bytes: Uint8Array = await vscode.workspace.fs.readFile(uri);
+        const text: string = bytes.toString();
+        return JSON.parse(text);
     }
 }

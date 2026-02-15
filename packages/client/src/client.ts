@@ -1,37 +1,27 @@
 import * as path from "path";
-import {
-    workspace as Workspace,
-    window as Window,
-    ExtensionContext,
-    TextDocument,
-    OutputChannel,
-    WorkspaceFolder,
-    Uri,
-    WorkspaceFoldersChangeEvent
-} from "vscode";
-import { LanguageClient, LanguageClientOptions, TransportKind, ServerOptions } from "vscode-languageclient/node";
-import { Configuration } from "./configuration";
+import * as vscode from "vscode";
+import { ExtensionContext, WorkspaceFoldersChangeEvent } from "vscode";
+import { LanguageClient, TransportKind } from "vscode-languageclient/node";
 import * as shared from "@soase/shared";
-import { GameInstallation } from "./environment";
+import { ClientNotification } from "@soase/shared";
+import { Configuration } from "./configuration";
+import { GameDirectory, ModificationDirectory } from "./environment";
 
-export class ClientManager {
-    private static client: LanguageClient | undefined;
+export class ClientManager implements vscode.Disposable {
+    private disposables: vscode.Disposable[] = [];
 
-    /**
-     * TODO: This has a timing problem.
-     * If no soase documents have been opened yet, there will not be a language client instance available.
-     */
-    public static getLanguageClients(): LanguageClient | undefined {
-        return ClientManager.client;
+    private languageClient: LanguageClient | undefined;
+    public get client(): LanguageClient | undefined {
+        return this.languageClient;
     }
 
     /** A file path to the server TypesScript module. */
-    private static serverModule: string;
+    private serverModule: string | undefined;
 
-    private static outputChannel: OutputChannel;
-    private static readonly CHANNEL_NAME: string = "Sins of a Solar Empire LSP";
+    private static readonly CHANNEL_NAME: string = "Sins of a Solar Empire";
 
-    /** The Sins of a Solar Empire JSON language ID.
+    /**
+     * The Sins of a Solar Empire JSON language ID.
      * Ensure this matches the language ID in the extension `package.json`.
      */
     private static readonly LANGUAGE_SINS: string = "soase";
@@ -39,171 +29,126 @@ export class ClientManager {
     private static readonly CLIENT_ID: string = "soase-lsp";
     private static readonly CLIENT_NAME: string = "Sins LSP";
 
+    //#region Extension
+    // These are the extension lifecycle methods.
+
     /**
-     * Activates the language Client Manager.
+     * Activates the language client manager.
      */
-    public static activate(context: ExtensionContext) {
+    public async activate(context: ExtensionContext) {
         this.serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
-        this.outputChannel = Window.createOutputChannel(ClientManager.CHANNEL_NAME);
 
         // Listen for workspace folder changes.
-        Workspace.onDidChangeWorkspaceFolders((event) => this.onDidChangeWorkspaceFolders(event));
+        this.disposables.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => this.onDidChangeWorkspaceFolders(event)));
 
-        // Listen for workspace file opens.
-        Workspace.onDidOpenTextDocument((doc) => this.didOpenTextDocument(doc));
-        Workspace.textDocuments.forEach((doc) => this.didOpenTextDocument(doc));
+        // Create and start the new language client. Then add request handlers for the language server.
+        const client: LanguageClient = await this.create();
+        await client.start().then(() => {
+            client.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
+            console.info("Language client created and started on extension activation.");
+        });
+        this.languageClient = client;
     }
 
     /**
-     * Deactivates all language clients.
+     * Deactivates the language client manager.
      */
-    public static deactivate(): Thenable<void> {
-        const promises: Thenable<void>[] = [];
-        if (ClientManager.client) {
-            promises.push(ClientManager.client.stop());
+    public async deactivate(): Promise<void> {
+        if (this.languageClient) {
+            await this.languageClient.stop();
         }
-        return Promise.all(promises).then(() => undefined);
     }
+
+    // @vscode.Disposable
+    public dispose(): void {
+        for (const disposable of this.disposables) {
+            disposable.dispose();
+        }
+        this.disposables = [];
+    }
+
+    //#endregion
+
+    //#region Server
+
+    private async create(): Promise<LanguageClient> {
+        const info: shared.IWorkspaceInfo = await this.getWorkspaceInfo();
+        console.info("Workspace Info", JSON.stringify(info, null, 2));
+
+        if (!this.serverModule) {
+            throw new Error("Server module path is not defined.");
+        }
+
+        // Instantiate the new language server client.
+        return new LanguageClient(
+            ClientManager.CLIENT_ID,
+            ClientManager.CLIENT_NAME,
+            // Define the language server options.
+            {
+                run: {
+                    module: this.serverModule,
+                    transport: TransportKind.ipc
+                },
+                debug: {
+                    module: this.serverModule,
+                    transport: TransportKind.ipc,
+                    options: {
+                        execArgv: [
+                            "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
+                            "--inspect=6010"
+                            // "--inspect-brk=6010" // Use to break on the first line of the server code.
+                        ]
+                    }
+                }
+            },
+            // Define the language client options.
+            {
+                diagnosticCollectionName: ClientManager.CLIENT_ID,
+                outputChannel: vscode.window.createOutputChannel(ClientManager.CHANNEL_NAME),
+                documentSelector: [
+                    // Selects files within the root of any workspace folder.
+                    { scheme: "file", language: ClientManager.LANGUAGE_SINS }
+                    // { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${gameFolder.fsPath}/**/*` },
+                    // { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${folder.uri.fsPath}/**/*` }
+                ],
+                initializationOptions: {
+                    info: info
+                }
+            }
+        );
+    }
+
+    //#endregion
+
+    //#region Workspace
 
     /**
      * Handles workspace folder changes.
      * @param event The workspace folder change event.
      */
-    private static onDidChangeWorkspaceFolders(event: WorkspaceFoldersChangeEvent) {
-        FolderStuff.sortedWorkspaceFolders = undefined; // Reset cache
-        if (ClientManager.client) {
-            ClientManager.client.stop();
+    private async onDidChangeWorkspaceFolders(event: WorkspaceFoldersChangeEvent): Promise<void> {
+        if (!this.languageClient) {
+            console.warn("Client not initialized yet; ignoring workspace folder change.");
+            return;
         }
+
+        // Re-fetch the current game and mod folders.
+        const info: shared.IWorkspaceInfo = await this.getWorkspaceInfo();
+        console.info("Workspace Info Updated ", JSON.stringify(info, null, 2));
+
+        // Send the updated folder list to the server.
+        await this.languageClient.sendNotification(ClientNotification.WORKSPACE_FOLDERS_CHANGED, info);
     }
 
-    /**
-     * Handles workspace file opens.
-     * @param document The document that was opened.
-     */
-    private static async didOpenTextDocument(document: TextDocument): Promise<void> {
-        if (document.languageId !== ClientManager.LANGUAGE_SINS) {
-            // Make sure only the specific language ID is handled.
-            return;
-        } else if (document.uri.scheme !== "file" && document.uri.scheme !== "untitled") {
-            // Abort on unsaved files that are not using the default language client since they might not have a valid URI.
-            return;
-        }
-
-        if (await ClientManager.create_client(document.uri)) {
-            console.info(`Language client created for document: ${document.uri.toString()}`);
-            return;
-        } else {
-            console.info(`No language client could be created for document: ${document.uri.toString()}`);
-        }
-    }
-
-    private static async create_client(documentUri: Uri): Promise<boolean> {
-        if (ClientManager.client) {
-            // A language client already exists. No need to create a new one.
-            return true;
-        }
-
-        // Files outside a folder cant be handled. This might depend on the language.
-        // Single file languages like JSON might handle files outside the workspace folders.
-        const folder: WorkspaceFolder | undefined = Workspace.getWorkspaceFolder(documentUri);
-        if (!folder) {
-            return false;
-        }
-
-        // If we have nested workspace folders we only start a server on the outer most workspace folder.
-        const rootFolder: WorkspaceFolder = FolderStuff.getOuterMostWorkspaceFolder(folder);
-
-        // Define the language server options.
-        const serverOptions: ServerOptions = {
-            run: {
-                module: this.serverModule,
-                transport: TransportKind.ipc
-            },
-            debug: {
-                module: this.serverModule,
-                transport: TransportKind.ipc,
-                options: {
-                    execArgv: [
-                        "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
-                        // "--inspect=6010"
-                        "--inspect-brk=6010"
-                    ]
-                }
-            }
+    private async getWorkspaceInfo(): Promise<shared.IWorkspaceInfo> {
+        const gameFolder: vscode.Uri = await GameDirectory.get();
+        const modFolders: vscode.Uri[] = await ModificationDirectory.fromWorkspace();
+        const info: shared.IWorkspaceInfo = {
+            gameFolder: gameFolder.fsPath,
+            modFolders: modFolders.map((uri) => uri.fsPath)
         };
-
-        const vanilla: string = (await GameInstallation.get()).toString();
-
-        // Define the language client options.
-        const clientOptions: LanguageClientOptions = {
-            diagnosticCollectionName: ClientManager.CLIENT_ID,
-            outputChannel: this.outputChannel,
-            documentSelector: [
-                // Selects files within the root workspace folder.
-                { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${rootFolder.uri.fsPath}/**/*` }
-            ],
-            initializationOptions: {
-                vanilla: vanilla
-            }
-        };
-
-        // Instantiate the new language server client.
-        const client: LanguageClient = new LanguageClient(ClientManager.CLIENT_ID, ClientManager.CLIENT_NAME, serverOptions, clientOptions);
-
-        // Start the new language server client. Then add request handlers for the language server.
-        client.start().then(() => {
-            client?.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
-        });
-
-        ClientManager.client = client;
-        return true;
-    }
-}
-
-// TODO: This is stupidly designed.
-class FolderStuff {
-    /** @deprecated */
-    public static sortedWorkspaceFolders: string[] | undefined;
-
-    /**
-     * Gets the outer most workspace folder for the given folder.
-     * @param folder The workspace folder to evaluate.
-     * @returns The outer most workspace folder.
-     */
-    public static getOuterMostWorkspaceFolder(folder: WorkspaceFolder): WorkspaceFolder {
-        const sorted: string[] = this.sortWorkspaceFolders();
-        for (const element of sorted) {
-            let uri: string = folder.uri.toString();
-            if (uri.charAt(uri.length - 1) !== "/") {
-                uri = uri + "/";
-            }
-            if (uri.startsWith(element)) {
-                return Workspace.getWorkspaceFolder(Uri.parse(element))!;
-            }
-        }
-        return folder;
+        return info;
     }
 
-    /**
-     * Sorts the workspace folders by their path length.
-     * @returns An array of sorted workspace folder URIs.
-     */
-    private static sortWorkspaceFolders(): string[] {
-        if (FolderStuff.sortedWorkspaceFolders === void 0) {
-            FolderStuff.sortedWorkspaceFolders = Workspace.workspaceFolders
-                ? Workspace.workspaceFolders
-                      .map((folder) => {
-                          let result: string = folder.uri.toString();
-                          if (result.charAt(result.length - 1) !== "/") {
-                              result = result + "/";
-                          }
-                          return result;
-                      })
-                      .sort((a, b) => {
-                          return a.length - b.length;
-                      })
-                : [];
-        }
-        return FolderStuff.sortedWorkspaceFolders;
-    }
+    //#endregion
 }

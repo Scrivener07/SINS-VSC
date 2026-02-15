@@ -14,6 +14,7 @@ export class DefinitionProvider {
         this.indexer = indexer;
         this.currentLanguage = currentLanguage;
     }
+
     public async goToDefinition(context: PointerType, identifier: string): Promise<Location[] | null> {
         let paths: string[] | undefined = this.indexer.index.get(identifier)?.value;
         let range: Range = Range.create({ character: 0, line: 0 }, { character: 0, line: 0 });

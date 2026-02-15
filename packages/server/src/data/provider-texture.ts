@@ -2,7 +2,7 @@ import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
 import { IDataProvider, KeyType, ValueString } from "./types";
 
-export class TextureProvider implements IDataProvider<string> {
+export class TextureProvider implements IDataProvider<ValueString> {
     public identifier: string;
     public name: string;
     public priority: number;
@@ -39,7 +39,12 @@ export class TextureProvider implements IDataProvider<string> {
         return this.cache.has(key);
     }
 
-    public get(key: KeyType): string | undefined {
+    public get(key: KeyType): ValueString | undefined {
+        return this.cache.get(key);
+    }
+
+    // TODO: Add this to the provider interface?
+    public getValue(key: KeyType): string | undefined {
         return this.cache.get(key)?.value;
     }
 

@@ -98,7 +98,12 @@ class SinsLanguageServer {
         this.schemaManager = new SchemaManager();
         this.completionManager = new CompletionManager();
         this.hoverProvider = new HoverProvider(this.gameDataService.indexer, this.gameDataService.localization, this.gameDataService.textures);
-        this.definitionProvider = new DefinitionProvider(this.gameDataService.data, this.gameDataService.indexer, this.currentLanguageCode);
+        this.definitionProvider = new DefinitionProvider(
+            this.gameDataService.indexer,
+            this.gameDataService.data,
+            this.gameDataService.localization,
+            this.currentLanguageCode
+        );
         this.diagnosticManager = new DiagnosticManager(this.diagnostics);
         this.validator = new Validator(
             this.jsonLanguageService,
@@ -566,7 +571,7 @@ class SinsLanguageServer {
 
     private request_getTexturePath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
-        const path: string | undefined = this.gameDataService.textures.textures.get(identifier)?.value;
+        const path: string | undefined = this.gameDataService.textures.textures.get(identifier)?.value.value;
         if (path) {
             return path;
         } else {
@@ -577,7 +582,7 @@ class SinsLanguageServer {
 
     private request_getUniformPath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value;
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value.value;
         if (paths) {
             // Return the first path found.
             if (paths.length > 1) {
@@ -601,7 +606,7 @@ class SinsLanguageServer {
      */
     private request_getPlayerIdentifiers(): string[] {
         console.info("<SinsLanguageServer::request_getPlayerIdentifiers> Getting player IDs from cache.");
-        const players: Set<string> | undefined = this.gameDataService.data.root.get("player")?.value;
+        const players: Set<string> | undefined = this.gameDataService.data.root.get("player")?.value.value;
         if (players) {
             return Array.from(players);
         } else {
@@ -616,7 +621,7 @@ class SinsLanguageServer {
      */
     private request_getEntityPath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getEntityPath> Getting file path for entity indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value;
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value.value;
         if (paths) {
             // Return the first path found.
             if (paths.length > 1) {
@@ -639,7 +644,7 @@ class SinsLanguageServer {
      */
     private request_getLocalization(language: string, key: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getLocalization> Getting localization for key: ${key} in language: ${language}`);
-        const text: string | undefined = this.gameDataService.localization.get(language)?.get(key)?.value;
+        const text: string | undefined = this.gameDataService.localization.get(language)?.get(key)?.value.value;
         if (text) {
             return text;
         } else {

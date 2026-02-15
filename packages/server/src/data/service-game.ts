@@ -1,7 +1,16 @@
 import path = require("path");
 import { WorkspaceSearch } from "../managers";
 import { OrderedRoot } from "./root-ordered";
-import { ConcatMerge, ReplaceMerge, UnionMerge } from "./types";
+import {
+    ConcatMerge,
+    ConcatMergeValueStringArray,
+    ReplaceMerge,
+    UnionMerge,
+    UnionMergeValueSetString,
+    ValueSetString,
+    ValueString,
+    ValueStringArray
+} from "./types";
 import { TextureProvider } from "./provider-texture";
 import { IndexProvider } from "./provider-index";
 import { LocalizationProvider } from "./provider-localization";
@@ -81,10 +90,10 @@ export class GameDataService {
 
 export class IndexerService {
     /** File index: concatenation merge (mod files add to base files). */
-    public index: OrderedRoot<string[]>;
+    public index: OrderedRoot<ValueStringArray>;
 
     constructor() {
-        this.index = new OrderedRoot<string[]>(new ConcatMerge<string>());
+        this.index = new OrderedRoot<ValueStringArray>(new ConcatMergeValueStringArray());
     }
 
     public create(rootPath: string, name: string, priority: number): void {
@@ -101,10 +110,10 @@ export class LocalizationService {
     private static readonly FILE_EXTENSION = ".localized_text";
 
     /** Localization: last-wins per composite key (mod translations override base). */
-    public languages: Map<string, OrderedRoot<string>>;
+    public languages: Map<string, OrderedRoot<ValueString>>;
 
     constructor() {
-        this.languages = new Map<string, OrderedRoot<string>>();
+        this.languages = new Map<string, OrderedRoot<ValueString>>();
     }
 
     public async create(rootPath: string, name: string, priority: number): Promise<void> {
@@ -112,10 +121,10 @@ export class LocalizationService {
         for (const file of files) {
             const language: string = path.basename(file, LocalizationService.FILE_EXTENSION);
 
-            let root: OrderedRoot<string> | undefined = this.languages.get(language);
+            let root: OrderedRoot<ValueString> | undefined = this.languages.get(language);
             if (!root) {
                 // Add a new root for this language if it doesn't exist yet.
-                root = new OrderedRoot<string>(new ReplaceMerge<string>());
+                root = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
                 this.languages.set(language, root);
             }
 
@@ -132,17 +141,17 @@ export class LocalizationService {
         }
     }
 
-    public get(language: string): OrderedRoot<string> | undefined {
+    public get(language: string): OrderedRoot<ValueString> | undefined {
         return this.languages.get(language);
     }
 }
 
 export class TextureService {
     /** Textures: last-wins replacement (mod texture overrides base texture). */
-    public textures: OrderedRoot<string>;
+    public textures: OrderedRoot<ValueString>;
 
     constructor() {
-        this.textures = new OrderedRoot<string>(new ReplaceMerge<string>());
+        this.textures = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
     }
 
     public create(rootPath: string, name: string, priority: number): void {
@@ -156,10 +165,10 @@ export class TextureService {
 }
 
 export class DataService {
-    public root: OrderedRoot<Set<string>>;
+    public root: OrderedRoot<ValueSetString>;
 
     constructor() {
-        this.root = new OrderedRoot<Set<string>>(new UnionMerge<string>());
+        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number, language: string): void {
@@ -173,10 +182,10 @@ export class DataService {
 }
 
 export class ManifestService {
-    public root: OrderedRoot<Set<string>>;
+    public root: OrderedRoot<ValueSetString>;
 
     constructor() {
-        this.root = new OrderedRoot<Set<string>>(new UnionMerge<string>());
+        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number): void {
@@ -190,10 +199,10 @@ export class ManifestService {
 }
 
 export class UniformService {
-    public root: OrderedRoot<Set<string>>;
+    public root: OrderedRoot<ValueSetString>;
 
     constructor() {
-        this.root = new OrderedRoot<Set<string>>(new UnionMerge<string>());
+        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number): void {

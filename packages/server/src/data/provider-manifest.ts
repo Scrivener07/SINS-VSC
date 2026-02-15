@@ -6,7 +6,7 @@ import { IDataProvider, KeyType, ValueSetString } from "./types";
  * Reads `.entity_manifest` files and extracts the `ids` array from each.
  * Each manifest type ("unit", "weapon") maps to a `Set<string>` of entity identifiers.
  */
-export class ManifestProvider implements IDataProvider<Set<string>> {
+export class ManifestProvider implements IDataProvider<ValueSetString> {
     public identifier: string;
     public name: string;
     public priority: number;
@@ -78,7 +78,12 @@ export class ManifestProvider implements IDataProvider<Set<string>> {
         return this.cache.has(key);
     }
 
-    public get(key: KeyType): Set<string> | undefined {
+    public get(key: KeyType): ValueSetString | undefined {
+        return this.cache.get(key);
+    }
+
+    // TODO: Add this to the provider interface?
+    public getValue(key: KeyType): Set<string> | undefined {
         return this.cache.get(key)?.value;
     }
 

@@ -9,7 +9,7 @@ import { IDataProvider, KeyType, ValueSetString } from "./types";
  *
  * Also scans asset types (textures, brushes, meshes, fonts) that DataManager handles.
  */
-export class DataProvider implements IDataProvider<Set<string>> {
+export class DataProvider implements IDataProvider<ValueSetString> {
     public identifier: string;
     public name: string;
     public priority: number;
@@ -172,7 +172,12 @@ export class DataProvider implements IDataProvider<Set<string>> {
         return this.cache.has(key);
     }
 
-    public get(key: KeyType): Set<string> | undefined {
+    public get(key: KeyType): ValueSetString | undefined {
+        return this.cache.get(key);
+    }
+
+    // TODO: Add this to the provider interface?
+    public getValue(key: KeyType): Set<string> | undefined {
         return this.cache.get(key)?.value;
     }
 

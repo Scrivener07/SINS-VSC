@@ -6,13 +6,13 @@ import { IDataProvider, KeyType, ValueStringArray } from "./types";
  * A provider that indexes game data files by identifier (filename without extension).
  * The value is the list of absolute file paths matching that identifier.
  */
-export class IndexProvider implements IDataProvider<string[]> {
+export class IndexProvider implements IDataProvider<ValueStringArray> {
     public identifier: string;
     public name: string;
     public priority: number;
 
     private readonly rootPath: string;
-    private readonly cache: Map<KeyType, { value: string[]; sourcePath: string }> = new Map();
+    private readonly cache: Map<KeyType, ValueStringArray> = new Map();
     private listeners: Array<() => void> = [];
 
     private static readonly FILE_EXTENSIONS: string[] = [
@@ -103,7 +103,12 @@ export class IndexProvider implements IDataProvider<string[]> {
         return this.cache.has(key);
     }
 
-    public get(key: KeyType): string[] | undefined {
+    public get(key: KeyType): ValueStringArray | undefined {
+        return this.cache.get(key);
+    }
+
+    // TODO: Add this to the provider interface?
+    public getValue(key: KeyType): string[] | undefined {
         return this.cache.get(key)?.value;
     }
 

@@ -62,10 +62,22 @@ Eager merge flow
 
 //#region Providers
 
+/**
+ * Base interface for all wrapped values that include provenance.
+ */
+export interface IWrappedValue<T> {
+    value: T;
+    sourcePath: string;
+}
+
+export type ValueString = IWrappedValue<string>;
+export type ValueStringArray = IWrappedValue<string[]>;
+export type ValueSetString = IWrappedValue<Set<string>>;
+
 export type KeyType = string;
-export type ValueString = { value: string; sourcePath: string };
-export type ValueStringArray = { value: string[]; sourcePath: string };
-export type ValueSetString = { value: Set<string>; sourcePath: string };
+// export type ValueString = { value: string; sourcePath: string };
+// export type ValueStringArray = { value: string[]; sourcePath: string };
+// export type ValueSetString = { value: Set<string>; sourcePath: string };
 
 export type IProvenance = Omit<IResolution<unknown>, "value" | "key">;
 
@@ -133,7 +145,7 @@ export interface IDataProvider<T> {
      * @returns An iterable of `[key, { value, sourcePath }]` entries.
      * @see {@link IDataProvider}
      */
-    getAll(): Iterable<[KeyType, { value: T; sourcePath: string }]>;
+    getAll(): Iterable<[KeyType, T]>;
 
     /**
      * Registers a listener that is called whenever the provider's underlying data changes.
@@ -194,7 +206,7 @@ export interface IConfigurationRoot<T> {
      * @returns An array of resolution objects for each provider that defines the key, ordered from lowest to highest priority.
      * @see {@link IConfigurationRoot}
      */
-    getAllLayers(key: KeyType): IResolution<T>[];
+    getLayers(key: KeyType): IResolution<T>[];
 }
 
 //#endregion
@@ -230,6 +242,15 @@ export class ConcatMerge<T> implements IMergeStrategy<T[]> {
     }
 }
 
+export class ConcatMergeValueStringArray implements IMergeStrategy<ValueStringArray> {
+    public merge(existing: ValueStringArray, incoming: ValueStringArray): ValueStringArray {
+        return {
+            value: [...existing.value, ...incoming.value],
+            sourcePath: incoming.sourcePath // Use the last provider's sourcePath
+        };
+    }
+}
+
 /**
  * Unions sets from all providers.
  */
@@ -240,6 +261,19 @@ export class UnionMerge<T> implements IMergeStrategy<Set<T>> {
             result.add(item);
         }
         return result;
+    }
+}
+
+export class UnionMergeValueSetString implements IMergeStrategy<ValueSetString> {
+    public merge(existing: ValueSetString, incoming: ValueSetString): ValueSetString {
+        const result = new Set(existing.value);
+        for (const item of incoming.value) {
+            result.add(item);
+        }
+        return {
+            value: result,
+            sourcePath: incoming.sourcePath // Use the last provider's sourcePath.
+        };
     }
 }
 

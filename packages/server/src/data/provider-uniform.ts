@@ -11,7 +11,7 @@ export type UniformType = {
  * Reads `.uniforms` files and extracts named values (weapon tags).
  * Each uniform type maps to a `Set<string>` of names/tags.
  */
-export class UniformProvider implements IDataProvider<Set<string>> {
+export class UniformProvider implements IDataProvider<ValueSetString> {
     public identifier: string;
     public name: string;
     public priority: number;
@@ -82,7 +82,12 @@ export class UniformProvider implements IDataProvider<Set<string>> {
         return this.cache.has(key);
     }
 
-    public get(key: KeyType): Set<string> | undefined {
+    public get(key: KeyType): ValueSetString | undefined {
+        return this.cache.get(key);
+    }
+
+    // TODO: Add this to the provider interface?
+    public getValue(key: KeyType): Set<string> | undefined {
         return this.cache.get(key)?.value;
     }
 

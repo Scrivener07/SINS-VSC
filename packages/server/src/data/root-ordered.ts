@@ -1,4 +1,4 @@
-import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, KeyType } from "./types";
+import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IWrappedValue, KeyType } from "./types";
 
 //#region Configuration
 
@@ -24,7 +24,7 @@ import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolu
  * - Use {@link ConcatMerge} for array concatenation (file index).
  * - Use {@link UnionMerge} for set union (entity identifiers).
  */
-export class OrderedRoot<T> implements IConfigurationRoot<T> {
+export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigurationRoot<T> {
     private readonly mergeStrategy: IMergeStrategy<T>;
 
     private providers: IDataProvider<T>[] = [];
@@ -116,9 +116,9 @@ export class OrderedRoot<T> implements IConfigurationRoot<T> {
         const ordered: IDataProvider<T>[] = [...this.providers].sort((a, b) => a.priority - b.priority);
 
         // Build a per-provider lookup only for impacted keys.
-        const providerEntries = new Map<string, Map<KeyType, { value: T; sourcePath: string }>>();
+        const providerEntries = new Map<string, Map<KeyType, T>>();
         for (const provider of ordered) {
-            const map = new Map<KeyType, { value: T; sourcePath: string }>();
+            const map = new Map<KeyType, T>();
             for (const [key, entry] of provider.getAll()) {
                 if (keys.has(key)) {
                     map.set(key, entry);
@@ -141,9 +141,9 @@ export class OrderedRoot<T> implements IConfigurationRoot<T> {
                 if (entry) {
                     matchCount++;
                     if (winnerValue !== undefined) {
-                        winnerValue = this.mergeStrategy.merge(winnerValue, entry.value);
+                        winnerValue = this.mergeStrategy.merge(winnerValue, entry);
                     } else {
-                        winnerValue = entry.value;
+                        winnerValue = entry;
                     }
                     winnerProviderIdentifier = provider.identifier;
                     winnerSourcePath = entry.sourcePath;
@@ -179,19 +179,19 @@ export class OrderedRoot<T> implements IConfigurationRoot<T> {
 
         const ordered: IDataProvider<T>[] = [...this.providers].sort((a, b) => a.priority - b.priority);
         for (const provider of ordered) {
-            for (const [key, { value, sourcePath }] of provider.getAll()) {
+            for (const [key, entry] of provider.getAll()) {
                 const isOverride: boolean = this.merged.has(key);
 
                 const existing: T | undefined = this.merged.get(key);
                 if (existing !== undefined) {
-                    this.merged.set(key, this.mergeStrategy.merge(existing, value));
+                    this.merged.set(key, this.mergeStrategy.merge(existing, entry));
                 } else {
-                    this.merged.set(key, value);
+                    this.merged.set(key, entry);
                 }
 
                 this.provenance.set(key, {
                     providerId: provider.identifier,
-                    sourcePath,
+                    sourcePath: entry.sourcePath,
                     isOverride
                 });
             }
@@ -221,7 +221,7 @@ export class OrderedRoot<T> implements IConfigurationRoot<T> {
         };
     }
 
-    public getAllLayers(key: KeyType): IResolution<T>[] {
+    public getLayers(key: KeyType): IResolution<T>[] {
         const result: IResolution<T>[] = [];
         const ordered: IDataProvider<T>[] = [...this.providers].sort((a, b) => a.priority - b.priority);
 
@@ -232,7 +232,7 @@ export class OrderedRoot<T> implements IConfigurationRoot<T> {
                     key,
                     value,
                     providerId: provider.identifier,
-                    sourcePath: "unknown",
+                    sourcePath: value.sourcePath,
                     isOverride: false
                 });
             }

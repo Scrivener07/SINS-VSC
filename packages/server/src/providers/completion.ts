@@ -77,7 +77,7 @@ export class CompletionManager {
      * Returns an empty set if the category is not found.
      */
     private getCache(service: DataService | UniformService, key: string): Set<string> {
-        return service.root.get(key)?.value ?? CompletionManager.EMPTY_SET;
+        return service.root.get(key)?.value.value ?? CompletionManager.EMPTY_SET;
     }
 
     public setCompletionList(

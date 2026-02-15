@@ -58,7 +58,12 @@ export class DataProvider implements IDataProvider<Set<string>> {
     private async loadLocalizations(): Promise<void> {
         const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, `${this.language}.localized_text`);
 
-        if (filePaths && filePaths.length > 0) {
+        if (filePaths.length === 0) {
+            console.info(`DataProvider: No localization found for '${this.language}' in '${this.rootPath}'.`);
+            return;
+        }
+
+        try {
             const text: string = await fs.promises.readFile(filePaths[0], "utf-8");
             const content: Record<string, unknown> = JSON.parse(text);
             const set = new Set<string>();
@@ -66,8 +71,8 @@ export class DataProvider implements IDataProvider<Set<string>> {
                 set.add(key);
             }
             this.cache.set("localized_text", { value: set, sourcePath: filePaths[0] });
-        } else {
-            console.info(`DataProvider: No localization found for '${this.language}' in '${this.rootPath}'.`);
+        } catch (error) {
+            console.error(`DataProvider: Failed to load localizations from '${this.rootPath}':`, error);
         }
     }
 

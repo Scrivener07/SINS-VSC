@@ -74,18 +74,13 @@ export type ValueString = IWrappedValue<string>;
 export type ValueStringArray = IWrappedValue<string[]>;
 export type ValueSetString = IWrappedValue<Set<string>>;
 
-export type KeyType = string;
-// export type ValueString = { value: string; sourcePath: string };
-// export type ValueStringArray = { value: string[]; sourcePath: string };
-// export type ValueSetString = { value: Set<string>; sourcePath: string };
-
 export type IProvenance = Omit<IResolution<unknown>, "value" | "key">;
 
 /**
  * Represents a resolved value for a given key.
  */
 export interface IResolution<T> {
-    key: KeyType;
+    key: string;
     value: T;
     providerId: string;
     sourcePath: string;
@@ -129,7 +124,7 @@ export interface IDataProvider<T> {
      * @returns The value associated with the key, or undefined if not found.
      * @see {@link IDataProvider}
      */
-    get(key: KeyType): T | undefined;
+    get(key: string): T | undefined;
 
     /**
      * Checks if the provider has a value for the given key.
@@ -137,7 +132,7 @@ export interface IDataProvider<T> {
      * @returns True if the key exists in this provider, false otherwise.
      * @see {@link IDataProvider}
      */
-    has(key: KeyType): boolean;
+    has(key: string): boolean;
 
     /**
      * Returns an iterable of all key→value pairs in this provider, along with their source paths for provenance tracking.
@@ -145,7 +140,7 @@ export interface IDataProvider<T> {
      * @returns An iterable of `[key, { value, sourcePath }]` entries.
      * @see {@link IDataProvider}
      */
-    getAll(): Iterable<[KeyType, T]>;
+    getAll(): Iterable<[string, T]>;
 
     /**
      * Registers a listener that is called whenever the provider's underlying data changes.
@@ -197,7 +192,7 @@ export interface IConfigurationRoot<T> {
      * @returns An object containing the resolved value and provenance, or undefined if the key is not found in any provider.
      * @see {@link IConfigurationRoot}
      */
-    get(key: KeyType): IResolution<T> | undefined;
+    get(key: string): IResolution<T> | undefined;
 
     /**
      * Retrieves all layers of values for a given key across all providers, ordered from lowest to highest priority.
@@ -206,7 +201,7 @@ export interface IConfigurationRoot<T> {
      * @returns An array of resolution objects for each provider that defines the key, ordered from lowest to highest priority.
      * @see {@link IConfigurationRoot}
      */
-    getLayers(key: KeyType): IResolution<T>[];
+    getLayers(key: string): IResolution<T>[];
 }
 
 //#endregion

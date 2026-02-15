@@ -1,4 +1,4 @@
-import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IWrappedValue, KeyType } from "./types";
+import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IWrappedValue } from "./types";
 
 //#region Configuration
 
@@ -28,11 +28,11 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
     private readonly mergeStrategy: IMergeStrategy<T>;
 
     private providers: IDataProvider<T>[] = [];
-    private merged = new Map<KeyType, T>();
-    private provenance = new Map<KeyType, IProvenance>();
+    private merged = new Map<string, T>();
+    private provenance = new Map<string, IProvenance>();
 
     /** Tracks which keys each provider contributes, for incremental recomputation. */
-    private providerKeys = new Map<string, Set<KeyType>>();
+    private providerKeys = new Map<string, Set<string>>();
 
     /** Tracks change event unsubscribe functions per provider. */
     private providerUnsubscribe = new Map<string, () => void>();
@@ -75,19 +75,19 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
         }
 
         // Capture old keys before reload so we can detect removals.
-        const oldKeys: Set<KeyType> = this.providerKeys.get(identifier) ?? new Set<KeyType>();
+        const oldKeys: Set<string> = this.providerKeys.get(identifier) ?? new Set<string>();
 
         await provider.load();
 
         // Rebuild this provider's key set from its new data.
-        const newKeys: Set<KeyType> = new Set<KeyType>();
+        const newKeys: Set<string> = new Set<string>();
         for (const [key] of provider.getAll()) {
             newKeys.add(key);
         }
         this.providerKeys.set(identifier, newKeys);
 
         // Recompute the union of old and new keys to handle both additions and removals.
-        const affectedKeys: Set<KeyType> = new Set<KeyType>(oldKeys);
+        const affectedKeys: Set<string> = new Set<string>(oldKeys);
         for (const key of newKeys) {
             affectedKeys.add(key);
         }
@@ -99,7 +99,7 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
     private rebuildAllProviderKeys(): void {
         this.providerKeys.clear();
         for (const provider of this.providers) {
-            const keys: Set<KeyType> = new Set<KeyType>();
+            const keys: Set<string> = new Set<string>();
             for (const [key] of provider.getAll()) {
                 keys.add(key);
             }
@@ -112,13 +112,13 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
      * For each key, iterates providers in priority order (low to high);
      * the last provider with a value wins.
      */
-    private recomputeKeys(keys: Set<KeyType>): void {
+    private recomputeKeys(keys: Set<string>): void {
         const ordered: IDataProvider<T>[] = [...this.providers].sort((a, b) => a.priority - b.priority);
 
         // Build a per-provider lookup only for impacted keys.
-        const providerEntries = new Map<string, Map<KeyType, T>>();
+        const providerEntries = new Map<string, Map<string, T>>();
         for (const provider of ordered) {
-            const map = new Map<KeyType, T>();
+            const map = new Map<string, T>();
             for (const [key, entry] of provider.getAll()) {
                 if (keys.has(key)) {
                     map.set(key, entry);
@@ -202,11 +202,11 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
         this.providers.sort((a, b) => a.priority - b.priority);
     }
 
-    public has(key: KeyType): boolean {
+    public has(key: string): boolean {
         return this.merged.has(key);
     }
 
-    public get(key: KeyType): IResolution<T> | undefined {
+    public get(key: string): IResolution<T> | undefined {
         const value: T | undefined = this.merged.get(key);
         if (value === undefined) {
             return undefined;
@@ -221,7 +221,7 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
         };
     }
 
-    public getLayers(key: KeyType): IResolution<T>[] {
+    public getLayers(key: string): IResolution<T>[] {
         const result: IResolution<T>[] = [];
         const ordered: IDataProvider<T>[] = [...this.providers].sort((a, b) => a.priority - b.priority);
 

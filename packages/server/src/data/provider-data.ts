@@ -1,7 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
-import { IDataProvider, KeyType, ValueSetString } from "./types";
+import { ValueSetString } from "./types";
+import { ProviderBase } from "./provider";
 
 /**
  * Scans known file extensions and collects identifiers (filename without extension) into sets.
@@ -9,21 +10,11 @@ import { IDataProvider, KeyType, ValueSetString } from "./types";
  *
  * Also scans asset types (textures, brushes, meshes, fonts) that DataManager handles.
  */
-export class DataProvider implements IDataProvider<ValueSetString> {
-    public identifier: string;
-    public name: string;
-    public priority: number;
-
-    private readonly rootPath: string;
+export class DataProvider extends ProviderBase<ValueSetString> {
     private readonly language: string;
-    private readonly cache = new Map<KeyType, ValueSetString>();
-    private listeners: Array<() => void> = [];
 
     constructor(identifier: string, name: string, priority: number, rootPath: string, language: string) {
-        this.identifier = identifier;
-        this.name = name;
-        this.priority = priority;
-        this.rootPath = rootPath;
+        super(identifier, name, priority, rootPath);
         this.language = language;
     }
 
@@ -166,35 +157,5 @@ export class DataProvider implements IDataProvider<ValueSetString> {
             set.add(this.toFileName(filePath));
         }
         this.cache.set("ttf", { value: set, sourcePath: this.rootPath });
-    }
-
-    public has(key: KeyType): boolean {
-        return this.cache.has(key);
-    }
-
-    public get(key: KeyType): ValueSetString | undefined {
-        return this.cache.get(key);
-    }
-
-    // TODO: Add this to the provider interface?
-    public getValue(key: KeyType): Set<string> | undefined {
-        return this.cache.get(key)?.value;
-    }
-
-    public getAll(): Iterable<[KeyType, ValueSetString]> {
-        return this.cache.entries();
-    }
-
-    public onDidChange(listener: () => void): () => void {
-        this.listeners.push(listener);
-        return () => {
-            this.listeners = this.listeners.filter((listened) => listened !== listener);
-        };
-    }
-
-    public notifyChanged(): void {
-        for (const listener of this.listeners) {
-            listener();
-        }
     }
 }

@@ -1,20 +1,13 @@
 import * as fs from "fs";
 import { WorkspaceSearch } from "../managers/workspace";
-import { IDataProvider, KeyType, ValueSetString } from "./types";
+import { ValueSetString } from "./types";
+import { ProviderBase } from "./provider";
 
 /**
  * Reads `.entity_manifest` files and extracts the `ids` array from each.
  * Each manifest type ("unit", "weapon") maps to a `Set<string>` of entity identifiers.
  */
-export class ManifestProvider implements IDataProvider<ValueSetString> {
-    public identifier: string;
-    public name: string;
-    public priority: number;
-
-    private readonly rootPath: string;
-    private readonly cache = new Map<KeyType, ValueSetString>();
-    private listeners: Array<() => void> = [];
-
+export class ManifestProvider extends ProviderBase<ValueSetString> {
     private static readonly FILE_EXTENSION: string = ".entity_manifest";
 
     private static readonly MANIFEST_TYPES: string[] = [
@@ -35,10 +28,7 @@ export class ManifestProvider implements IDataProvider<ValueSetString> {
     ];
 
     constructor(identifier: string, name: string, priority: number, rootPath: string) {
-        this.identifier = identifier;
-        this.name = name;
-        this.priority = priority;
-        this.rootPath = rootPath;
+        super(identifier, name, priority, rootPath);
     }
 
     public async load(): Promise<void> {
@@ -72,35 +62,5 @@ export class ManifestProvider implements IDataProvider<ValueSetString> {
         }
 
         console.log(`ManifestProvider: Loaded ${this.cache.size} manifest types for '${this.identifier}'`);
-    }
-
-    public has(key: KeyType): boolean {
-        return this.cache.has(key);
-    }
-
-    public get(key: KeyType): ValueSetString | undefined {
-        return this.cache.get(key);
-    }
-
-    // TODO: Add this to the provider interface?
-    public getValue(key: KeyType): Set<string> | undefined {
-        return this.cache.get(key)?.value;
-    }
-
-    public getAll(): Iterable<[KeyType, ValueSetString]> {
-        return this.cache.entries();
-    }
-
-    public onDidChange(listener: () => void): () => void {
-        this.listeners.push(listener);
-        return () => {
-            this.listeners = this.listeners.filter((listened) => listened !== listener);
-        };
-    }
-
-    public notifyChanged(): void {
-        for (const listener of this.listeners) {
-            listener();
-        }
     }
 }

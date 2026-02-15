@@ -1,20 +1,13 @@
 import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
-import { IDataProvider, KeyType, ValueStringArray } from "./types";
+import { ValueStringArray } from "./types";
+import { ProviderBase } from "./provider";
 
 /**
  * A provider that indexes game data files by identifier (filename without extension).
  * The value is the list of absolute file paths matching that identifier.
  */
-export class IndexProvider implements IDataProvider<ValueStringArray> {
-    public identifier: string;
-    public name: string;
-    public priority: number;
-
-    private readonly rootPath: string;
-    private readonly cache: Map<KeyType, ValueStringArray> = new Map();
-    private listeners: Array<() => void> = [];
-
+export class IndexProvider extends ProviderBase<ValueStringArray> {
     private static readonly FILE_EXTENSIONS: string[] = [
         ".mod_meta_data",
         ".localized_text",
@@ -65,10 +58,7 @@ export class IndexProvider implements IDataProvider<ValueStringArray> {
     ];
 
     constructor(identifier: string, name: string, priority: number, rootPath: string) {
-        this.identifier = identifier;
-        this.name = name;
-        this.priority = priority;
-        this.rootPath = rootPath;
+        super(identifier, name, priority, rootPath);
     }
 
     public async load(): Promise<void> {
@@ -96,39 +86,6 @@ export class IndexProvider implements IDataProvider<ValueStringArray> {
         } else {
             const valueType: ValueStringArray = { value: [filePath], sourcePath: filePath };
             this.cache.set(fileKey, valueType);
-        }
-    }
-
-    public has(key: KeyType): boolean {
-        return this.cache.has(key);
-    }
-
-    public get(key: KeyType): ValueStringArray | undefined {
-        return this.cache.get(key);
-    }
-
-    // TODO: Add this to the provider interface?
-    public getValue(key: KeyType): string[] | undefined {
-        return this.cache.get(key)?.value;
-    }
-
-    public getAll(): Iterable<[KeyType, ValueStringArray]> {
-        return this.cache.entries();
-    }
-
-    public onDidChange(listener: () => void): () => void {
-        this.listeners.push(listener);
-        return () => {
-            this.listeners = this.listeners.filter((listened) => listened !== listener);
-        };
-    }
-
-    /**
-     * TODO: Call from file-watcher to trigger incremental rebuilds.
-     */
-    public notifyChanged(): void {
-        for (const listener of this.listeners) {
-            listener();
         }
     }
 }

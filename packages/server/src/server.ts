@@ -35,49 +35,49 @@ class SinsLanguageServer {
     private isInitialized: boolean;
 
     /** A connection to the VS Code client. */
-    private connection: Connection;
+    private readonly connection: Connection;
 
     /** The JSON language service instance. */
-    private jsonLanguageService: LanguageService;
+    private readonly jsonLanguageService: LanguageService;
 
     /** A manager for open text documents. */
-    private documents: TextDocuments<TextDocument>;
+    private readonly documents: TextDocuments<TextDocument>;
 
     /** The workspace service to use. */
-    private workspaceService: WorkspaceService;
+    private readonly workspaceService: WorkspaceService;
 
     /** The game data service to use. */
-    private gameDataService: GameDataService;
+    private readonly gameDataService: GameDataService;
 
     /** The schema manager to use. */
-    private schemaManager: SchemaManager;
+    private readonly schemaManager: SchemaManager;
 
     /** The hover provider to use. */
-    private hoverProvider: HoverProvider;
+    private readonly hoverProvider: HoverProvider;
 
     /** The definition provider to use. */
-    private definitionProvider: DefinitionProvider;
+    private readonly definitionProvider: DefinitionProvider;
 
     /** The complettion provider to use. */
-    private completionManager: CompletionManager;
+    private readonly completionManager: CompletionManager;
 
     /** The document symbol provider to use. */
-    private documentSymbolProvider: DocumentSymbolProvider;
+    private readonly documentSymbolProvider: DocumentSymbolProvider;
 
     /** The diagnostic manager to use. */
-    private diagnosticManager: DiagnosticManager;
+    private readonly diagnosticManager: DiagnosticManager;
 
     /** The validator to use. */
-    private validator: Validator;
+    private readonly validator: Validator;
 
     /** The language server diagnostics collection. */
-    private diagnostics: Diagnostic[] = [];
+    private readonly diagnostics: Diagnostic[] = [];
 
     /** The current language code in use. */
-    private language: ILanguageState;
+    private readonly language: ILanguageState;
 
     /** The current entity type being processed. */
-    private entity: IEntityState;
+    private readonly entity: IEntityState;
 
     constructor() {
         this.isInitialized = false;

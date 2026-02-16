@@ -1,7 +1,19 @@
 import * as path from "path";
-import { CompletionItem, CompletionItemKind, CompletionList, Range, TextDocument } from "vscode-json-languageservice";
+import { CompletionParams, Connection, TextDocuments } from "vscode-languageserver/node";
+import {
+    ASTNode,
+    CompletionItem,
+    CompletionItemKind,
+    CompletionList,
+    JSONDocument,
+    LanguageService,
+    Range,
+    TextDocument
+} from "vscode-json-languageservice";
 import { PointerType } from "../pointers";
 import { DataService, UniformService } from "../data/service-game";
+import { JsonPointer } from "../json-pointer";
+import { IEntityState } from "../types";
 
 export class CompletionManager {
     /** The maximum amount of suggestions that will pop up before being cut. */
@@ -9,7 +21,61 @@ export class CompletionManager {
 
     private static readonly EMPTY_SET: Set<string> = new Set<string>();
 
-    public doComplete(
+    private jsonLanguageService: LanguageService;
+    private documents: TextDocuments<TextDocument>;
+    private entity: IEntityState;
+    private data: DataService;
+    private uniforms: UniformService;
+
+    constructor(
+        jsonLanguageService: LanguageService,
+        documents: TextDocuments<TextDocument>,
+        entity: IEntityState,
+        data: DataService,
+        uniforms: UniformService
+    ) {
+        this.jsonLanguageService = jsonLanguageService;
+        this.documents = documents;
+        this.entity = entity;
+        this.data = data;
+        this.uniforms = uniforms;
+    }
+
+    /**
+     * Registers the feature handler with the LSP connection.
+     * @param connection The LSP connection to register the handler on.
+     */
+    public register(connection: Connection): void {
+        connection.onCompletion(this.onCompletion.bind(this));
+    }
+
+    private async onCompletion(params: CompletionParams): Promise<CompletionList | null> {
+        const document = this.documents.get(params.textDocument.uri);
+        if (!document) {
+            return null;
+        }
+
+        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
+        const offset: number = document.offsetAt(params.position);
+        const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
+        const context: PointerType = await JsonPointer.getContext(this.jsonLanguageService, document, jsonDocument, node);
+
+        if (node) {
+            let range: Range = {
+                start: document.positionAt(node.offset + 1),
+                end: document.positionAt(node.offset + node.length - 1)
+            };
+            const prefix = document.getText(range);
+
+            return (
+                this.doComplete(context, this.entity.pointer, prefix, range, document, offset, this.data, this.uniforms) ??
+                (await this.jsonLanguageService.doComplete(document, params.position, jsonDocument))
+            );
+        }
+        return null;
+    }
+
+    private doComplete(
         context: PointerType,
         currentEntity: PointerType,
         prefix: string,
@@ -80,7 +146,7 @@ export class CompletionManager {
         return service.root.get(key)?.value.value ?? CompletionManager.EMPTY_SET;
     }
 
-    public setCompletionList(
+    private setCompletionList(
         cache: Set<string>,
         kind: CompletionItemKind,
         range: Range,
@@ -104,7 +170,7 @@ export class CompletionManager {
         };
     }
 
-    public setBrushCompletionList(cache: Set<string>, range: Range, prefix: string): CompletionList {
+    private setBrushCompletionList(cache: Set<string>, range: Range, prefix: string): CompletionList {
         const brushes: CompletionList = this.setCompletionList(cache, CompletionItemKind.File, range, prefix);
         return {
             ...brushes,

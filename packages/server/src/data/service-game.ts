@@ -17,6 +17,7 @@ import { LocalizationProvider } from "./provider-localization";
 import { DataProvider } from "./provider-data";
 import { ManifestProvider } from "./provider-manifest";
 import { UniformProvider } from "./provider-uniform";
+import { ILanguageState } from "../types";
 
 export class GameDataService {
     public indexer: IndexerService;
@@ -27,9 +28,9 @@ export class GameDataService {
     public manifests: ManifestService;
     public uniforms: UniformService;
 
-    private language: string;
+    private language: ILanguageState;
 
-    constructor(language: string) {
+    constructor(language: ILanguageState) {
         this.language = language;
         this.indexer = new IndexerService();
         this.localization = new LocalizationService();
@@ -53,7 +54,7 @@ export class GameDataService {
         this.indexer.create(rootPath, name, priority);
         await this.localization.create(rootPath, name, priority);
         this.textures.create(rootPath, name, priority);
-        this.data.create(rootPath, name, priority, this.language);
+        this.data.create(rootPath, name, priority, this.language.code);
         this.manifests.create(rootPath, name, priority);
         this.uniforms.create(rootPath, name, priority);
     }
@@ -75,7 +76,7 @@ export class GameDataService {
     public removeFolder(rootPath: string): void {
         // Each provider's identifier is the rootPath, so they can be matched directly.
         this.indexer.index.removeProvider(rootPath);
-        this.textures.textures.removeProvider(rootPath);
+        this.textures.root.removeProvider(rootPath);
         this.data.root.removeProvider(rootPath);
         this.manifests.root.removeProvider(rootPath);
         this.uniforms.root.removeProvider(rootPath);
@@ -148,19 +149,19 @@ export class LocalizationService {
 
 export class TextureService {
     /** Textures: last-wins replacement (mod texture overrides base texture). */
-    public textures: OrderedRoot<ValueString>;
+    public root: OrderedRoot<ValueString>;
 
     constructor() {
-        this.textures = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
+        this.root = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
     }
 
     public create(rootPath: string, name: string, priority: number): void {
         const textures = new TextureProvider(rootPath, name, priority, rootPath);
-        this.textures.addProvider(textures);
+        this.root.addProvider(textures);
     }
 
     public async reload(): Promise<void> {
-        await this.textures.reloadAll();
+        await this.root.reloadAll();
     }
 }
 

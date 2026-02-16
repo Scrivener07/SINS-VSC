@@ -9,25 +9,21 @@ import {
     TextDocumentSyncKind,
     InitializeResult,
     Connection,
-    Hover,
-    Diagnostic,
-    DefinitionParams,
-    CompletionParams,
-    CompletionList,
-    DocumentSymbolParams
+    Diagnostic
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { ASTNode, DocumentSymbol, getLanguageService, JSONDocument, LanguageService, Location, Range } from "vscode-json-languageservice";
-import { JsonAST } from "./json-ast";
-import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager } from "./providers";
+import { getLanguageService, JSONDocument, LanguageService } from "vscode-json-languageservice";
+import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager, DocumentSymbolProvider } from "./providers";
 import { SchemaManager } from "./managers";
 import { Validator } from "./validate";
 import { PointerType } from "./pointers";
 import { WorkspaceService } from "./managers/workspace";
 import { GameDataService } from "./data/service-game";
+import { IEntityState, ILanguageState } from "./types";
 
 /**
- * Encapsulates the Sins language server logic.
+ * Encapsulates the Sins of a Solar Empire 2 language server.
+ * Provides server lifecycle managment and orchestration of language features and data providers.
  */
 class SinsLanguageServer {
     /** Indicates whether the server has been initialized.
@@ -50,6 +46,7 @@ class SinsLanguageServer {
     /** The workspace service to use. */
     private workspaceService: WorkspaceService;
 
+    /** The game data service to use. */
     private gameDataService: GameDataService;
 
     /** The schema manager to use. */
@@ -57,8 +54,15 @@ class SinsLanguageServer {
 
     /** The hover provider to use. */
     private hoverProvider: HoverProvider;
+
+    /** The definition provider to use. */
     private definitionProvider: DefinitionProvider;
+
+    /** The complettion provider to use. */
     private completionManager: CompletionManager;
+
+    /** The document symbol provider to use. */
+    private documentSymbolProvider: DocumentSymbolProvider;
 
     /** The diagnostic manager to use. */
     private diagnosticManager: DiagnosticManager;
@@ -66,17 +70,25 @@ class SinsLanguageServer {
     /** The validator to use. */
     private validator: Validator;
 
-    /** The current language code in use. */
-    private currentLanguageCode: string = "en";
-
-    /** The current entity type being processed. */
-    private currentEntity: PointerType = PointerType.none;
-
     /** The language server diagnostics collection. */
     private diagnostics: Diagnostic[] = [];
 
+    /** The current language code in use. */
+    private language: ILanguageState;
+
+    /** The current entity type being processed. */
+    private entity: IEntityState;
+
     constructor() {
         this.isInitialized = false;
+
+        this.entity = {
+            pointer: PointerType.none
+        };
+
+        this.language = {
+            code: "en"
+        };
 
         // Create the LSP connection.
         this.connection = createConnection(ProposedFeatures.all);
@@ -91,33 +103,62 @@ class SinsLanguageServer {
         this.workspaceService = new WorkspaceService();
 
         // Create the data context service.
-        this.gameDataService = new GameDataService(this.currentLanguageCode);
+        this.gameDataService = new GameDataService(this.language);
 
         // Create the language features.
         this.diagnostics = [];
+
         this.schemaManager = new SchemaManager();
-        this.completionManager = new CompletionManager();
-        this.hoverProvider = new HoverProvider(this.gameDataService.indexer, this.gameDataService.localization, this.gameDataService.textures);
-        this.definitionProvider = new DefinitionProvider(this.gameDataService.indexer, this.gameDataService.localization, this.currentLanguageCode);
+
+        this.completionManager = new CompletionManager(
+            this.jsonLanguageService,
+            this.documents,
+            this.entity,
+            this.gameDataService.data,
+            this.gameDataService.uniforms
+        );
+
+        this.hoverProvider = new HoverProvider(
+            this.jsonLanguageService,
+            this.documents,
+            this.language,
+            this.workspaceService,
+            this.gameDataService.indexer,
+            this.gameDataService.localization,
+            this.gameDataService.textures
+        );
+
+        this.definitionProvider = new DefinitionProvider(
+            this.jsonLanguageService,
+            this.documents,
+            this.gameDataService.indexer,
+            this.gameDataService.localization,
+            this.language
+        );
+
         this.diagnosticManager = new DiagnosticManager(this.diagnostics);
         this.validator = new Validator(
+            this.connection,
             this.jsonLanguageService,
             this.diagnostics,
             this.diagnosticManager,
             this.gameDataService.data,
             this.gameDataService.manifests,
-            this.gameDataService.uniforms
+            this.gameDataService.uniforms,
+            this.entity
         );
+
+        this.documentSymbolProvider = new DocumentSymbolProvider(this.jsonLanguageService, this.documents);
 
         // Bind the initialization event listeners.
         this.connection.onInitialize(this.onInitialize.bind(this));
         this.connection.onInitialized(this.onInitialized.bind(this));
 
         // Bind the language feature listeners.
-        this.connection.onHover(this.onHover.bind(this));
-        this.connection.onDefinition(this.onDefinition.bind(this));
-        this.connection.onCompletion(this.onCompletion.bind(this));
-        this.connection.onDocumentSymbol(this.onDocumentSymbol.bind(this));
+        this.hoverProvider.register(this.connection);
+        this.definitionProvider.register(this.connection);
+        this.completionManager.register(this.connection);
+        this.documentSymbolProvider.register(this.connection);
 
         // Bind the named client requests.
         this.connection.onRequest(ServerRequest.GET_PLAYER_IDS, () => this.request_getPlayerIdentifiers());
@@ -137,8 +178,6 @@ class SinsLanguageServer {
         this.documents.onDidOpen(this.onDidOpen.bind(this));
         this.documents.onDidChangeContent(this.onDidChangeContent.bind(this));
         this.documents.onDidClose(this.onDidClose.bind(this));
-
-        // this.connection.workspace.onDidChangeWorkspaceFolders();
 
         // Make the text document manager listen on the connection for open, change, and close text document events.
         this.documents.listen(this.connection);
@@ -195,7 +234,7 @@ class SinsLanguageServer {
         this.connection.console.info("Server initialized.");
 
         // Get current language from vscode settings
-        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
+        this.language.code = await this.sendRequest(shared.PROPERTIES.language);
 
         // Initialize game workspace data layer.
         if (this.workspaceService.gameFolder) {
@@ -216,7 +255,7 @@ class SinsLanguageServer {
 
         // Validate all open documents now that initialization is complete.
         for (const document of this.documents.all()) {
-            await this.validateTextDocument(document);
+            await this.validator.validateTextDocument(document);
         }
 
         // Mark the server as initialized.
@@ -232,7 +271,7 @@ class SinsLanguageServer {
      * @param event The event containing the opened document.
      */
     private onDidOpen(event: { document: TextDocument }): void {
-        this.currentEntity = this.getCurrentEntityType(event.document.uri);
+        this.entity.pointer = this.getCurrentEntityType(event.document.uri);
         this.connection.console.info(`[Server(${process.pid}) Document opened: ${event.document.uri}`);
     }
 
@@ -250,9 +289,9 @@ class SinsLanguageServer {
             return;
         }
 
-        this.currentEntity = this.getCurrentEntityType(change.document.uri);
-        this.currentLanguageCode = await this.sendRequest(shared.PROPERTIES.language);
-        await this.validateTextDocument(change.document);
+        this.entity.pointer = this.getCurrentEntityType(change.document.uri);
+        this.language.code = await this.sendRequest(shared.PROPERTIES.language);
+        await this.validator.validateTextDocument(change.document);
     }
 
     /**
@@ -266,214 +305,6 @@ class SinsLanguageServer {
             uri: event.document.uri,
             diagnostics: []
         });
-    }
-
-    /**
-     * Core logic for validating a document.
-     * @param textDocument The text document to validate.
-     */
-    private async validateTextDocument(textDocument: TextDocument): Promise<void> {
-        const text: string = textDocument.getText();
-
-        // TODO: Just logging the length for now.
-        this.connection.console.info(`Validating ${textDocument.uri} (${text.length} characters in length.)`);
-
-        // Parse the document as JSON.
-        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(textDocument);
-
-        // Validate the document against the configured schemas.
-        const diagnostics: Diagnostic[] = [
-            ...(await this.jsonLanguageService.doValidation(textDocument, jsonDocument)),
-            ...(await this.validator.doValidation(textDocument, jsonDocument, this.currentEntity))
-        ];
-
-        // Send the diagnostics to the client.
-        this.connection.sendDiagnostics({
-            uri: textDocument.uri,
-            diagnostics
-        });
-    }
-
-    //#endregion
-
-    //#region Features
-
-    /**
-     * Called when the user hovers over text.
-     * @param params The parameters for the hover request.
-     * @returns A promise that resolves to a Hover object or null.
-     */
-    private async onHover(params: { textDocument: any; position: any }): Promise<any> {
-        const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
-        if (!document) {
-            return null;
-        }
-
-        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
-        const offset: number = document.offsetAt(params.position);
-        const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
-        const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
-        console.info("Hover context:", PointerType[context]);
-
-        if (node && node.type === "string" && node.value) {
-            if (JsonAST.isNodeValue(node)) {
-                if (context === PointerType.brush && this.workspaceService.gameFolder) {
-                    const textureHover: Hover | null = this.hoverProvider.getTexture(node.value);
-                    if (textureHover) {
-                        return textureHover;
-                    }
-                }
-
-                if (context === PointerType.localized_text) {
-                    const localizeHover: Hover | null = this.hoverProvider.getLocalizedText(node.value, this.currentLanguageCode);
-                    if (localizeHover) {
-                        return localizeHover;
-                    }
-                }
-
-                if (context === PointerType.weapon) {
-                    const weaponHover: Hover | null = await this.hoverProvider.getWeapon(node.value, this.currentLanguageCode);
-                    if (weaponHover) {
-                        return weaponHover;
-                    }
-                }
-
-                if (context === PointerType.weapon_tag) {
-                    const weaponTagHover: Hover | null = await this.hoverProvider.getWeaponTag(node.value, this.currentLanguageCode);
-                    if (weaponTagHover) {
-                        return weaponTagHover;
-                    }
-                }
-            }
-        }
-
-        // Fallback to standard JSON schema hover.
-        return this.jsonLanguageService.doHover(document, params.position, jsonDocument);
-    }
-
-    /**
-     * Called when the user requests the definition of a symbol.
-     * @param params The parameters for the definition request.
-     * @returns A promise that resolves to an array of `Location` types or null.
-     */
-    private async onDefinition(params: DefinitionParams): Promise<Location[] | null> {
-        const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
-        if (!document) {
-            return null;
-        }
-
-        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
-        const offset: number = document.offsetAt(params.position);
-        const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
-        const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
-
-        if (node && node.type === "string" && JsonAST.isNodeValue(node)) {
-            return await this.definitionProvider.goToDefinition(context, node.value);
-        }
-
-        return null;
-    }
-
-    private async onCompletion(params: CompletionParams): Promise<CompletionList | null> {
-        const document = this.documents.get(params.textDocument.uri);
-        if (!document) {
-            return null;
-        }
-
-        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
-        const offset: number = document.offsetAt(params.position);
-        const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
-        const context: PointerType = await this.getContext(this.jsonLanguageService, document, jsonDocument, node);
-
-        if (node) {
-            let range: Range = {
-                start: document.positionAt(node.offset + 1),
-                end: document.positionAt(node.offset + node.length - 1)
-            };
-            const prefix = document.getText(range);
-
-            return (
-                this.completionManager.doComplete(
-                    context,
-                    this.currentEntity,
-                    prefix,
-                    range,
-                    document,
-                    offset,
-                    this.gameDataService.data,
-                    this.gameDataService.uniforms
-                ) ?? (await this.jsonLanguageService.doComplete(document, params.position, jsonDocument))
-            );
-        }
-        return null;
-    }
-
-    /**
-     * Called when the client requests document symbols for the outline view or breadcrumbs.
-     * @param params The parameters for the document symbol request.
-     * @returns An array of `DocumentSymbol` objects.
-     * @see [Document Symbols Request Specification](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol)
-     */
-    private onDocumentSymbol(params: DocumentSymbolParams): DocumentSymbol[] {
-        const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
-        if (!document) {
-            return [];
-        }
-
-        // Use the JSON language service to get symbols.
-        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
-        const jsonSymbols: DocumentSymbol[] = this.jsonLanguageService.findDocumentSymbols2(document, jsonDocument);
-        return jsonSymbols;
-    }
-
-    public async getContext(
-        jsonLanguageService: LanguageService,
-        document: TextDocument,
-        jsonDocument: JSONDocument,
-        node: ASTNode | undefined
-    ): Promise<PointerType> {
-        if (!node || (node.parent?.type === "property" && node === node.parent.keyNode)) {
-            return PointerType.none;
-        }
-
-        let currentNode: ASTNode | undefined = node;
-
-        while (currentNode && currentNode.type !== "property") {
-            currentNode = currentNode.parent;
-        }
-
-        if (!currentNode) {
-            return PointerType.none;
-        }
-
-        const schemas = await jsonLanguageService.getMatchingSchemas(document, jsonDocument);
-
-        for (const schema of schemas) {
-            if (!JsonAST.isWithinSchemaNode(node.offset, schema.node)) {
-                continue;
-            }
-
-            const { properties, patternProperties } = schema.schema;
-
-            const key = currentNode.keyNode.value;
-            const schemaProp: any = properties?.[key];
-
-            if (schemaProp?.pointer) {
-                return schemaProp.pointer as PointerType;
-            }
-
-            if (!patternProperties) {
-                continue;
-            }
-
-            for (const pattern in patternProperties) {
-                const match: any = patternProperties[pattern];
-                if (match?.pointer) {
-                    return match.pointer as PointerType;
-                }
-            }
-        }
-        return PointerType.none;
     }
 
     //#endregion
@@ -543,7 +374,7 @@ class SinsLanguageServer {
 
             // Re-validate all open documents.
             for (const document of this.documents.all()) {
-                await this.validateTextDocument(document);
+                await this.validator.validateTextDocument(document);
             }
 
             this.connection.console.info(`Providers updated: +${added.length} -${removed.length}`);
@@ -566,7 +397,7 @@ class SinsLanguageServer {
 
     private request_getTexturePath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
-        const path: string | undefined = this.gameDataService.textures.textures.get(identifier)?.value.value;
+        const path: string | undefined = this.gameDataService.textures.root.get(identifier)?.value.value;
         if (path) {
             return path;
         } else {

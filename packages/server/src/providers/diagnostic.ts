@@ -8,6 +8,9 @@ enum Severity {
     hint = 4
 }
 
+/**
+ * Provides an abstraction layer for reporting diagnostics to the client with consistent formatting.
+ */
 export class DiagnosticManager {
     constructor(private diagnostics: Diagnostic[]) {
         this.diagnostics = diagnostics;

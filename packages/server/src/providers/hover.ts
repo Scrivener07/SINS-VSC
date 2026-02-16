@@ -1,21 +1,106 @@
 import * as fs from "fs";
-import { Hover, MarkupKind } from "vscode-json-languageservice";
+import { ASTNode, Hover, JSONDocument, LanguageService, MarkupKind } from "vscode-json-languageservice";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import { IndexerService, LocalizationService, TextureService } from "../data/service-game";
 import { pathToFileURL } from "url";
+import { PointerType } from "../pointers";
+import { JsonAST } from "../json-ast";
+import { Connection, TextDocuments } from "vscode-languageserver/node";
+import { WorkspaceService } from "../managers";
+import { JsonPointer } from "../json-pointer";
+import { ILanguageState } from "../types";
 
 export class HoverProvider {
-    private indexManager: IndexerService;
+    private jsonLanguageService: LanguageService;
+    private documents: TextDocuments<TextDocument>;
+    private workspace: WorkspaceService;
+    private indexer: IndexerService;
     private localization: LocalizationService;
-    private textureService: TextureService;
+    private textures: TextureService;
 
-    constructor(indexManager: IndexerService, localizationManager: LocalizationService, texture: TextureService) {
-        this.indexManager = indexManager;
-        this.localization = localizationManager;
-        this.textureService = texture;
+    private language: ILanguageState;
+
+    constructor(
+        jsonLanguageService: LanguageService,
+        documents: TextDocuments<TextDocument>,
+        language: ILanguageState,
+        workspace: WorkspaceService,
+        indexer: IndexerService,
+        localization: LocalizationService,
+        textures: TextureService
+    ) {
+        this.jsonLanguageService = jsonLanguageService;
+        this.documents = documents;
+        this.language = language;
+        this.workspace = workspace;
+        this.indexer = indexer;
+        this.localization = localization;
+        this.textures = textures;
     }
 
-    public async getWeapon(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths = this.indexManager.index.get(key)?.value.value;
+    /**
+     * Registers the feature handler with the LSP connection.
+     * @param connection The LSP connection to register the handler on.
+     */
+    public register(connection: Connection): void {
+        connection.onHover(this.onHover.bind(this));
+    }
+
+    /**
+     * Called when the user hovers over text.
+     * @param params The parameters for the hover request.
+     * @returns A promise that resolves to a Hover object or null.
+     */
+    private async onHover(params: { textDocument: any; position: any }): Promise<any> {
+        const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
+        if (!document) {
+            return null;
+        }
+
+        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(document);
+        const offset: number = document.offsetAt(params.position);
+        const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
+        const context: PointerType = await JsonPointer.getContext(this.jsonLanguageService, document, jsonDocument, node);
+        console.info("Hover context:", PointerType[context]);
+
+        if (node && node.type === "string" && node.value) {
+            if (JsonAST.isNodeValue(node)) {
+                if (context === PointerType.brush && this.workspace.gameFolder) {
+                    const textureHover: Hover | null = this.getTexture(node.value);
+                    if (textureHover) {
+                        return textureHover;
+                    }
+                }
+
+                if (context === PointerType.localized_text) {
+                    const localizeHover: Hover | null = this.getLocalizedText(node.value, this.language.code);
+                    if (localizeHover) {
+                        return localizeHover;
+                    }
+                }
+
+                if (context === PointerType.weapon) {
+                    const weaponHover: Hover | null = await this.getWeapon(node.value, this.language.code);
+                    if (weaponHover) {
+                        return weaponHover;
+                    }
+                }
+
+                if (context === PointerType.weapon_tag) {
+                    const weaponTagHover: Hover | null = await this.getWeaponTag(node.value, this.language.code);
+                    if (weaponTagHover) {
+                        return weaponTagHover;
+                    }
+                }
+            }
+        }
+
+        // Fallback to standard JSON schema hover.
+        return this.jsonLanguageService.doHover(document, params.position, jsonDocument);
+    }
+
+    private async getWeapon(key: string, language: string = "en"): Promise<Hover | null> {
+        const paths = this.indexer.index.get(key)?.value.value;
         const markdown: string[] = [];
         if (paths) {
             const file: string = await fs.promises.readFile(paths[0], "utf-8");
@@ -39,8 +124,8 @@ export class HoverProvider {
         };
     }
 
-    public async getWeaponTag(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths: string | undefined = this.indexManager.index.get("weapon")?.value.value.find((found) => found.endsWith(".uniforms"));
+    private async getWeaponTag(key: string, language: string = "en"): Promise<Hover | null> {
+        const paths: string | undefined = this.indexer.index.get("weapon")?.value.value.find((found) => found.endsWith(".uniforms"));
         const markdown: string[] = [];
         if (paths) {
             const contents = JSON.parse(await fs.promises.readFile(paths, "utf-8"));
@@ -65,7 +150,7 @@ export class HoverProvider {
     /**
      * Checks if a string is a known localization key and returns a `Hover` object if so.
      */
-    public getLocalizedText(key: string, language: string = "en"): Hover | null {
+    private getLocalizedText(key: string, language: string = "en"): Hover | null {
         const text: string | undefined = this.localization.get(language)?.get(key)?.value.value;
         if (!text) {
             return null;
@@ -94,12 +179,12 @@ export class HoverProvider {
      *
      * @param key The texture key value from the JSON (`"trader_light_frigate_hud_icon"`).
      */
-    public getTexture(key: string): Hover | null {
-        if (!this.textureService.textures.has(key)) {
+    private getTexture(key: string): Hover | null {
+        if (!this.textures.root.has(key)) {
             return null;
         }
 
-        const fullPath: string = this.textureService.textures.get(key)?.value.value || "";
+        const fullPath: string = this.textures.root.get(key)?.value.value || "";
 
         try {
             const fileUrl: string = pathToFileURL(fullPath).toString();

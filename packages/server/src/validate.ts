@@ -1,3 +1,4 @@
+import { Connection } from "vscode-languageserver";
 import { ASTNode, Diagnostic, JSONDocument, LanguageService, PropertyASTNode, Range } from "vscode-json-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { JsonAST } from "./json-ast";
@@ -5,22 +6,56 @@ import { DiagnosticManager } from "./providers";
 import { Report } from "./providers/diagnostic";
 import { PointerType } from "./pointers";
 import { DataService, ManifestService, UniformService } from "./data/service-game";
+import { IEntityState } from "./types";
 
+/**
+ * Provides business logic for validation rules.
+ */
 export class Validator {
     constructor(
+        private connection: Connection,
         private jsonLanguageService: LanguageService,
         private diagnostics: Diagnostic[],
         private diagnosticManager: DiagnosticManager,
         private dataManager: DataService,
         private manifestManager: ManifestService,
-        private uniformManager: UniformService
+        private uniformManager: UniformService,
+        private entity: IEntityState
     ) {
+        this.connection = connection;
         this.jsonLanguageService = jsonLanguageService;
         this.diagnostics = diagnostics;
         this.dataManager = dataManager;
         this.manifestManager = manifestManager;
         this.uniformManager = uniformManager;
         this.diagnosticManager = diagnosticManager;
+        this.entity = entity;
+    }
+
+    /**
+     * Core logic for validating a document.
+     * @param textDocument The text document to validate.
+     */
+    public async validateTextDocument(textDocument: TextDocument): Promise<void> {
+        const text: string = textDocument.getText();
+
+        // TODO: Just logging the length for now.
+        this.connection.console.info(`Validating ${textDocument.uri} (${text.length} characters in length.)`);
+
+        // Parse the document as JSON.
+        const jsonDocument: JSONDocument = this.jsonLanguageService.parseJSONDocument(textDocument);
+
+        // Validate the document against the configured schemas.
+        const diagnostics: Diagnostic[] = [
+            ...(await this.jsonLanguageService.doValidation(textDocument, jsonDocument)),
+            ...(await this.doValidation(textDocument, jsonDocument, this.entity.pointer))
+        ];
+
+        // Send the diagnostics to the client.
+        this.connection.sendDiagnostics({
+            uri: textDocument.uri,
+            diagnostics
+        });
     }
 
     private validate(pointer: PointerType, key: string, value: string, range: Range, currentEntity: PointerType): void {

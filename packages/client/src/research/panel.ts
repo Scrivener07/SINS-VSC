@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 import { ILogMessage, IResearchSubject, IResearchUniform, IWebViewMessage, ViewRequest, ViewResponse } from "@soase/shared";
-import { ResearchDataService } from "./data";
-import { GameDirectory } from "../environment";
 import { Services } from "../services";
+import { ResearchDataService } from "./data";
+import { GameDirectory, ModificationDirectory } from "../environment";
 
 /**
  * Encapsulates the Research panel webview.
@@ -32,10 +32,10 @@ export class ResearchPanel {
             return;
         }
 
+        // Collect relevant workspace directories for the webview's local resource roots.
         ResearchPanel.viewResourceRoot = vscode.Uri.joinPath(context.extensionUri, "dist", "view-research");
-
-        // TODO: Collect mod directories from workspace.
-        const gameInstallation: vscode.Uri = await GameDirectory.get();
+        const gameDirectory: vscode.Uri = await GameDirectory.get();
+        const modDirectories: vscode.Uri[] = await ModificationDirectory.fromWorkspace();
 
         const panel: vscode.WebviewPanel = vscode.window.createWebviewPanel(
             ResearchPanel.VIEW_TYPE,
@@ -47,7 +47,8 @@ export class ResearchPanel {
                 localResourceRoots: [
                     // Root paths from which the webview can load local resources.
                     ResearchPanel.viewResourceRoot,
-                    gameInstallation
+                    gameDirectory,
+                    ...modDirectories
                 ]
             }
         );

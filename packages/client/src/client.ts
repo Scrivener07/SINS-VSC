@@ -72,7 +72,7 @@ export class ClientManager implements vscode.Disposable {
     //#region Server
 
     private async create(): Promise<LanguageClient> {
-        const info: shared.IWorkspaceInfo = await this.getWorkspaceInfo();
+        const info: shared.IWorkspaceInfo = await ClientManager.getWorkspaceInfo();
         console.info("Workspace Info", JSON.stringify(info, null, 2));
 
         if (!this.serverModule) {
@@ -133,14 +133,14 @@ export class ClientManager implements vscode.Disposable {
         }
 
         // Re-fetch the current game and mod folders.
-        const info: shared.IWorkspaceInfo = await this.getWorkspaceInfo();
+        const info: shared.IWorkspaceInfo = await ClientManager.getWorkspaceInfo();
         console.info("Workspace Info Updated ", JSON.stringify(info, null, 2));
 
         // Send the updated folder list to the server.
         await this.languageClient.sendNotification(ClientNotification.WORKSPACE_FOLDERS_CHANGED, info);
     }
 
-    private async getWorkspaceInfo(): Promise<shared.IWorkspaceInfo> {
+    private static async getWorkspaceInfo(): Promise<shared.IWorkspaceInfo> {
         const gameFolder: vscode.Uri = await GameDirectory.get();
         const modFolders: vscode.Uri[] = await ModificationDirectory.fromWorkspace();
         const info: shared.IWorkspaceInfo = {

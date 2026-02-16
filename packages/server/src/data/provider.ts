@@ -1,6 +1,6 @@
-import { IDataProvider, IWrappedValue } from "./types";
+import { IDataProvider, IDataValue } from "./types";
 
-export abstract class ProviderBase<TValue extends IWrappedValue<unknown>> implements IDataProvider<TValue> {
+export abstract class ProviderBase<TValue extends IDataValue<unknown>> implements IDataProvider<TValue> {
     public readonly identifier: string;
     public readonly name: string;
     public readonly priority: number;
@@ -51,7 +51,7 @@ export abstract class ProviderBase<TValue extends IWrappedValue<unknown>> implem
         }
     }
 
-    // //#region Helper
+    //#region Helper
 
     // private add(entry: [string, TValue]): void {
     //     const [key, value] = entry;
@@ -87,5 +87,5 @@ export abstract class ProviderBase<TValue extends IWrappedValue<unknown>> implem
     //     console.log(`${this.constructor.name}: Loaded ${itemCount} ${itemType} for '${this.identifier}'`);
     // }
 
-    // //#endregion
+    //#endregion
 }

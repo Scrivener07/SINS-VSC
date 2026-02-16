@@ -1,16 +1,16 @@
 import * as fs from "fs";
 import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
-import { ValueSetString } from "./types";
+import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
- * Scans known file extensions and collects identifiers (filename without extension) into sets.
+ * Scans known file extensions and collects identifiers (filename without extension) into categorical sets.
  * Each category key ("player", "weapon") maps to a `Set<string>` of identifiers.
  *
  * Also scans asset types (textures, brushes, meshes, fonts) that DataManager handles.
  */
-export class DataProvider extends ProviderBase<ValueSetString> {
+export class DataProvider extends ProviderBase<ValueStringSet> {
     private readonly language: string;
 
     constructor(identifier: string, name: string, priority: number, rootPath: string, language: string) {

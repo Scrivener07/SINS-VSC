@@ -4,8 +4,26 @@ import { ValueStringArray } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
- * A provider that indexes game data files by identifier (filename without extension).
- * The value is the list of absolute file paths matching that identifier.
+ * A provider that indexes game data files by their identifier (filename without extension) and maps them to matching file paths.
+ *
+ * - The **key** is the identifier, which is the file name without extension.
+ * - The **value** is an array of absolute file paths matching any given *key* identifier.
+ *
+ * An indentifying file name key may exist in multiple locations with different extensions.
+ * For example, `advent_3` may exist as both a `advent_3.player_icon` and `advent_3.player_portrait` file.
+ * In this case, the provider will store both file paths in the `value` array for that identifier key.
+ *
+ * The key `advent_3` maps to these values:
+ * - `c:\\Sins2\\player_icons\\advent_3.player_icon`
+ * - `c:\\Sins2\\player_portraits\\advent_3.player_portrait`
+ *
+ * Another example is localization files, which have a single `.localized_text` file per language.
+ * The provider will index all localization keys from that file, and the value for each key will be the path to the same `.localized_text` file.
+ *
+ * The key for English `en` may have multiple `.localized_text` files from different sources, so the value will store all of those file paths.
+ * - `c:\\Sins2\\localized_text\\en.localized_text`
+ * - `c:\\MyMod1\\localized_text\\en.localized_text`
+ * - `c:\\MyMod2\\localized_text\\en.localized_text`
  */
 export class IndexProvider extends ProviderBase<ValueStringArray> {
     private static readonly FILE_EXTENSIONS: string[] = [
@@ -71,13 +89,23 @@ export class IndexProvider extends ProviderBase<ValueStringArray> {
                 this.addToCache(filePath);
             }
         }
+
         console.timeEnd(`IndexProvider::load '${this.identifier}'`);
         console.log(`Indexed ${this.cache.size} unique IDs for provider '${this.identifier}'`);
     }
 
     private addToCache(filePath: string): void {
         const fileName: string = path.basename(filePath);
-        const fileKey: string = fileName.split(".")[0];
+        let fileKey: string = fileName.split(".")[0];
+
+        if (!fileKey) {
+            if (fileName.toLowerCase() === ".mod_meta_data") {
+                fileKey = ".mod_meta_data";
+                console.info(`IndexProvider: Using special key for mod meta data file: '${filePath}'`);
+            } else {
+                console.warn(`IndexProvider: File is missing a key name: '${filePath}'`);
+            }
+        }
 
         const existing = this.cache.get(fileKey);
         if (existing) {

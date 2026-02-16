@@ -7,7 +7,7 @@ import {
     ReplaceMerge,
     UnionMerge,
     UnionMergeValueSetString,
-    ValueSetString,
+    ValueStringSet,
     ValueString,
     ValueStringArray
 } from "./types";
@@ -165,10 +165,10 @@ export class TextureService {
 }
 
 export class DataService {
-    public root: OrderedRoot<ValueSetString>;
+    public root: OrderedRoot<ValueStringSet>;
 
     constructor() {
-        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
+        this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number, language: string): void {
@@ -182,10 +182,10 @@ export class DataService {
 }
 
 export class ManifestService {
-    public root: OrderedRoot<ValueSetString>;
+    public root: OrderedRoot<ValueStringSet>;
 
     constructor() {
-        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
+        this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number): void {
@@ -199,10 +199,10 @@ export class ManifestService {
 }
 
 export class UniformService {
-    public root: OrderedRoot<ValueSetString>;
+    public root: OrderedRoot<ValueStringSet>;
 
     constructor() {
-        this.root = new OrderedRoot<ValueSetString>(new UnionMergeValueSetString());
+        this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
     }
 
     public create(rootPath: string, name: string, priority: number): void {

@@ -65,14 +65,14 @@ Eager merge flow
 /**
  * Base interface for all wrapped values that include provenance.
  */
-export interface IWrappedValue<T> {
+export interface IDataValue<T> {
     value: T;
     sourcePath: string;
 }
 
-export type ValueString = IWrappedValue<string>;
-export type ValueStringArray = IWrappedValue<string[]>;
-export type ValueSetString = IWrappedValue<Set<string>>;
+export type ValueString = IDataValue<string>;
+export type ValueStringArray = IDataValue<string[]>;
+export type ValueStringSet = IDataValue<Set<string>>;
 
 export type IProvenance = Omit<IResolution<unknown>, "value" | "key">;
 
@@ -88,7 +88,7 @@ export interface IResolution<T> {
 }
 
 /**
- * Represents a provider that loads data from a directory on disk.
+ * Represents a provider that loads data from a source such as a directory on disk.
  */
 export interface IDataProvider<T> {
     /**
@@ -153,14 +153,15 @@ export interface IDataProvider<T> {
 }
 
 /**
- * Represents a provider that loads data from a directory on disk.
+ * Represents a data root that maintains a list of providers and a merged cache of key→value.
+ * The root is responsible for managing providers, handling reloads, and resolving queries with provenance.
  */
-export interface IConfigurationRoot<T> {
+export interface IDataRoot<T> {
     /**
      * Adds a provider to the root.
      * Providers are ordered by their priority, with higher priority providers taking precedence over lower ones.
      * @param provider The provider to add.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     addProvider(provider: IDataProvider<T>): void;
 
@@ -168,21 +169,21 @@ export interface IConfigurationRoot<T> {
      * Removes a provider by its ID.
      * This will cause the root to rebuild its merged cache without the removed provider's data.
      * @param identifier The ID of the provider to remove.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     removeProvider(identifier: string): void;
 
     /**
      * Reloads all providers and rebuilds the merged cache.
      * This is typically called after a provider signals a change.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     reloadAll(): Promise<void>;
 
     /**
      * Reloads a specific provider by its ID and rebuilds the merged cache.
      * @param identifier The ID of the provider to reload.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     reloadProvider(identifier: string): Promise<void>;
 
@@ -190,7 +191,7 @@ export interface IConfigurationRoot<T> {
      * Retrieves the resolved value for a given key, along with provenance information about which provider contributed the value and whether it was overridden.
      * @param key The key to query.
      * @returns An object containing the resolved value and provenance, or undefined if the key is not found in any provider.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     get(key: string): IResolution<T> | undefined;
 
@@ -199,7 +200,7 @@ export interface IConfigurationRoot<T> {
      * Each layer includes provenance information.
      * @param key The key to query.
      * @returns An array of resolution objects for each provider that defines the key, ordered from lowest to highest priority.
-     * @see {@link IConfigurationRoot}
+     * @see {@link IDataRoot}
      */
     getLayers(key: string): IResolution<T>[];
 }
@@ -259,8 +260,8 @@ export class UnionMerge<T> implements IMergeStrategy<Set<T>> {
     }
 }
 
-export class UnionMergeValueSetString implements IMergeStrategy<ValueSetString> {
-    public merge(existing: ValueSetString, incoming: ValueSetString): ValueSetString {
+export class UnionMergeValueSetString implements IMergeStrategy<ValueStringSet> {
+    public merge(existing: ValueStringSet, incoming: ValueStringSet): ValueStringSet {
         const result = new Set(existing.value);
         for (const item of incoming.value) {
             result.add(item);

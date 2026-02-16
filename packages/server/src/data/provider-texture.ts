@@ -3,6 +3,9 @@ import { WorkspaceSearch } from "../managers/workspace";
 import { ValueString } from "./types";
 import { ProviderBase } from "./provider";
 
+/**
+ * Scans for `.png` files in the root directory and maps their names (without extension) to their file paths.
+ */
 export class TextureProvider extends ProviderBase<ValueString> {
     constructor(identifier: string, name: string, priority: number, rootPath: string) {
         super(identifier, name, priority, rootPath);

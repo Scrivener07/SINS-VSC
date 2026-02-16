@@ -98,12 +98,7 @@ class SinsLanguageServer {
         this.schemaManager = new SchemaManager();
         this.completionManager = new CompletionManager();
         this.hoverProvider = new HoverProvider(this.gameDataService.indexer, this.gameDataService.localization, this.gameDataService.textures);
-        this.definitionProvider = new DefinitionProvider(
-            this.gameDataService.indexer,
-            this.gameDataService.data,
-            this.gameDataService.localization,
-            this.currentLanguageCode
-        );
+        this.definitionProvider = new DefinitionProvider(this.gameDataService.indexer, this.gameDataService.localization, this.currentLanguageCode);
         this.diagnosticManager = new DiagnosticManager(this.diagnostics);
         this.validator = new Validator(
             this.jsonLanguageService,

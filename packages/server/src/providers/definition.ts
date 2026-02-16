@@ -2,19 +2,17 @@ import * as fs from "fs";
 import { pathToFileURL } from "url";
 import { Location, Position, Range } from "vscode-json-languageservice";
 import { PointerType } from "../pointers";
-import { DataService, IndexerService, LocalizationService } from "../data/service-game";
+import { IndexerService, LocalizationService } from "../data/service-game";
 import { OrderedRoot } from "../data/root-ordered";
 import { IResolution, ValueString } from "../data/types";
 
 export class DefinitionProvider {
     private indexer: IndexerService;
-    private dataManager: DataService;
     private localization: LocalizationService;
     private currentLanguage: string;
 
-    constructor(indexer: IndexerService, dataManager: DataService, localization: LocalizationService, currentLanguage: string) {
+    constructor(indexer: IndexerService, localization: LocalizationService, currentLanguage: string) {
         this.indexer = indexer;
-        this.dataManager = dataManager;
         this.localization = localization;
         this.currentLanguage = currentLanguage;
     }
@@ -50,23 +48,22 @@ export class DefinitionProvider {
     }
 
     private async goToLocalization(identifier: string): Promise<Location[] | null> {
-        // Gets a set of all localization keys for the current language.
-        const identifiers: Set<string> | undefined = this.dataManager.root.get("localized_text")?.value.value;
-
-        // Check if this is a valid localization key.
-        if (!identifiers?.has(identifier)) {
-            return null;
-        }
-
         // Get the localization root for the current language.
         const root: OrderedRoot<ValueString> | undefined = this.localization.get(this.currentLanguage);
         if (!root) {
             return null;
         }
 
+        // Check if this is a valid localization key for the given language.
+        if (!root.has(identifier)) {
+            console.error(`DefinitionProvider: Localization key "${identifier}" not found for language "${this.currentLanguage}".`);
+            return null;
+        }
+
         // Get all provider layers for the identifier. (base -> overrides)
         const layers: IResolution<ValueString>[] = root.getLayers(identifier);
-        if (!layers || layers.length === 0) {
+        if (layers.length === 0) {
+            console.error(`DefinitionProvider: No layers found for localization key "${identifier}" in language "${this.currentLanguage}".`);
             return null;
         }
 

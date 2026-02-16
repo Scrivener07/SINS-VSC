@@ -1,6 +1,4 @@
-import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IWrappedValue } from "./types";
-
-//#region Configuration
+import { IDataRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IDataValue } from "./types";
 
 /**
  * Provides a root-configuration implementation with eager merge algorithm (replace-only).
@@ -24,7 +22,7 @@ import { IConfigurationRoot, IDataProvider, IMergeStrategy, IProvenance, IResolu
  * - Use {@link ConcatMerge} for array concatenation (file index).
  * - Use {@link UnionMerge} for set union (entity identifiers).
  */
-export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigurationRoot<T> {
+export class OrderedRoot<T extends IDataValue<unknown>> implements IDataRoot<T> {
     private readonly mergeStrategy: IMergeStrategy<T>;
 
     private providers: IDataProvider<T>[] = [];
@@ -245,5 +243,3 @@ export class OrderedRoot<T extends IWrappedValue<unknown>> implements IConfigura
         return result;
     }
 }
-
-//#endregion

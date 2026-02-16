@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { WorkspaceSearch } from "../managers/workspace";
-import { ValueSetString } from "./types";
+import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
 export type UniformType = {
@@ -12,7 +12,7 @@ export type UniformType = {
  * Reads `.uniforms` files and extracts named values (weapon tags).
  * Each uniform type maps to a `Set<string>` of names/tags.
  */
-export class UniformProvider extends ProviderBase<ValueSetString> {
+export class UniformProvider extends ProviderBase<ValueStringSet> {
     private static readonly UNIFORM_TYPES: Array<UniformType> = [
         {
             type: "weapon",
@@ -42,7 +42,6 @@ export class UniformProvider extends ProviderBase<ValueSetString> {
             const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, `${type}.uniforms`);
 
             if (files.length === 0) {
-                console.info(`UniformProvider: No uniform found for '${type}' in '${this.rootPath}'`);
                 continue;
             }
 
@@ -50,8 +49,9 @@ export class UniformProvider extends ProviderBase<ValueSetString> {
                 console.warn(`UniformProvider: Multiple uniforms found for '${type}' in '${this.rootPath}'. Using first.`);
             }
 
+            const filePath: string = files[0];
             try {
-                const text: string = await fs.promises.readFile(files[0], "utf-8");
+                const text: string = await fs.promises.readFile(filePath, "utf-8");
                 const content: unknown = JSON.parse(text);
                 const set: Set<string> = new Set<string>();
 
@@ -59,9 +59,9 @@ export class UniformProvider extends ProviderBase<ValueSetString> {
                     set.add(value);
                 }
 
-                this.cache.set(type, { value: set, sourcePath: files[0] });
+                this.cache.set(type, { value: set, sourcePath: filePath });
             } catch (error) {
-                console.error(`UniformProvider: Failed to load uniform '${type}' from '${files[0]}'`, error);
+                console.error(`UniformProvider: Failed to load uniform '${type}' from '${filePath}'`, error);
             }
         }
 

@@ -4,7 +4,7 @@ import { PointerType } from "../pointers";
 import { DataService, UniformService } from "../data/service-game";
 
 export class CompletionManager {
-    // the maximum amount of suggestions that will pop up before being cut
+    /** The maximum amount of suggestions that will pop up before being cut. */
     private readonly MAX_SUGGESTIONS: number = 1000;
 
     private static readonly EMPTY_SET: Set<string> = new Set<string>();

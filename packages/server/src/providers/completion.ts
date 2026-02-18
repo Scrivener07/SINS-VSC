@@ -21,11 +21,11 @@ export class CompletionManager {
 
     private static readonly EMPTY_SET: Set<string> = new Set<string>();
 
-    private jsonLanguageService: LanguageService;
-    private documents: TextDocuments<TextDocument>;
-    private entity: IEntityState;
-    private data: DataService;
-    private uniforms: UniformService;
+    private readonly jsonLanguageService: LanguageService;
+    private readonly documents: TextDocuments<TextDocument>;
+    private readonly entity: IEntityState;
+    private readonly data: DataService;
+    private readonly uniforms: UniformService;
 
     constructor(
         jsonLanguageService: LanguageService,

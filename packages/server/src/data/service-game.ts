@@ -20,15 +20,15 @@ import { UniformProvider } from "./provider-uniform";
 import { ILanguageState } from "../types";
 
 export class GameDataService {
-    public indexer: IndexerService;
-    public localization: LocalizationService;
-    public textures: TextureService;
+    public readonly indexer: IndexerService;
+    public readonly localization: LocalizationService;
+    public readonly textures: TextureService;
 
-    public data: DataService;
-    public manifests: ManifestService;
-    public uniforms: UniformService;
+    public readonly data: DataService;
+    public readonly manifests: ManifestService;
+    public readonly uniforms: UniformService;
 
-    private language: ILanguageState;
+    private readonly language: ILanguageState;
 
     constructor(language: ILanguageState) {
         this.language = language;
@@ -91,7 +91,7 @@ export class GameDataService {
 
 export class IndexerService {
     /** File index: concatenation merge (mod files add to base files). */
-    public index: OrderedRoot<ValueStringArray>;
+    public readonly index: OrderedRoot<ValueStringArray>;
 
     constructor() {
         this.index = new OrderedRoot<ValueStringArray>(new ConcatMergeValueStringArray());
@@ -111,7 +111,7 @@ export class LocalizationService {
     private static readonly FILE_EXTENSION = ".localized_text";
 
     /** Localization: last-wins per composite key (mod translations override base). */
-    public languages: Map<string, OrderedRoot<ValueString>>;
+    public readonly languages: Map<string, OrderedRoot<ValueString>>;
 
     constructor() {
         this.languages = new Map<string, OrderedRoot<ValueString>>();
@@ -149,7 +149,7 @@ export class LocalizationService {
 
 export class TextureService {
     /** Textures: last-wins replacement (mod texture overrides base texture). */
-    public root: OrderedRoot<ValueString>;
+    public readonly root: OrderedRoot<ValueString>;
 
     constructor() {
         this.root = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
@@ -166,7 +166,7 @@ export class TextureService {
 }
 
 export class DataService {
-    public root: OrderedRoot<ValueStringSet>;
+    public readonly root: OrderedRoot<ValueStringSet>;
 
     constructor() {
         this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
@@ -183,7 +183,7 @@ export class DataService {
 }
 
 export class ManifestService {
-    public root: OrderedRoot<ValueStringSet>;
+    public readonly root: OrderedRoot<ValueStringSet>;
 
     constructor() {
         this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
@@ -200,7 +200,7 @@ export class ManifestService {
 }
 
 export class UniformService {
-    public root: OrderedRoot<ValueStringSet>;
+    public readonly root: OrderedRoot<ValueStringSet>;
 
     constructor() {
         this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());

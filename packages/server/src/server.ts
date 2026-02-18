@@ -210,7 +210,7 @@ class SinsLanguageServer {
                 // Tell the client that this server supports code completion.
                 completionProvider: {
                     triggerCharacters: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:_".split(""),
-                    resolveProvider: false // you haven't implemented a resolver yet
+                    resolveProvider: false
                 },
 
                 // Tell the client that this server supports hover.

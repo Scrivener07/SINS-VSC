@@ -12,12 +12,11 @@ import { JsonPointer } from "../json-pointer";
 import { ILanguageState } from "../types";
 
 export class DefinitionProvider {
-    private jsonLanguageService: LanguageService;
-    private documents: TextDocuments<TextDocument>;
-
-    private indexer: IndexerService;
-    private localization: LocalizationService;
-    private language: ILanguageState;
+    private readonly jsonLanguageService: LanguageService;
+    private readonly documents: TextDocuments<TextDocument>;
+    private readonly indexer: IndexerService;
+    private readonly localization: LocalizationService;
+    private readonly language: ILanguageState;
 
     constructor(
         jsonLanguageService: LanguageService,
@@ -154,6 +153,8 @@ export class DefinitionProvider {
      * @returns Range of the key in the file, or null if not found
      */
     private async findKeyInFile(filePath: string, identifier: string): Promise<Range | null> {
+        // TODO: This reads the entire file in one shot. For large localization files, this could be inefficient.
+        //       Consider streaming or indexing line offsets for large files.
         try {
             // Read and split the file into lines.
             const text: string = await fs.promises.readFile(filePath, "utf-8");

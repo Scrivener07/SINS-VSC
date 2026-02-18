@@ -12,7 +12,7 @@ enum Severity {
  * Provides an abstraction layer for reporting diagnostics to the client with consistent formatting.
  */
 export class DiagnosticManager {
-    constructor(private diagnostics: Diagnostic[]) {
+    constructor(private readonly diagnostics: Diagnostic[]) {
         this.diagnostics = diagnostics;
     }
 

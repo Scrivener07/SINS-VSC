@@ -13,14 +13,14 @@ import { IEntityState } from "./types";
  */
 export class Validator {
     constructor(
-        private connection: Connection,
-        private jsonLanguageService: LanguageService,
-        private diagnostics: Diagnostic[],
-        private diagnosticManager: DiagnosticManager,
-        private dataManager: DataService,
-        private manifestManager: ManifestService,
-        private uniformManager: UniformService,
-        private entity: IEntityState
+        private readonly connection: Connection,
+        private readonly jsonLanguageService: LanguageService,
+        private readonly diagnostics: Diagnostic[],
+        private readonly diagnosticManager: DiagnosticManager,
+        private readonly dataManager: DataService,
+        private readonly manifestManager: ManifestService,
+        private readonly uniformManager: UniformService,
+        private readonly entity: IEntityState
     ) {
         this.connection = connection;
         this.jsonLanguageService = jsonLanguageService;
@@ -56,6 +56,58 @@ export class Validator {
             uri: textDocument.uri,
             diagnostics
         });
+    }
+
+    private async doValidation(document: TextDocument, jsonDocument: JSONDocument, currentEntityType: PointerType): Promise<Diagnostic[]> {
+        this.diagnostics.length = 0;
+        const walk = (node: ASTNode | undefined, pointer: PointerType) => {
+            if (!node || node.value === null) {
+                return;
+            }
+
+            if (node.type === "array") {
+                node.items.forEach((item) => walk(item, pointer));
+                return;
+            }
+
+            const range: Range = {
+                start: document.positionAt(node.offset),
+                end: document.positionAt(node.offset + node.length)
+            };
+
+            const value = node.value as string;
+            if (node.parent?.type === "property") {
+                const key = node.parent.keyNode.value as string;
+                this.validate(pointer, key, value, range, currentEntityType);
+            }
+        };
+
+        const schemas = await this.jsonLanguageService.getMatchingSchemas(document, jsonDocument);
+        schemas.forEach((schemaMatch) => {
+            const props = schemaMatch.schema.properties;
+            if (!props) {
+                return;
+            }
+
+            Object.keys(props).forEach((key) => {
+                const schemaProp: any = props[key];
+
+                if (!("pointer" in schemaProp)) {
+                    return;
+                }
+
+                const nodes = JsonAST.findNodes(jsonDocument.root, key);
+                nodes.forEach((node) => {
+                    // prevent validation on properties with the same names that aren't in the same context
+                    if (!JsonAST.isWithinSchemaNode(node.offset, schemaMatch.node)) {
+                        return;
+                    }
+                    walk(node.valueNode, schemaProp.pointer);
+                });
+            });
+        });
+
+        return this.diagnostics;
     }
 
     private validate(pointer: PointerType, key: string, value: string, range: Range, currentEntity: PointerType): void {
@@ -113,57 +165,5 @@ export class Validator {
                 }
                 break;
         }
-    }
-
-    public async doValidation(document: TextDocument, jsonDocument: JSONDocument, currentEntityType: PointerType): Promise<Diagnostic[]> {
-        this.diagnostics.length = 0;
-        const walk = (node: ASTNode | undefined, pointer: PointerType) => {
-            if (!node || node.value === null) {
-                return;
-            }
-
-            if (node.type === "array") {
-                node.items.forEach((item) => walk(item, pointer));
-                return;
-            }
-
-            const range: Range = {
-                start: document.positionAt(node.offset),
-                end: document.positionAt(node.offset + node.length)
-            };
-
-            const value = node.value as string;
-            if (node.parent?.type === "property") {
-                const key = node.parent.keyNode.value as string;
-                this.validate(pointer, key, value, range, currentEntityType);
-            }
-        };
-
-        const schemas = await this.jsonLanguageService.getMatchingSchemas(document, jsonDocument);
-        schemas.forEach((schemaMatch) => {
-            const props = schemaMatch.schema.properties;
-            if (!props) {
-                return;
-            }
-
-            Object.keys(props).forEach((key) => {
-                const schemaProp: any = props[key];
-
-                if (!("pointer" in schemaProp)) {
-                    return;
-                }
-
-                const nodes = JsonAST.findNodes(jsonDocument.root, key);
-                nodes.forEach((node) => {
-                    // prevent validation on properties with the same names that aren't in the same context
-                    if (!JsonAST.isWithinSchemaNode(node.offset, schemaMatch.node)) {
-                        return;
-                    }
-                    walk(node.valueNode, schemaProp.pointer);
-                });
-            });
-        });
-
-        return this.diagnostics;
     }
 }

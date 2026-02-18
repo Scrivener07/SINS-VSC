@@ -11,14 +11,13 @@ import { JsonPointer } from "../json-pointer";
 import { ILanguageState } from "../types";
 
 export class HoverProvider {
-    private jsonLanguageService: LanguageService;
-    private documents: TextDocuments<TextDocument>;
-    private workspace: WorkspaceService;
-    private indexer: IndexerService;
-    private localization: LocalizationService;
-    private textures: TextureService;
-
-    private language: ILanguageState;
+    private readonly jsonLanguageService: LanguageService;
+    private readonly documents: TextDocuments<TextDocument>;
+    private readonly workspace: WorkspaceService;
+    private readonly indexer: IndexerService;
+    private readonly localization: LocalizationService;
+    private readonly textures: TextureService;
+    private readonly language: ILanguageState;
 
     constructor(
         jsonLanguageService: LanguageService,

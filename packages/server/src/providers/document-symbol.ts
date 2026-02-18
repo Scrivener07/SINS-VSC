@@ -3,9 +3,9 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { DocumentSymbol, JSONDocument, LanguageService } from "vscode-json-languageservice";
 
 export class DocumentSymbolProvider {
-    private jsonLanguageService: LanguageService;
+    private readonly jsonLanguageService: LanguageService;
 
-    private documents: TextDocuments<TextDocument>;
+    private readonly documents: TextDocuments<TextDocument>;
 
     constructor(jsonLanguageService: LanguageService, documents: TextDocuments<TextDocument>) {
         this.jsonLanguageService = jsonLanguageService;

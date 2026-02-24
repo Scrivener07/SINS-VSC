@@ -148,8 +148,9 @@
 		"compile-tests": "tsc -b",
 		"watch-tests": "tsc -b -w",
 		"pretest": "npm run compile-tests && npm run compile && npm run lint",
-		"lint": "eslint src",
-		"test": "vscode-test"
+		"lint": "eslint packages/*/src/*",
+		"test": "vscode-test",
+		"test:server": "npm run compile-tests && mocha --config tests/server-test/.mocharc.json"
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.10",
@@ -161,6 +162,7 @@
 		"@vscode/test-electron": "^2.5.2",
 		"copy-webpack-plugin": "^13.0.1",
 		"eslint": "^9.34.0",
+		"mocha": "^11.7.5",
 		"ts-loader": "^9.5.4",
 		"typescript": "^5.9.2",
 		"webpack": "^5.101.3",

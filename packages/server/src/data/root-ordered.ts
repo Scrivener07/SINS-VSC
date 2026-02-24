@@ -23,10 +23,16 @@ import { IDataRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IDa
  * - Use {@link UnionMerge} for set union (entity identifiers).
  */
 export class OrderedRoot<T extends IDataValue<unknown>> implements IDataRoot<T> {
+    /** The merge strategy to use for combining provider values. */
     private readonly mergeStrategy: IMergeStrategy<T>;
 
+    /** The list of providers, ordered by priority (low to high). */
     private providers: IDataProvider<T>[] = [];
+
+    /** The merged cache of key→value. */
     private merged = new Map<string, T>();
+
+    /** The provenance information for each key. */
     private provenance = new Map<string, IProvenance>();
 
     /** Tracks which keys each provider contributes, for incremental recomputation. */
@@ -212,7 +218,7 @@ export class OrderedRoot<T extends IDataValue<unknown>> implements IDataRoot<T> 
         const meta: IProvenance = this.provenance.get(key)!;
         return {
             key,
-            value,
+            item: value,
             providerId: meta.providerId,
             sourcePath: meta.sourcePath,
             isOverride: meta.isOverride
@@ -228,7 +234,7 @@ export class OrderedRoot<T extends IDataValue<unknown>> implements IDataRoot<T> 
             if (value !== undefined) {
                 result.push({
                     key,
-                    value,
+                    item: value,
                     providerId: provider.identifier,
                     sourcePath: value.sourcePath,
                     isOverride: false

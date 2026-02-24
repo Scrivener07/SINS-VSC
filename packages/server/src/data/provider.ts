@@ -50,42 +50,4 @@ export abstract class ProviderBase<TValue extends IDataValue<unknown>> implement
             listener();
         }
     }
-
-    //#region Helper
-
-    // private add(entry: [string, TValue]): void {
-    //     const [key, value] = entry;
-    //     this.cache.set(key, value);
-    // }
-
-    // private addEach(entries: Array<[string, TValue]>): void {
-    //     for (const [key, entry] of entries) {
-    //         this.add([key, entry]);
-    //     }
-    // }
-
-    // private remove(entry: [string, TValue]): void {
-    //     const [key, value] = entry;
-    //     this.cache.delete(key);
-    // }
-
-    // private removeEach(entries: Array<[string, TValue]>): void {
-    //     for (const [key, entry] of entries) {
-    //         this.remove([key, entry]);
-    //     }
-    // }
-
-    // private clear(): void {
-    //     this.cache.clear();
-    // }
-
-    // //#endregion
-
-    // //#region Logging
-
-    // protected logLoadComplete(itemCount: number, itemType: string): void {
-    //     console.log(`${this.constructor.name}: Loaded ${itemCount} ${itemType} for '${this.identifier}'`);
-    // }
-
-    //#endregion
 }

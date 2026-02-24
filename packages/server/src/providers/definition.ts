@@ -73,7 +73,7 @@ export class DefinitionProvider {
         //----------------------------------------
 
         // First, get a list of file paths from the indexer for the given identifier.
-        const paths: string[] | undefined = this.indexer.index.get(identifier)?.value.value;
+        const paths: string[] | undefined = this.indexer.index.get(identifier)?.item.value;
 
         // Default to pointing to the start of the file.
         const range: Range = Range.create({ character: 0, line: 0 }, { character: 0, line: 0 });

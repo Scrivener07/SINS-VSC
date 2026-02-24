@@ -2,21 +2,27 @@
 	"compilerOptions": {
 		"module": "commonjs",
 		"target": "ES2024",
+		"outDir": "out",
+		"rootDir": "src",
 		"lib": [
 			"ES2024"
 		],
-		"outDir": "out",
-		"rootDir": "src",
 		"sourceMap": true,
 		"strict": true,
-		"composite": true
+		"types": [
+			"mocha",
+			"node"
+		]
 	},
 	"include": [
-		"src"
+		"src/**/*"
 	],
 	"references": [
 		{
-			"path": "../shared"
+			"path": "../../packages/server"
+		},
+		{
+			"path": "../../packages/shared"
 		}
 	]
 }

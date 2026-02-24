@@ -3,9 +3,10 @@
 {
 	"version": "2.0.0",
 	"tasks": [
+		//#region Compile
 		{
 			// Runs Webpack once to build the dist folder.
-			"label": "npm: compile",
+			"label": "compile: extension",
 			"detail": "One-shot build for the extension (dist)",
 			"type": "npm",
 			"script": "compile",
@@ -16,7 +17,7 @@
 		},
 		{
 			// Runs TypeScript once to build the out folder.
-			"label": "npm: compile-tests",
+			"label": "compile: tests",
 			"detail": "One-shot build for tests (out)",
 			"type": "npm",
 			"script": "compile-tests",
@@ -27,30 +28,35 @@
 		},
 		{
 			// A convenience task that runs both `compile` and `compile-tests` in parallel.
-			"label": "Build All",
+			"label": "compile: all",
+			"detail": "One-shot build for the extension and tests",
 			"dependsOn": [
-				"npm: compile",
-				"npm: compile-tests"
+				"compile: extension",
+				"compile: tests"
 			],
 			"group": "build",
 			"problemMatcher": []
 		},
-        {
+		//#endregion
+		//#region Watch
+		{
 			// A watcher build task for the shared package.
-            "label": "watch-shared",
-            "type": "npm",
-            "script": "watch",
-            "path": "packages/shared",
-            "problemMatcher": "$tsc-watch",
-            "isBackground": true,
-            "presentation": {
-                "reveal": "never",
-                "group": "watchers"
-            },
-            "group": "build"
-        },
+			"label": "watch: shared",
+			"type": "npm",
+			"script": "watch",
+			"path": "packages/shared",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			},
+			"group": "build"
+		},
 		{
 			// The default build task starts a watcher instance.
+			"label": "watch: extension",
+			"detail": "Compiles and watches extension packages",
 			"type": "npm",
 			"script": "watch",
 			"problemMatcher": "$ts-webpack-watch",
@@ -63,9 +69,13 @@
 				"kind": "build",
 				"isDefault": true
 			},
-            "dependsOn": ["watch-shared"]
+			"dependsOn": [
+				"watch: shared"
+			]
 		},
 		{
+			// A TypeScript watcher for tests.
+			"label": "watch: tests",
 			"type": "npm",
 			"script": "watch-tests",
 			"problemMatcher": "$tsc-watch",
@@ -77,12 +87,55 @@
 			"group": "build"
 		},
 		{
-			"label": "tasks: watch-tests",
+			// Runs both the extension and test watchers in parallel.
+			"label": "watch: all",
+			"detail": "Watches both extension and tests",
 			"dependsOn": [
-				"npm: watch",
-				"npm: watch-tests"
+				"watch: extension",
+				"watch: tests"
 			],
 			"problemMatcher": []
+		},
+		//#endregion
+		//#region Test
+		{
+			"label": "test: server",
+			"detail": "Run server unit tests with Mocha",
+			"type": "npm",
+			"script": "test:server",
+			"group": "test",
+			"presentation": {
+				"panel": "dedicated"
+			},
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "test: extension",
+			"detail": "Run extension integration tests",
+			"type": "npm",
+			"script": "test",
+			"group": "test",
+			"presentation": {
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			// This is the default test task.
+			"label": "test: all",
+			"detail": "Run all tests (server + extension)",
+			"dependsOn": [
+				"test: server",
+				"test: extension"
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"problemMatcher": []
 		}
+		//#endregion
 	]
 }

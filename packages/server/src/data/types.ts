@@ -74,14 +74,14 @@ export type ValueString = IDataValue<string>;
 export type ValueStringArray = IDataValue<string[]>;
 export type ValueStringSet = IDataValue<Set<string>>;
 
-export type IProvenance = Omit<IResolution<unknown>, "value" | "key">;
+export type IProvenance = Omit<IResolution<unknown>, "key" | "item">;
 
 /**
  * Represents a resolved value for a given key.
  */
 export interface IResolution<T> {
     key: string;
-    value: T;
+    item: T;
     providerId: string;
     sourcePath: string;
     isOverride: boolean;

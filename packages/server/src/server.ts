@@ -12,7 +12,7 @@ import {
     Diagnostic
 } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { getLanguageService, JSONDocument, LanguageService } from "vscode-json-languageservice";
+import { getLanguageService, LanguageService } from "vscode-json-languageservice";
 import { CompletionManager, DefinitionProvider, HoverProvider, DiagnosticManager, DocumentSymbolProvider } from "./providers";
 import { SchemaManager } from "./managers";
 import { Validator } from "./validate";
@@ -272,11 +272,7 @@ class SinsLanguageServer {
      */
     private onDidOpen(event: { document: TextDocument }): void {
         this.entity.pointer = this.getCurrentEntityType(event.document.uri);
-        this.connection.console.info(`[Server(${process.pid}) Document opened: ${event.document.uri}`);
-    }
-
-    private getCurrentEntityType(uri: string): PointerType {
-        return PointerType[path.extname(uri).slice(1) as keyof typeof PointerType] ?? PointerType.none;
+        this.connection.console.info(`[Server(${process.pid}) Document opened: ${this.entity.pointer}, ${event.document.uri}`);
     }
 
     /**
@@ -290,6 +286,7 @@ class SinsLanguageServer {
         }
 
         this.entity.pointer = this.getCurrentEntityType(change.document.uri);
+        this.connection.console.info(`[Server(${process.pid}) Document changed: ${this.entity.pointer}, ${change.document.uri}`);
         this.language.code = await this.sendRequest(shared.PROPERTIES.language);
         await this.validator.validateTextDocument(change.document);
     }
@@ -301,10 +298,15 @@ class SinsLanguageServer {
     private onDidClose(event: { document: TextDocument }): void {
         // Clear diagnostics for closed files if necessary with empty array.
         // TODO: This is over optimistic.
+        this.connection.console.info(`[Server(${process.pid}) Document closed: ${this.entity.pointer}, ${event.document.uri}`);
         this.connection.sendDiagnostics({
             uri: event.document.uri,
             diagnostics: []
         });
+    }
+
+    private getCurrentEntityType(uri: string): PointerType {
+        return PointerType[path.extname(uri).slice(1) as keyof typeof PointerType] ?? PointerType.none;
     }
 
     //#endregion
@@ -315,7 +317,7 @@ class SinsLanguageServer {
      * Incrementally updates providers when client workspace folders change.
      */
     private async onWorkspaceFoldersChanged(info: shared.IWorkspaceInfo): Promise<void> {
-        this.connection.console.info("Workspace folders changed. Updating providers...");
+        this.connection.console.info(`[Server(${process.pid}) Workspace folders changed: ${JSON.stringify(info, null, 4)}]`);
 
         const oldGameFolder: string | null = this.workspaceService.gameFolder;
         const oldModFolders: Set<string> = new Set(this.workspaceService.modFolders);
@@ -390,14 +392,14 @@ class SinsLanguageServer {
     /**
      * Sends a data request to client.
      */
-    private async sendRequest(req: string): Promise<string> {
+    private async sendRequest(request: string): Promise<string> {
         // Using `sendRequest` creates client specific coupling on the agnostic server.
-        return this.connection.sendRequest(req).then((a: any) => a);
+        return this.connection.sendRequest(request).then((a: any) => a);
     }
 
     private request_getTexturePath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getTexturePath> Getting file path for texture indentifier: ${identifier}`);
-        const path: string | undefined = this.gameDataService.textures.root.get(identifier)?.value.value;
+        const path: string | undefined = this.gameDataService.textures.root.get(identifier)?.item.value;
         if (path) {
             return path;
         } else {
@@ -408,7 +410,7 @@ class SinsLanguageServer {
 
     private request_getUniformPath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getUniformPath> Getting file path for uniform indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value.value;
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.item.value;
         if (paths) {
             // Return the first path found.
             if (paths.length > 1) {
@@ -432,7 +434,7 @@ class SinsLanguageServer {
      */
     private request_getPlayerIdentifiers(): string[] {
         console.info("<SinsLanguageServer::request_getPlayerIdentifiers> Getting player IDs from cache.");
-        const players: Set<string> | undefined = this.gameDataService.data.root.get("player")?.value.value;
+        const players: Set<string> | undefined = this.gameDataService.data.root.get("player")?.item.value;
         if (players) {
             return Array.from(players);
         } else {
@@ -447,7 +449,7 @@ class SinsLanguageServer {
      */
     private request_getEntityPath(identifier: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getEntityPath> Getting file path for entity indentifier: ${identifier}`);
-        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.value.value;
+        const paths: string[] | undefined = this.gameDataService.indexer.index.get(identifier)?.item.value;
         if (paths) {
             // Return the first path found.
             if (paths.length > 1) {
@@ -470,7 +472,7 @@ class SinsLanguageServer {
      */
     private request_getLocalization(language: string, key: string): string | undefined {
         console.info(`<SinsLanguageServer::request_getLocalization> Getting localization for key: ${key} in language: ${language}`);
-        const text: string | undefined = this.gameDataService.localization.get(language)?.get(key)?.value.value;
+        const text: string | undefined = this.gameDataService.localization.get(language)?.get(key)?.item.value;
         if (text) {
             return text;
         } else {

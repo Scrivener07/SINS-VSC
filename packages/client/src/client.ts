@@ -134,12 +134,16 @@ export class ClientManager implements vscode.Disposable {
 
         // Re-fetch the current game and mod folders.
         const info: shared.IWorkspaceInfo = await ClientManager.getWorkspaceInfo();
-        console.info("Workspace Info Updated ", JSON.stringify(info, null, 2));
+        console.info("Workspace Info Updated ", JSON.stringify(info, null, 4));
 
         // Send the updated folder list to the server.
         await this.languageClient.sendNotification(ClientNotification.WORKSPACE_FOLDERS_CHANGED, info);
     }
 
+    /**
+     * Creates a data transfer object containing the paths of the game and mod folders in the current workspace.
+     * @returns A promise that resolves to an object containing the game and mod folder paths.
+     */
     private static async getWorkspaceInfo(): Promise<shared.IWorkspaceInfo> {
         const gameFolder: vscode.Uri = await GameDirectory.get();
         const modFolders: vscode.Uri[] = await ModificationDirectory.fromWorkspace();

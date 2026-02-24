@@ -99,7 +99,7 @@ export class HoverProvider {
     }
 
     private async getWeapon(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths = this.indexer.index.get(key)?.value.value;
+        const paths = this.indexer.index.get(key)?.item.value;
         const markdown: string[] = [];
         if (paths) {
             const file: string = await fs.promises.readFile(paths[0], "utf-8");
@@ -124,12 +124,12 @@ export class HoverProvider {
     }
 
     private async getWeaponTag(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths: string | undefined = this.indexer.index.get("weapon")?.value.value.find((found) => found.endsWith(".uniforms"));
+        const paths: string | undefined = this.indexer.index.get("weapon")?.item.value.find((found) => found.endsWith(".uniforms"));
         const markdown: string[] = [];
         if (paths) {
             const contents = JSON.parse(await fs.promises.readFile(paths, "utf-8"));
             const local_key = contents?.weapon_tags.find((found: any) => found?.name === key)?.localized_name;
-            const local_text: string | undefined = this.localization.get(language)?.get(local_key)?.value.value;
+            const local_text: string | undefined = this.localization.get(language)?.get(local_key)?.item.value;
 
             markdown.push(`**Tag**`);
             markdown.push("\n");
@@ -150,7 +150,7 @@ export class HoverProvider {
      * Checks if a string is a known localization key and returns a `Hover` object if so.
      */
     private getLocalizedText(key: string, language: string = "en"): Hover | null {
-        const text: string | undefined = this.localization.get(language)?.get(key)?.value.value;
+        const text: string | undefined = this.localization.get(language)?.get(key)?.item.value;
         if (!text) {
             return null;
         }
@@ -183,7 +183,7 @@ export class HoverProvider {
             return null;
         }
 
-        const fullPath: string = this.textures.root.get(key)?.value.value || "";
+        const fullPath: string = this.textures.root.get(key)?.item.value || "";
 
         try {
             const fileUrl: string = pathToFileURL(fullPath).toString();

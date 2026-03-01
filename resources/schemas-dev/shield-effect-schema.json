@@ -1,0 +1,62 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"primary": {
+			"$ref": "#/$defs/shield_effect_definition"
+		},
+		"secondary": {
+			"$ref": "#/$defs/shield_effect_definition"
+		}
+	},
+	"$defs": {
+		"mesh_ptr": {
+			"type": "string"
+		},
+		"texture_animation_ptr": {
+			"type": "string"
+		},
+		"mutation_ptr": {
+			"type": "string"
+		},
+		"shield_effect_definition": {
+			"type": "object",
+			"required": [
+				"mesh",
+				"impact_texture_animation",
+				"color",
+				"max_radius",
+				"duration",
+				"fps",
+				"min_radius"
+			],
+			"properties": {
+				"mesh": {
+					"$ref": "#/$defs/mesh_ptr"
+				},
+				"impact_texture_animation": {
+					"$ref": "#/$defs/texture_animation_ptr"
+				},
+				"color": {
+					"type": "string"
+				},
+				"max_radius": {
+					"type": "number"
+				},
+				"duration": {
+					"type": "number"
+				},
+				"fps": {
+					"type": "number"
+				},
+				"min_radius": {
+					"type": "number"
+				},
+				"enabling_mutation": {
+					"$ref": "#/$defs/mutation_ptr"
+				}
+			}
+		}
+	}
+}

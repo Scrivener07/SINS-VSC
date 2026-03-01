@@ -1,0 +1,48 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"base_color_texture": {
+			"$ref": "#/$defs/file_texture_ptr"
+		},
+		"normal_texture": {
+			"$ref": "#/$defs/file_texture_ptr"
+		},
+		"mask_texture": {
+			"$ref": "#/$defs/file_texture_ptr"
+		},
+		"occlusion_roughness_metallic_texture": {
+			"$ref": "#/$defs/file_texture_ptr"
+		},
+		"emissive_factor": {
+			"type": "number"
+		},
+		"emissive_hue_strength": {
+			"type": "number"
+		},
+		"base_color_factor": {
+			"type": "array",
+			"items": {
+				"type": "number"
+			}
+		},
+		"roughness_factor": {
+			"type": "number"
+		},
+		"metallic_factor": {
+			"type": "number"
+		},
+		"has_transparency": {
+			"type": "boolean"
+		},
+		"parallax_factor": {
+			"type": "number"
+		}
+	},
+	"$defs": {
+		"file_texture_ptr": {
+			"type": "string"
+		}
+	}
+}

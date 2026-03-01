@@ -1,0 +1,107 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"glow_texture": {
+			"$ref": "#/$defs/brush_ptr"
+		},
+		"core_texture": {
+			"$ref": "#/$defs/brush_ptr"
+		},
+		"glow_color": {
+			"type": "string"
+		},
+		"core_color": {
+			"type": "string"
+		},
+		"width": {
+			"type": "number"
+		},
+		"glow_tiling_animation_rate": {
+			"type": "number"
+		},
+		"core_tiling_animation_rate": {
+			"type": "number"
+		},
+		"core_fade_in_duration": {
+			"type": "number"
+		},
+		"core_fade_out_duration": {
+			"type": "number"
+		},
+		"particle_effects": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"properties": {
+					"particle_effect": {
+						"type": "string"
+					},
+					"interval_distance": {
+						"type": "array",
+						"items": {
+							"type": "number"
+						},
+						"minItems": 2,
+						"maxItems": 2
+					}
+				}
+			}
+		},
+		"basic_constants": {
+			"type": "object",
+			"properties": {
+				"depth_fade_opacity": {
+					"type": "number"
+				},
+				"emissive_factor": {
+					"type": "number"
+				},
+				"alpha_ramp_curvature": {
+					"type": "number"
+				},
+				"alpha_ramp_steepness": {
+					"type": "number"
+				},
+				"alpha_ramp_growth_delay": {
+					"type": "number"
+				},
+				"alpha_ramp_max_alpha_scalar": {
+					"type": "number"
+				}
+			}
+		},
+		"light": {
+			"type": "object",
+			"required": [
+				"type",
+				"color",
+				"intensity",
+				"surface_radius"
+			],
+			"properties": {
+				"type": {
+					"type": "string",
+					"enum": [
+						"line"
+					]
+				},
+				"color": {
+					"type": "string"
+				},
+				"intensity": {
+					"type": "number"
+				},
+				"surface_radius": {
+					"type": "number"
+				}
+			}
+		}
+	},
+	"$defs": {
+		"brush_ptr": {
+			"type": "string"
+		}
+	}
+}

@@ -3337,7 +3337,7 @@
                     "$ref": "#/$defs/action_constraint"
                 }
             },
-            "anyOf": [
+            "allOf": [
                 {
                     "if": {
                         "properties": {
@@ -4899,7 +4899,7 @@
                                             ]
                                         }
                                     },
-                                    "anyOf": [
+                                    "allOf": [
                                         {
                                             "if": {
                                                 "properties": {

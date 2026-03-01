@@ -1,0 +1,42 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"is_positionable": {
+			"type": "boolean"
+		},
+		"is_looping": {
+			"type": "boolean"
+		},
+		"is_streaming": {
+			"type": "boolean"
+		},
+		"min_attenuation_distance": {
+			"type": "number"
+		},
+		"data": {
+			"$ref": "#/$defs/ogg_ptr"
+		},
+		"sound_group": {
+			"type": "string",
+			"enum": [
+				"hit_shield",
+				"exhaust",
+				"ability",
+				"hit_hull",
+				"weapon_muzzle_light",
+				"weapon_muzzle_medium",
+				"weapon_muzzle_heavy",
+				"hyperspace_exit",
+				"hyperspace_enter",
+				"hyperspace_charge"
+			]
+		}
+	},
+	"$defs": {
+		"ogg_ptr": {
+			"type": "string"
+		}
+	}
+}

@@ -1,6 +1,7 @@
 import { SchemaConfiguration } from "vscode-json-languageservice";
 import { Entity } from "../entity";
 import { PointerType } from "../../pointers";
+import { SchemaBuilder as _ } from "../../schema-builder";
 
 export class Player extends Entity {
     public config: SchemaConfiguration = { fileMatch: ["*.player"], uri: "" };
@@ -9,8 +10,10 @@ export class Player extends Entity {
     public patch(): SchemaConfiguration {
         this.setUri(...this.path);
         const schema: any = this.schemaManager.parseSchema(...this.path);
+        this.getNodeMap(schema);
 
-        schema.properties.buildable_units = { ...schema.properties.buildable_units, pointer: PointerType.unit };
+        this.setProperty("buildable_units", _.array({ items: _.string(PointerType.unit) }));
+        this.setProperty("structures", _.array({ items: _.string(PointerType.unit) }));
 
         this.setSchema(schema);
         return this.config;

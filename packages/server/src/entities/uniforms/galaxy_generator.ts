@@ -2,7 +2,7 @@ import { JSONSchema } from "vscode-json-languageservice";
 import { SchemaConfiguration } from "vscode-json-languageservice";
 import { Entity } from "../entity";
 
-export class GalaxyGenerator extends Entity {
+export class GalaxyGeneratorUniforms extends Entity {
     public config: SchemaConfiguration = { fileMatch: ["galaxy_generator.uniforms"], uri: "" };
     public path: string[] = [this.schemaManager.schemasPath, "galaxy-generator-uniforms-schema.json"];
 

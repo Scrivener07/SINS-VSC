@@ -60,6 +60,12 @@ Eager merge flow
 - Remove the double loop in `recomputeKeys`, and wire `sourcePath` correctly.
 */
 
+export interface IDataSource {
+    directory: string;
+    name: string;
+    priority: number;
+}
+
 //#region Providers
 
 /**

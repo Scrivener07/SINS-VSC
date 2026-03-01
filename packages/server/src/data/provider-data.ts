@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
-import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
+import { IDataValue } from "./types";
 
 /**
  * Scans known file extensions and collects identifiers (filename without extension) into categorical sets.
@@ -10,7 +10,7 @@ import { ProviderBase } from "./provider";
  *
  * Also scans asset types (textures, brushes, meshes, fonts) that DataManager handles.
  */
-export class DataProvider extends ProviderBase<ValueStringSet> {
+export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     private readonly language: string;
 
     constructor(identifier: string, name: string, priority: number, rootPath: string, language: string) {
@@ -38,12 +38,12 @@ export class DataProvider extends ProviderBase<ValueStringSet> {
         console.log(`DataProvider: Loaded ${this.cache.size} categories for '${this.identifier}'`);
     }
 
-    private toFile(id: string): string {
-        return path.basename(id).toLocaleLowerCase();
+    private toFile(filepath: string): string {
+        return path.basename(filepath).toLocaleLowerCase();
     }
 
-    private toFileName(id: string): string {
-        return path.basename(id, path.extname(id)).toLocaleLowerCase();
+    private toFileName(filepath: string): string {
+        return path.basename(filepath, path.extname(filepath)).toLocaleLowerCase();
     }
 
     private async loadLocalizations(): Promise<void> {

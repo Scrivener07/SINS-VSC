@@ -1,6 +1,6 @@
 import * as path from "path";
 import { WorkspaceSearch } from "../managers/workspace";
-import { ValueStringArray } from "./types";
+import { IDataValue } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
@@ -25,9 +25,8 @@ import { ProviderBase } from "./provider";
  * - `c:\\MyMod1\\localized_text\\en.localized_text`
  * - `c:\\MyMod2\\localized_text\\en.localized_text`
  */
-export class IndexProvider extends ProviderBase<ValueStringArray> {
+export class IndexProvider extends ProviderBase<IDataValue<string[]>> {
     private static readonly FILE_EXTENSIONS: string[] = [
-        ".mod_meta_data",
         ".localized_text",
         ".uniforms",
         ".ability",
@@ -98,21 +97,12 @@ export class IndexProvider extends ProviderBase<ValueStringArray> {
         const fileName: string = path.basename(filePath);
         let fileKey: string = fileName.split(".")[0];
 
-        if (!fileKey) {
-            if (fileName.toLowerCase() === ".mod_meta_data") {
-                fileKey = ".mod_meta_data";
-                console.info(`IndexProvider: Using special key for mod meta data file: '${filePath}'`);
-            } else {
-                console.warn(`IndexProvider: File is missing a key name: '${filePath}'`);
-            }
-        }
-
         const existing = this.cache.get(fileKey);
         if (existing) {
             // Append to the existing paths array for this identifier.
             existing.value.push(filePath);
         } else {
-            const valueType: ValueStringArray = { value: [filePath], sourcePath: filePath };
+            const valueType: IDataValue<string[]> = { value: [filePath], sourcePath: filePath };
             this.cache.set(fileKey, valueType);
         }
     }

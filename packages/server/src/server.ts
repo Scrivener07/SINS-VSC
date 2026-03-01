@@ -236,22 +236,30 @@ class SinsLanguageServer {
         // Get current language from vscode settings
         this.language.code = await this.sendRequest(shared.PROPERTIES.language);
 
-        // Initialize game workspace data layer.
-        if (this.workspaceService.gameFolder) {
-            await this.gameDataService.create_game(this.workspaceService.gameFolder);
-        } else {
-            this.connection.console.warn("No game folder found in workspace. Skipping game layer initialization.");
-            this.connection.window.showWarningMessage("SINS: No game folder configured. Some features will be unavailable.");
-            return;
+        // TODO: Obsolete this in favor of draft-3.
+        {
+            // Initialize game workspace data layer.
+            if (this.workspaceService.gameFolder) {
+                await this.gameDataService.create(this.workspaceService.gameFolder);
+            } else {
+                this.connection.console.warn("No game folder found in workspace. Skipping game layer initialization.");
+                this.connection.window.showWarningMessage("SINS: No game folder configured. Some features will be unavailable.");
+                return;
+            }
+
+            // Initialize mod workspace data layer.
+            for (const [key, value] of this.workspaceService.modFolders) {
+                await this.gameDataService.create(value);
+            }
+
+            // Load all data to populate caches before processing any documents.
+            await this.gameDataService.reload();
         }
 
-        // Initialize mod workspace data layer.
-        for (const modFolder of this.workspaceService.modFolders) {
-            await this.gameDataService.create_mod(modFolder);
-        }
-
-        // Load all data to populate caches before processing any documents.
-        await this.gameDataService.reload();
+        // TODO: Implement draft-3.
+        // {
+        //     await this.example2.test();
+        // }
 
         // Validate all open documents now that initialization is complete.
         for (const document of this.documents.all()) {
@@ -319,8 +327,8 @@ class SinsLanguageServer {
     private async onWorkspaceFoldersChanged(info: shared.IWorkspaceInfo): Promise<void> {
         this.connection.console.info(`[Server(${process.pid}) Workspace folders changed: ${JSON.stringify(info, null, 4)}]`);
 
-        const oldGameFolder: string | null = this.workspaceService.gameFolder;
-        const oldModFolders: Set<string> = new Set(this.workspaceService.modFolders);
+        const oldGameFolder: string | undefined = this.workspaceService.gameFolder?.directory;
+        const oldModFolders: Set<string> = new Set(this.workspaceService.modFolders.keys());
 
         const newGameFolder: string | null = info.gameFolder;
         const newModFolders: Set<string> = new Set(info.modFolders);
@@ -350,8 +358,12 @@ class SinsLanguageServer {
         }
 
         // Update workspace service state.
-        this.workspaceService.gameFolder = newGameFolder;
-        this.workspaceService.modFolders = Array.from(newModFolders);
+        this.workspaceService.gameFolder = WorkspaceService.create(newGameFolder, "Base Game", 0);
+        let index = 1;
+        for (const modFolder of newModFolders) {
+            this.workspaceService.modFolders.set(modFolder.toLowerCase(), WorkspaceService.create(modFolder, "Mod", index));
+            index++;
+        }
 
         // Remove providers for removed folders.
         for (const folder of removed) {
@@ -361,12 +373,16 @@ class SinsLanguageServer {
 
         // Add providers for added folders.
         for (const folder of added) {
-            if (folder === newGameFolder) {
-                this.connection.console.info(`Adding providers for: ${folder} (game)`);
-                await this.gameDataService.create_game(folder);
-            } else {
-                this.connection.console.info(`Adding providers for: ${folder} (mod)`);
-                await this.gameDataService.create_mod(folder);
+            if (this.workspaceService.gameFolder.directory.toLowerCase() === folder.toLowerCase()) {
+                await this.gameDataService.create(this.workspaceService.gameFolder);
+            } //
+            else if (this.workspaceService.modFolders.has(folder.toLowerCase())) {
+                const found = this.workspaceService.modFolders.get(folder.toLowerCase());
+                if (found) {
+                    await this.gameDataService.create(found);
+                } else {
+                    this.connection.console.warn(`Added mod folder not found in workspace service: ${folder}`);
+                }
             }
         }
 

@@ -1,9 +1,9 @@
 import * as assert from "assert";
 import * as path from "path";
 import { JSONSchema, SchemaConfiguration } from "vscode-json-languageservice";
-import { SchemaManager } from "../../../packages/server/out/managers/schema";
+import { SchemaManager } from "../../../../packages/server/out/managers/schema";
 
-const PROJECT_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+const PROJECT_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 const RESOURCES_ROOT: string = path.join(PROJECT_ROOT, "dist", "resources");
 
 suite("SchemaManager", function () {

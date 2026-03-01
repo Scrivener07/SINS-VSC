@@ -42,3 +42,33 @@ These are the relevant configuration files for this test.
 1. Create a new `*.test.ts` file in `src/`.
 2. Compile: `npm run compile-tests`
 3. Run: `npm run test:server`
+
+
+
+## Diagnostic Harness and Unit Tests
+Mocha has built-in filtering via `--grep` and `--ignore`.
+
+The `[Diagnostic]` prefix convention for suite names is the only thing that needs to be maintained.
+
+```shell
+# Run ONLY the diagnostic
+mocha --grep "\[Diagnostic\]"
+
+# Run everything EXCEPT diagnostics (normal unit tests)
+mocha --grep "\[Diagnostic\]" --invert
+```
+
+```json
+{
+    "scripts": {
+        "test": "mocha --grep \"\\[Diagnostic\\]\" --invert",
+        "diagnostic": "mocha --grep \"\\[Diagnostic\\]\""
+    }
+}
+```
+
+
+| Command              | Description                              |
+|----------------------|------------------------------------------|
+| `npm test`           | Normal tests only (diagnostics excluded) |
+| `npm run diagnostic` | Diagnostic harness only                  |

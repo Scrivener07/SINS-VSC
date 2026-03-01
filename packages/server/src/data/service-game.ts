@@ -9,7 +9,8 @@ import {
     UnionMergeValueSetString,
     ValueStringSet,
     ValueString,
-    ValueStringArray
+    ValueStringArray,
+    IDataSource
 } from "./types";
 import { TextureProvider } from "./provider-texture";
 import { IndexProvider } from "./provider-index";
@@ -40,23 +41,13 @@ export class GameDataService {
         this.uniforms = new UniformService();
     }
 
-    public async create_game(folder: string) {
-        // Base game providers (priority 0 = lowest)
-        this.create(folder, "Base Game", 0);
-    }
-
-    public async create_mod(folder: string) {
-        // Mod providers (priority 10 is higher, wins over base)
-        this.create(folder, "Mod", 10);
-    }
-
-    private async create(rootPath: string, name: string, priority: number): Promise<void> {
-        this.indexer.create(rootPath, name, priority);
-        await this.localization.create(rootPath, name, priority);
-        this.textures.create(rootPath, name, priority);
-        this.data.create(rootPath, name, priority, this.language.code);
-        this.manifests.create(rootPath, name, priority);
-        this.uniforms.create(rootPath, name, priority);
+    public async create(source: IDataSource): Promise<void> {
+        this.indexer.create(source.directory, source.name, source.priority);
+        await this.localization.create(source.directory, source.name, source.priority);
+        this.textures.create(source.directory, source.name, source.priority);
+        this.data.create(source.directory, source.name, source.priority, this.language.code);
+        this.manifests.create(source.directory, source.name, source.priority);
+        this.uniforms.create(source.directory, source.name, source.priority);
     }
 
     public async reload(): Promise<void> {
@@ -107,43 +98,20 @@ export class IndexerService {
     }
 }
 
-export class LocalizationService {
-    private static readonly FILE_EXTENSION = ".localized_text";
-
-    /** Localization: last-wins per composite key (mod translations override base). */
-    public readonly languages: Map<string, OrderedRoot<ValueString>>;
+export class DataService {
+    public readonly root: OrderedRoot<ValueStringSet>;
 
     constructor() {
-        this.languages = new Map<string, OrderedRoot<ValueString>>();
+        this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
     }
 
-    public async create(rootPath: string, name: string, priority: number): Promise<void> {
-        const files: string[] = await WorkspaceSearch.findFiles(rootPath, LocalizationService.FILE_EXTENSION);
-        for (const file of files) {
-            const language: string = path.basename(file, LocalizationService.FILE_EXTENSION);
-
-            let root: OrderedRoot<ValueString> | undefined = this.languages.get(language);
-            if (!root) {
-                // Add a new root for this language if it doesn't exist yet.
-                root = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
-                this.languages.set(language, root);
-            }
-
-            const providerIdentifier: string = `${rootPath}::${language}`;
-            const providerName: string = `${name} (${language})`;
-            const provider = new LocalizationProvider(providerIdentifier, providerName, priority, rootPath, language);
-            root.addProvider(provider);
-        }
+    public create(rootPath: string, name: string, priority: number, language: string): void {
+        const provider = new DataProvider(rootPath, name, priority, rootPath, language);
+        this.root.addProvider(provider);
     }
 
     public async reload(): Promise<void> {
-        for (const root of this.languages.values()) {
-            await root.reloadAll();
-        }
-    }
-
-    public get(language: string): OrderedRoot<ValueString> | undefined {
-        return this.languages.get(language);
+        await this.root.reloadAll();
     }
 }
 
@@ -158,23 +126,6 @@ export class TextureService {
     public create(rootPath: string, name: string, priority: number): void {
         const textures = new TextureProvider(rootPath, name, priority, rootPath);
         this.root.addProvider(textures);
-    }
-
-    public async reload(): Promise<void> {
-        await this.root.reloadAll();
-    }
-}
-
-export class DataService {
-    public readonly root: OrderedRoot<ValueStringSet>;
-
-    constructor() {
-        this.root = new OrderedRoot<ValueStringSet>(new UnionMergeValueSetString());
-    }
-
-    public create(rootPath: string, name: string, priority: number, language: string): void {
-        const provider = new DataProvider(rootPath, name, priority, rootPath, language);
-        this.root.addProvider(provider);
     }
 
     public async reload(): Promise<void> {
@@ -213,5 +164,45 @@ export class UniformService {
 
     public async reload(): Promise<void> {
         await this.root.reloadAll();
+    }
+}
+
+export class LocalizationService {
+    private static readonly FILE_EXTENSION = ".localized_text";
+
+    /** Localization: last-wins per composite key (mod translations override base). */
+    public readonly languages: Map<string, OrderedRoot<ValueString>>;
+
+    constructor() {
+        this.languages = new Map<string, OrderedRoot<ValueString>>();
+    }
+
+    public async create(rootPath: string, name: string, priority: number): Promise<void> {
+        const files: string[] = await WorkspaceSearch.findFiles(rootPath, LocalizationService.FILE_EXTENSION);
+        for (const file of files) {
+            const language: string = path.basename(file, LocalizationService.FILE_EXTENSION);
+
+            let root: OrderedRoot<ValueString> | undefined = this.languages.get(language);
+            if (!root) {
+                // Add a new root for this language if it doesn't exist yet.
+                root = new OrderedRoot<ValueString>(new ReplaceMerge<ValueString>());
+                this.languages.set(language, root);
+            }
+
+            const providerIdentifier: string = `${rootPath}::${language}`;
+            const providerName: string = `${name} (${language})`;
+            const provider = new LocalizationProvider(providerIdentifier, providerName, priority, rootPath, language);
+            root.addProvider(provider);
+        }
+    }
+
+    public async reload(): Promise<void> {
+        for (const root of this.languages.values()) {
+            await root.reloadAll();
+        }
+    }
+
+    public get(language: string): OrderedRoot<ValueString> | undefined {
+        return this.languages.get(language);
     }
 }

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { Report } from "../../../packages/server/out/providers/diagnostic";
+import { Report } from "../../../../packages/server/out/providers/diagnostic";
 
 suite("Report", () => {
     test("missingInFiles formats correctly", function () {

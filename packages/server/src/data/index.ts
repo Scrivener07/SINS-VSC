@@ -7,3 +7,4 @@ export { ScopedView } from "./scoped-view";
 export { LocalizationResolver, LocalizedEntry } from "./resolvers/localization-resolver";
 export { UniformResolver, UniformEntry } from "./resolvers/uniform-resolver";
 export { ManifestResolver } from "./resolvers/manifest-resolver";
+export { IDataSource } from "./types";

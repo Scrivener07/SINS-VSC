@@ -1,9 +1,10 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { IDataValue } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
+ * @deprecated
  * A provider that indexes game data files by their identifier (filename without extension) and maps them to matching file paths.
  *
  * - The **key** is the identifier, which is the file name without extension.

@@ -1,7 +1,10 @@
-import { CacheStorage } from "./cache";
-import { WorkspaceSearch } from "./workspace";
 import * as fs from "fs";
+import { CacheStorage } from "./cache";
+import { WorkspaceSearch } from "../../managers/workspace";
 
+/**
+ * @deprecated
+ */
 export interface UniformType {
     weapon: Set<string>;
     scenario: Set<string>;

@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import { TestData } from "../test-data";
-import { GameData } from "../../../../packages/server/out/data3/data-service";
-import { ResolvedFile } from "../../../../packages/server/src/data3/data-root";
-import { LocalizedEntry } from "../../../../packages/server/src/data3/resolvers/localization-resolver";
+import { GameData } from "../../../../packages/server/out/data/data-service";
+import { ResolvedFile } from "../../../../packages/server/src/data/data-root";
+import { LocalizedEntry } from "../../../../packages/server/src/data/resolvers/localization-resolver";
 
 suite("GameData (integration)", () => {
     let gameData: GameData;

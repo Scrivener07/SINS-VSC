@@ -1,9 +1,10 @@
 import * as fs from "fs";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
+ * @deprecated
  * Reads `.entity_manifest` files and extracts the `ids` array from each.
  * Each manifest type ("unit", "weapon") maps to a `Set<string>` of entity identifiers.
  */

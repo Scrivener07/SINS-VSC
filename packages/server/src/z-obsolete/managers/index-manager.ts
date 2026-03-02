@@ -1,9 +1,9 @@
 import * as path from "path";
-import { WorkspaceSearch } from "./workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 
 /**
- * Manages an index of files within the workspace for quick lookup by identifier.
  * @deprecated
+ * Manages an index of files within the workspace for quick lookup by identifier.
  */
 export class IndexManager {
     /**

@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
-import { ManifestType } from "./cache-manifest";
-import { WorkspaceSearch } from "./workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { CacheStorage } from "./cache";
+import { ManifestType } from "./cache-manifest";
 
 /**
  * @deprecated
@@ -17,8 +17,8 @@ export interface DataType extends ManifestType {
 }
 
 /**
- * Stores a list of files for quick lookup.
  * @deprecated
+ * Stores a list of files for quick lookup.
  */
 export class DataManager extends CacheStorage<DataType> {
     public async load(rootPath: string, language: string): Promise<void> {

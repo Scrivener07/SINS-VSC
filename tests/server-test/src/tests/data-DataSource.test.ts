@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { TestData } from "../test-data";
-import { DataSource, FileEntry } from "../../../../packages/server/out/data3/data-source";
+import { DataSource, FileEntry } from "../../../../packages/server/out/data/data-source";
 
 suite("DataSource", () => {
     let source: DataSource;

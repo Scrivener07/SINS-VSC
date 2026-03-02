@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { TestData } from "../test-data";
-import { DataSource } from "../../../../packages/server/out/data3/data-source";
-import { LayeredRoot, ResolvedFile } from "../../../../packages/server/out/data3/data-root";
+import { DataSource } from "../../../../packages/server/out/data/data-source";
+import { LayeredRoot, ResolvedFile } from "../../../../packages/server/out/data/data-root";
 
 suite("LayeredRoot", () => {
     let root: LayeredRoot;

@@ -22,7 +22,7 @@ import {
     EntityManifest,
     NamedColors,
     Font
-} from "../entities/index";
+} from "../entities";
 import { PointerType } from "../pointers";
 
 interface IEntityFunction {
@@ -156,7 +156,6 @@ export class SchemaManager {
     }
 
     public TEMPORARY_DELETE_WHEN_DONE_PARSING_THROUGH_THESE(): SchemaConfiguration[] {
-
         const schemas_uniforms: SchemaConfiguration[] = [
             // Uniforms have special handling for filename to schema matching.
             {

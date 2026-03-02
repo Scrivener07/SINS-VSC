@@ -1,8 +1,9 @@
 import * as fs from "fs";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { CacheStorage } from "./cache";
-import { WorkspaceSearch } from "./workspace";
 
 /**
+ * @deprecated
  * These types of entity have manifests available.
  */
 export interface ManifestType {
@@ -23,10 +24,9 @@ export interface ManifestType {
 }
 
 /**
+ * @deprecated
  * Indexes the lists of entity IDs from all manifest files for quick lookup.
  * All entity manifests have an array of strings in a property called `ids`.
- *
- * @deprecated
  */
 export class ManifestManager extends CacheStorage<ManifestType> {
     public async load(rootPath: string): Promise<void> {

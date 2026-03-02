@@ -20,8 +20,7 @@ import { Validator } from "./validate";
 import { PointerType } from "./pointers";
 import { IEntityState, ILanguageState } from "./types";
 import { WorkspaceService } from "./managers/workspace";
-import { GameData } from "./data3";
-import { IDataSource } from "./data/types";
+import { GameData, IDataSource } from "./data";
 
 /**
  * Encapsulates the Sins of a Solar Empire 2 language server.

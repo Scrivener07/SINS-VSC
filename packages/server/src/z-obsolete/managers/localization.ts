@@ -1,10 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "./workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 
 /**
- * Provides localization management for loading and retrieving localized text.
  * @deprecated
+ * Provides localization management for loading and retrieving localized text.
  */
 export class LocalizationManager {
     /**
@@ -56,6 +56,7 @@ export class LocalizationManager {
             }
         }
     }
+
     public get(lang: string): Map<string, string> {
         return this.cache.get(lang)!;
     }

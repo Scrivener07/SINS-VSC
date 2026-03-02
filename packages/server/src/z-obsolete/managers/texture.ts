@@ -1,9 +1,9 @@
 import * as path from "path";
-import { WorkspaceSearch } from "./workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 
 /**
- * Manages texture files within the workspace.
  * @deprecated
+ * Manages texture files within the workspace.
  */
 export class TextureManager {
     /**

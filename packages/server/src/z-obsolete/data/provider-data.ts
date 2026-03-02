@@ -1,10 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { ProviderBase } from "./provider";
 import { IDataValue } from "./types";
 
 /**
+ * @deprecated
  * Scans known file extensions and collects identifiers (filename without extension) into categorical sets.
  * Each category key ("player", "weapon") maps to a `Set<string>` of identifiers.
  *

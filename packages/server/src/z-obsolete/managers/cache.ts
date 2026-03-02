@@ -2,6 +2,9 @@ import { DataType } from "./cache-data";
 import { ManifestType } from "./cache-manifest";
 import { UniformType } from "./cache-uniform";
 
+/**
+ * @deprecated
+ */
 export class CacheStorage<T extends DataType | ManifestType | UniformType> {
     protected cache = new Map<keyof T, Set<string>>();
 

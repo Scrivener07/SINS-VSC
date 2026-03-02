@@ -1,5 +1,10 @@
-import { DataManager, IndexManager, LocalizationManager, ManifestManager, TextureManager, UniformManager } from ".";
 import { Connection } from "vscode-languageserver/node";
+import { LocalizationManager } from "./localization";
+import { TextureManager } from "./texture";
+import { IndexManager } from "./index-manager";
+import { DataManager } from "./cache-data";
+import { ManifestManager } from "./cache-manifest";
+import { UniformManager } from "./cache-uniform";
 
 /**
  * @deprecated

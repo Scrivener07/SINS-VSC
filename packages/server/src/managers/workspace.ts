@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { InitializeParams } from "vscode-languageserver/node";
 import * as shared from "@soase/shared";
-import { IDataSource } from "../data/types";
+import { IDataSource } from "../data";
 
 /**
  * Manages workspace directories and files.

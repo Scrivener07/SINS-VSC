@@ -1,7 +1,6 @@
-import { IDataSource } from "../data/types";
+import { IDataSource } from "./types";
 import { LocalizationResolver } from "./resolvers/localization-resolver";
 import { UniformResolver } from "./resolvers/uniform-resolver";
-import { DataSource } from "./data-source";
 import { ManifestResolver } from "./resolvers/manifest-resolver";
 import { DataContext } from "./data-context";
 import { ScopedView } from "./scoped-view";

@@ -1,14 +1,18 @@
 import * as fs from "fs";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
+/**
+ * @deprecated
+ */
 export type UniformType = {
     type: string;
     extractor: (content: any) => Iterable<string>;
 };
 
 /**
+ * @deprecated
  * Reads `.uniforms` files and extracts named values (weapon tags).
  * Each uniform type maps to a `Set<string>` of names/tags.
  */

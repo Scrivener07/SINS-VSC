@@ -1,5 +1,8 @@
 import { IDataProvider, IDataValue } from "./types";
 
+/**
+ * @deprecated
+ */
 export abstract class ProviderBase<TValue extends IDataValue<unknown>> implements IDataProvider<TValue> {
     public readonly identifier: string;
     public readonly name: string;

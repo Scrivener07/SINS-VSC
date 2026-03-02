@@ -6,7 +6,7 @@ import { DiagnosticManager } from "./providers";
 import { Report } from "./providers/diagnostic";
 import { PointerType } from "./pointers";
 import { IEntityState, ILanguageState } from "./types";
-import { GameData } from "./data3";
+import { GameData } from "./data";
 
 /**
  * Provides business logic for validation rules.

@@ -1,6 +1,6 @@
 import { LayeredRoot } from "./data-root";
 import { DataSource } from "./data-source";
-import { IDataSource } from "../data/types";
+import { IDataSource } from "./types";
 import { DependencyGraph } from "./dependency-graph";
 import { ScopedView } from "./scoped-view";
 

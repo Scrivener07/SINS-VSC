@@ -1,6 +1,6 @@
 import { Connection } from "vscode-languageserver/node";
 import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath } from "@soase/shared";
-import { GameData, ResolvedFile } from "../data3";
+import { GameData, ResolvedFile } from "../data";
 
 /**
  * Encapsulates inbound requests from the client to the server.

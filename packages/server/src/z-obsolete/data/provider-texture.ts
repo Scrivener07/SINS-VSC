@@ -1,9 +1,10 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { ValueString } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
+ * @deprecated
  * Scans for `.png` files in the root directory and maps their names (without extension) to their file paths.
  */
 export class TextureProvider extends ProviderBase<ValueString> {

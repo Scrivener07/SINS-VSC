@@ -16,7 +16,7 @@
  * @deprecated
  * Manages runtime patches for JSON schemas.
  */
-export class SchemaPatcher {
+class SchemaPatcher {
     /** Maps a JSON schema file name to a patching function. */
     private patches: Map<string, object>;
 
@@ -52,6 +52,9 @@ export class SchemaPatcher {
     // }
 }
 
+/**
+ * @deprecated
+ */
 class SchemaPatch {
     /**
      * A runtime patcher for the `gui-uniforms-schema.json` schema type.

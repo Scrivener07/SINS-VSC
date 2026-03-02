@@ -1,10 +1,11 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../managers/workspace";
+import { WorkspaceSearch } from "../../managers/workspace";
 import { ValueString } from "./types";
 import { ProviderBase } from "./provider";
 
 /**
+ * @deprecated
  * A provider that loads a single `.localized_text` file for one language from a root directory.
  *
  * Keys are plain localization keys (`"trader_light_frigate_name"`).

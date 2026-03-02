@@ -7,7 +7,7 @@ import { PointerType } from "../pointers";
 import { JsonAST } from "../json-ast";
 import { JsonPointer } from "../json-pointer";
 import { ILanguageState } from "../types";
-import { GameData, LocalizedEntry, ResolvedFile } from "../data3";
+import { GameData, LocalizedEntry, ResolvedFile } from "../data";
 
 export class DefinitionProvider {
     private readonly jsonLanguageService: LanguageService;

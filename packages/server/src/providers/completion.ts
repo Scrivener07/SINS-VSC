@@ -13,7 +13,7 @@ import {
 import { PointerType } from "../pointers";
 import { JsonPointer } from "../json-pointer";
 import { IEntityState, ILanguageState } from "../types";
-import { GameData } from "../data3";
+import { GameData } from "../data";
 import { fileURLToPath } from "url";
 
 export class CompletionManager {

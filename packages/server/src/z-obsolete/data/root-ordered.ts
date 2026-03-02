@@ -1,6 +1,7 @@
 import { IDataRoot, IDataProvider, IMergeStrategy, IProvenance, IResolution, IDataValue } from "./types";
 
 /**
+ * @deprecated
  * Provides a root-configuration implementation with eager merge algorithm (replace-only).
  * Maintains an ordered list of providers and a merged cache of key→value.
  *

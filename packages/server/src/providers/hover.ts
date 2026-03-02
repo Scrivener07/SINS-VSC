@@ -8,7 +8,7 @@ import { JsonAST } from "../json-ast";
 import { JsonPointer } from "../json-pointer";
 import { WorkspaceService } from "../managers";
 import { ILanguageState } from "../types";
-import { GameData, ResolvedFile, UniformEntry } from "../data3";
+import { GameData, ResolvedFile, UniformEntry } from "../data";
 
 // TODO: Try to eliminate awaited file IO. Hover should be fast and non-blocking.
 
@@ -56,7 +56,6 @@ export class HoverProvider {
         const offset: number = document.offsetAt(params.position);
         const node: ASTNode | undefined = jsonDocument.getNodeFromOffset(offset);
         const context: PointerType = await JsonPointer.getContext(this.jsonLanguageService, document, jsonDocument, node);
-        console.info("Hover context:", PointerType[context]);
 
         if (node && node.type === "string" && node.value) {
             if (JsonAST.isNodeValue(node)) {

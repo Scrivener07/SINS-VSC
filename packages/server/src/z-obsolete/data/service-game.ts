@@ -1,6 +1,14 @@
 import path = require("path");
-import { WorkspaceSearch } from "../managers";
+import { WorkspaceSearch } from "../../managers";
 import { OrderedRoot } from "./root-ordered";
+import { TextureProvider } from "./provider-texture";
+import { IndexProvider } from "./provider-index";
+import { LocalizationProvider } from "./provider-localization";
+import { DataProvider } from "./provider-data";
+import { ManifestProvider } from "./provider-manifest";
+import { UniformProvider } from "./provider-uniform";
+import { ILanguageState } from "../../types";
+import { IDataSource } from "../../data";
 import {
     ConcatMerge,
     ConcatMergeValueStringArray,
@@ -9,17 +17,12 @@ import {
     UnionMergeValueSetString,
     ValueStringSet,
     ValueString,
-    ValueStringArray,
-    IDataSource
+    ValueStringArray
 } from "./types";
-import { TextureProvider } from "./provider-texture";
-import { IndexProvider } from "./provider-index";
-import { LocalizationProvider } from "./provider-localization";
-import { DataProvider } from "./provider-data";
-import { ManifestProvider } from "./provider-manifest";
-import { UniformProvider } from "./provider-uniform";
-import { ILanguageState } from "../types";
 
+/**
+ * @deprecated
+ */
 export class GameDataService {
     public readonly indexer: IndexerService;
     public readonly localization: LocalizationService;
@@ -80,6 +83,9 @@ export class GameDataService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class IndexerService {
     /** File index: concatenation merge (mod files add to base files). */
     public readonly index: OrderedRoot<ValueStringArray>;
@@ -98,6 +104,9 @@ export class IndexerService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class DataService {
     public readonly root: OrderedRoot<ValueStringSet>;
 
@@ -115,6 +124,9 @@ export class DataService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class TextureService {
     /** Textures: last-wins replacement (mod texture overrides base texture). */
     public readonly root: OrderedRoot<ValueString>;
@@ -133,6 +145,9 @@ export class TextureService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class ManifestService {
     public readonly root: OrderedRoot<ValueStringSet>;
 
@@ -150,6 +165,9 @@ export class ManifestService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class UniformService {
     public readonly root: OrderedRoot<ValueStringSet>;
 
@@ -167,6 +185,9 @@ export class UniformService {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class LocalizationService {
     private static readonly FILE_EXTENSION = ".localized_text";
 

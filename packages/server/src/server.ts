@@ -20,8 +20,8 @@ import { Validator } from "./validate";
 import { PointerType } from "./pointers";
 import { IEntityState, ILanguageState } from "./types";
 import { WorkspaceService } from "./managers/workspace";
-import { GameDataService } from "./data/service-game";
 import { GameData } from "./data3";
+import { IDataSource } from "./data/types";
 
 /**
  * Encapsulates the Sins of a Solar Empire 2 language server.
@@ -33,6 +33,9 @@ class SinsLanguageServer {
      * Since `onDidOpen`/`onDidChangeContent` events execute before the server
      * actually initializes (ie: files already opened), we'll need to keep track of it via a variable
      * to ensure full server initialization before validating any document.
+     *
+     * TODO: Possibly refactor this to only start listening to document events after initialization is complete,
+     * instead of having to check this flag at all.
      */
     private isInitialized: boolean;
 
@@ -47,9 +50,6 @@ class SinsLanguageServer {
 
     /** The workspace service to use. */
     private readonly workspaceService: WorkspaceService;
-
-    /** @deprecated The game data service to use. */
-    private readonly gameDataService: GameDataService;
 
     /** The game data service to use. */
     private readonly data: GameData;
@@ -109,9 +109,6 @@ class SinsLanguageServer {
 
         // Create the workspace service.
         this.workspaceService = new WorkspaceService();
-
-        // Create the data context service.
-        this.gameDataService = new GameDataService(this.language);
 
         // Create the data context service.
         this.data = new GameData();
@@ -244,27 +241,6 @@ class SinsLanguageServer {
         // Get current language from vscode settings
         this.language.code = await this.outbound.getLanguage();
 
-        // TODO: Obsolete this in favor of draft-3.
-        {
-            // Initialize game workspace data layer.
-            if (this.workspaceService.gameFolder) {
-                await this.gameDataService.create(this.workspaceService.gameFolder);
-            } else {
-                this.connection.console.warn("No game folder found in workspace. Skipping game layer initialization.");
-                this.connection.window.showWarningMessage("SINS: No game folder configured. Some features will be unavailable.");
-                return;
-            }
-
-            // Initialize mod workspace data layer.
-            for (const [key, value] of this.workspaceService.modFolders) {
-                await this.gameDataService.create(value);
-            }
-
-            // Load all data to populate caches before processing any documents.
-            await this.gameDataService.reload();
-        }
-
-        // TODO: Implement draft-3.
         {
             // Initialize game workspace data layer.
             if (this.workspaceService.gameFolder) {
@@ -382,45 +358,42 @@ class SinsLanguageServer {
 
         // Update workspace service state.
         this.workspaceService.gameFolder = WorkspaceService.create(newGameFolder, "Base Game", 0);
-        let index = 1;
+        let index: number = 1;
         for (const modFolder of newModFolders) {
             this.workspaceService.modFolders.set(modFolder.toLowerCase(), WorkspaceService.create(modFolder, "Mod", index));
             index++;
         }
 
-        // Remove providers for removed folders.
+        // Remove sources for removed folders.
         for (const folder of removed) {
-            this.connection.console.info(`Removing providers for: ${folder}`);
-            this.gameDataService.removeFolder(folder);
+            this.connection.console.info(`Removing source: ${folder}`);
+            this.data.removeSource(folder);
         }
 
-        // Add providers for added folders.
+        // Add sources for added folders.
         for (const folder of added) {
-            if (this.workspaceService.gameFolder.directory.toLowerCase() === folder.toLowerCase()) {
-                await this.gameDataService.create(this.workspaceService.gameFolder);
-            } //
-            else if (this.workspaceService.modFolders.has(folder.toLowerCase())) {
-                const found = this.workspaceService.modFolders.get(folder.toLowerCase());
+            this.connection.console.info(`Adding source: ${folder}`);
+            if (this.workspaceService.gameFolder?.directory.toLowerCase() === folder.toLowerCase()) {
+                await this.data.addSource(this.workspaceService.gameFolder);
+            } else if (this.workspaceService.modFolders.has(folder.toLowerCase())) {
+                const found: IDataSource | undefined = this.workspaceService.modFolders.get(folder.toLowerCase());
                 if (found) {
-                    await this.gameDataService.create(found);
-                } else {
-                    this.connection.console.warn(`Added mod folder not found in workspace service: ${folder}`);
+                    await this.data.addSource(found);
                 }
             }
         }
 
-        // Only reload if something changed.
+        // Reload caches and re-validate if anything changed.
         if (added.length > 0 || removed.length > 0) {
-            await this.gameDataService.reload();
+            await this.data.reload();
 
-            // Re-validate all open documents.
             for (const document of this.documents.all()) {
                 await this.validator.validateTextDocument(document);
             }
 
-            this.connection.console.info(`Providers updated: +${added.length} -${removed.length}`);
+            this.connection.console.info(`Sources updated: +${added.length} -${removed.length}`);
         } else {
-            this.connection.console.info("No provider changes needed.");
+            this.connection.console.info("No source changes needed.");
         }
     }
 

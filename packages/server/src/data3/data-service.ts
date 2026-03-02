@@ -24,9 +24,12 @@ export class GameData {
         this.manifests = new ManifestResolver(this.context.root);
     }
 
-    public async addSource(config: IDataSource): Promise<void> {
-        const source: DataSource = new DataSource(config.directory, config.name, config.priority);
-        this.context.addSource(config);
+    public async addSource(configuration: IDataSource): Promise<void> {
+        this.context.addSource(configuration);
+    }
+
+    public removeSource(directory: string): void {
+        this.context.removeSource(directory);
     }
 
     public async reload(): Promise<void> {

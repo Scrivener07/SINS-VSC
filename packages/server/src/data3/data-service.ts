@@ -51,6 +51,11 @@ export class GameData {
         return this.context.root.getAllKeys(extension);
     }
 
+    /** Checks if an identifier exists for a given file extension. */
+    public hasIdentifier(extension: string, identifier: string): boolean {
+        return this.context.root.getAllKeys(extension)?.has(identifier) ?? false;
+    }
+
     /** For validation: does this identifier exist as a file? */
     public hasFile(extension: string, identifier: string): boolean {
         return this.context.root.resolveFile(extension, identifier) !== undefined;

@@ -11,9 +11,10 @@ import {
     TextDocument
 } from "vscode-json-languageservice";
 import { PointerType } from "../pointers";
-import { DataService, UniformService } from "../data/service-game";
 import { JsonPointer } from "../json-pointer";
-import { IEntityState } from "../types";
+import { IEntityState, ILanguageState } from "../types";
+import { GameData } from "../data3";
+import { fileURLToPath } from "url";
 
 export class CompletionManager {
     /** The maximum amount of suggestions that will pop up before being cut. */
@@ -24,21 +25,22 @@ export class CompletionManager {
     private readonly jsonLanguageService: LanguageService;
     private readonly documents: TextDocuments<TextDocument>;
     private readonly entity: IEntityState;
-    private readonly data: DataService;
-    private readonly uniforms: UniformService;
+    private readonly data: GameData;
+
+    private readonly language: ILanguageState;
 
     constructor(
         jsonLanguageService: LanguageService,
         documents: TextDocuments<TextDocument>,
         entity: IEntityState,
-        data: DataService,
-        uniforms: UniformService
+        data: GameData,
+        language: ILanguageState
     ) {
         this.jsonLanguageService = jsonLanguageService;
         this.documents = documents;
         this.entity = entity;
         this.data = data;
-        this.uniforms = uniforms;
+        this.language = language;
     }
 
     /**
@@ -50,7 +52,7 @@ export class CompletionManager {
     }
 
     private async onCompletion(params: CompletionParams): Promise<CompletionList | null> {
-        const document = this.documents.get(params.textDocument.uri);
+        const document: TextDocument | undefined = this.documents.get(params.textDocument.uri);
         if (!document) {
             return null;
         }
@@ -65,10 +67,10 @@ export class CompletionManager {
                 start: document.positionAt(node.offset + 1),
                 end: document.positionAt(node.offset + node.length - 1)
             };
-            const prefix = document.getText(range);
+            const prefix: string = document.getText(range);
 
             return (
-                this.doComplete(context, this.entity.pointer, prefix, range, document, offset, this.data, this.uniforms) ??
+                this.doComplete(context, this.entity.pointer, prefix, range, document, offset) ??
                 (await this.jsonLanguageService.doComplete(document, params.position, jsonDocument))
             );
         }
@@ -81,56 +83,78 @@ export class CompletionManager {
         prefix: string,
         range: Range,
         document: TextDocument,
-        offset: number,
-        dataManager: DataService,
-        uniformManager: UniformService
+        offset: number
     ): CompletionList | null {
         if (context === PointerType.localized_text) {
+            // This is to suggest a PNG when user types `{icon:` within an inline localized text entry.
             if (currentEntity === PointerType.localized_text) {
-                const cursorText = prefix.slice(0, offset - document.offsetAt(range.start));
-                const match = /{icon:(\w*)$/.exec(cursorText);
+                const cursorText: string = prefix.slice(0, offset - document.offsetAt(range.start));
+                const match: RegExpExecArray | null = /{icon:(\w*)$/.exec(cursorText);
 
                 if (match) {
-                    const contents = match[1];
+                    const contents: string = match[1];
                     range = {
                         start: document.positionAt(offset - contents.length),
                         end: document.positionAt(offset)
                     };
-                    return this.setBrushCompletionList(this.getCache(dataManager, "brush"), range, contents);
+
+                    // Provides {icon:XXX} inline token references for PNG texture identifiers.
+                    return this.setCompletionList(this.getIdentifiers(".png"), CompletionItemKind.File, range, contents, (e) => ({
+                        ...e,
+                        detail: ".png"
+                    }));
                 }
                 return null;
             }
-            return this.setCompletionList(this.getCache(dataManager, "localized_text"), CompletionItemKind.Variable, range, prefix);
+
+            const keys: Set<string> = this.data.localization.getKeys(this.language.code) ?? CompletionManager.EMPTY_SET;
+            return this.setCompletionList(keys, CompletionItemKind.Variable, range, prefix);
         } else if (context === PointerType.brush) {
-            return this.setBrushCompletionList(this.getCache(dataManager, "brush"), range, prefix);
+            // TODO: Audit the process of checking for .png files and stripping the extension.
+            // TODO: The cache is providing `*.brush` keys. I need to request `png` instead.
+            const filepath = fileURLToPath(document.uri);
+            const extension = path.extname(filepath);
+            if (extension === ".unit_item" || extension === ".unit_skin") {
+                return this.setCompletionList(this.getIdentifiers(".png"), CompletionItemKind.File, range, prefix, (e) => ({
+                    ...e,
+                    detail: ".png"
+                }));
+            } else {
+                // return this.setBrushCompletionList(this.getIdentifiers(".brush"), range, prefix);
+                return this.setCompletionList(this.getIdentifiers(".brush"), CompletionItemKind.File, range, prefix, (e) => ({
+                    ...e,
+                    detail: ".brush"
+                }));
+            }
         } else if (context === PointerType.unit_skin) {
-            return this.setCompletionList(this.getCache(dataManager, "unit_skin"), CompletionItemKind.Enum, range, prefix);
+            return this.setCompletionList(this.getIdentifiers(".unit_skin"), CompletionItemKind.Enum, range, prefix);
         } else if (context === PointerType.unit_item) {
-            return this.setCompletionList(this.getCache(dataManager, "unit_item"), CompletionItemKind.Enum, range, prefix);
+            return this.setCompletionList(this.getIdentifiers(".unit_item"), CompletionItemKind.Enum, range, prefix);
         } else if (context === PointerType.unit) {
-            return this.setCompletionList(this.getCache(dataManager, "unit"), CompletionItemKind.Enum, range, prefix, (e) => ({
+            return this.setCompletionList(this.getIdentifiers(".unit"), CompletionItemKind.Enum, range, prefix, (e) => ({
                 ...e,
                 detail: ".unit"
             }));
         } else if (context === PointerType.mesh) {
-            return this.setCompletionList(this.getCache(dataManager, "mesh"), CompletionItemKind.File, range, prefix, (e) => ({
+            return this.setCompletionList(this.getIdentifiers(".mesh"), CompletionItemKind.File, range, prefix, (e) => ({
                 ...e,
                 detail: ".obj"
             }));
         } else if (context === PointerType.weapon_tag) {
-            return this.setCompletionList(this.getCache(uniformManager, "weapon"), CompletionItemKind.Variable, range, prefix);
+            const weapon_tags: Set<string> = this.data.uniforms.get("weapon") ?? CompletionManager.EMPTY_SET;
+            return this.setCompletionList(weapon_tags, CompletionItemKind.Variable, range, prefix);
         } else if (context === PointerType.weapon) {
-            return this.setCompletionList(this.getCache(dataManager, "weapon"), CompletionItemKind.Variable, range, prefix, (e) => ({
+            return this.setCompletionList(this.getIdentifiers(".weapon"), CompletionItemKind.Variable, range, prefix, (e) => ({
                 ...e,
                 detail: ".weapon"
             }));
         } else if (context === PointerType.mesh_material) {
-            return this.setCompletionList(this.getCache(dataManager, "mesh_material"), CompletionItemKind.Variable, range, prefix, (e) => ({
+            return this.setCompletionList(this.getIdentifiers(".mesh_material"), CompletionItemKind.Variable, range, prefix, (e) => ({
                 ...e,
                 detail: ".mesh_material"
             }));
         } else if (context === PointerType.ttf) {
-            return this.setCompletionList(this.getCache(dataManager, "ttf"), CompletionItemKind.File, range, prefix, (e) => ({
+            return this.setCompletionList(this.getIdentifiers(".ttf"), CompletionItemKind.File, range, prefix, (e) => ({
                 ...e,
                 detail: ".ttf"
             }));
@@ -139,11 +163,12 @@ export class CompletionManager {
     }
 
     /**
-     * Retrieves the set of identifiers for the given key from a service root.
-     * Returns an empty set if the category is not found.
+     * Retrieves the set of identifiers for the given file extension from the data layer.
+     * @param extension The file extension to retrieve identifiers for.
+     * @returns The set of identifiers for the given file extension, or an empty set if the extension is not found.
      */
-    private getCache(service: DataService | UniformService, key: string): Set<string> {
-        return service.root.get(key)?.item.value ?? CompletionManager.EMPTY_SET;
+    private getIdentifiers(extension: string): Set<string> {
+        return this.data.getIdentifiers(extension) ?? CompletionManager.EMPTY_SET;
     }
 
     private setCompletionList(
@@ -170,24 +195,25 @@ export class CompletionManager {
         };
     }
 
-    private setBrushCompletionList(cache: Set<string>, range: Range, prefix: string): CompletionList {
-        const brushes: CompletionList = this.setCompletionList(cache, CompletionItemKind.File, range, prefix);
-        return {
-            ...brushes,
-            items: brushes.items
-                .filter((e) => e.label.endsWith(".png"))
-                .map((e) => {
-                    const label: string = path.basename(e.label, path.extname(e.label));
-                    return {
-                        ...e,
-                        label: label,
-                        detail: ".png",
-                        textEdit: {
-                            range: range,
-                            newText: label
-                        }
-                    };
-                })
-        };
-    }
+    // private setBrushCompletionList(cache: Set<string>, range: Range, prefix: string): CompletionList {
+    //     const brushes: CompletionList = this.setCompletionList(cache, CompletionItemKind.File, range, prefix);
+    //     return {
+    //         ...brushes,
+    //         items: brushes.items
+    //             // .filter((e) => e.label.endsWith(".png"))
+    //             .map((e) => {
+    //                 const label: string = path.basename(e.label, path.extname(e.label));
+    //                 return {
+    //                     ...e,
+    //                     label: label,
+    //                     // detail: ".png",
+    //                     detail: ".brush",
+    //                     textEdit: {
+    //                         range: range,
+    //                         newText: label
+    //                     }
+    //                 };
+    //             })
+    //     };
+    // }
 }

@@ -1,7 +1,6 @@
 import * as fs from "fs";
-import { LayeredRoot, ResolvedFile } from "../data-root";
+import { LayeredRoot } from "../data-root";
 import { FileEntry } from "../data-source";
-import { error } from "console";
 
 export interface LocalizedEntry {
     readonly value: string;
@@ -71,24 +70,21 @@ export class LocalizationResolver {
         console.log(`LocalizationResolver: Loaded ${this.cache.size} languages.`);
     }
 
+    //#region Language
+
     /** Get a localized string for a language and key. */
     public get(language: string, key: string): string | undefined {
         return this.cache.get(language)?.get(key)?.value;
     }
 
+    /** Checks if a localization key exists for a given language. */
+    public has(language: string, key: string): boolean {
+        return this.cache.get(language)?.has(key) ?? false;
+    }
+
     /** Get the full entry with provenance. */
     public getEntry(language: string, key: string): LocalizedEntry | undefined {
         return this.cache.get(language)?.get(key);
-    }
-
-    /** Check if a key exists in any language. */
-    public hasKey(key: string): boolean {
-        for (const languageMap of this.cache.values()) {
-            if (languageMap.has(key)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /** Get all keys for a language. */
@@ -132,4 +128,20 @@ export class LocalizationResolver {
 
         return layers;
     }
+
+    //#endregion
+
+    //#region Global
+
+    /** Check if a key exists in any language. */
+    public hasKey(key: string): boolean {
+        for (const languageMap of this.cache.values()) {
+            if (languageMap.has(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //#endregion
 }

@@ -95,8 +95,8 @@ export class ClientManager implements vscode.Disposable {
                     options: {
                         execArgv: [
                             "--nolazy", // Ensures all code is parsed before execution to allow setting breakpoints.
-                            // "--inspect=6010"
-                            "--inspect-brk=6010" // Use to break on the first line of the server code.
+                            "--inspect=6010"
+                            // "--inspect-brk=6010" // Use to break on the first line of the server code.
                         ]
                     }
                 }

@@ -1,22 +1,22 @@
 import * as fs from "fs";
+import { fileURLToPath, pathToFileURL } from "url";
 import { ASTNode, Hover, JSONDocument, LanguageService, MarkupKind } from "vscode-json-languageservice";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { IndexerService, LocalizationService, TextureService } from "../data/service-game";
-import { pathToFileURL } from "url";
+import { Connection, TextDocuments } from "vscode-languageserver/node";
 import { PointerType } from "../pointers";
 import { JsonAST } from "../json-ast";
-import { Connection, TextDocuments } from "vscode-languageserver/node";
-import { WorkspaceService } from "../managers";
 import { JsonPointer } from "../json-pointer";
+import { WorkspaceService } from "../managers";
 import { ILanguageState } from "../types";
+import { GameData, ResolvedFile, UniformEntry } from "../data3";
+
+// TODO: Try to eliminate awaited file IO. Hover should be fast and non-blocking.
 
 export class HoverProvider {
     private readonly jsonLanguageService: LanguageService;
     private readonly documents: TextDocuments<TextDocument>;
     private readonly workspace: WorkspaceService;
-    private readonly indexer: IndexerService;
-    private readonly localization: LocalizationService;
-    private readonly textures: TextureService;
+    private readonly data: GameData;
     private readonly language: ILanguageState;
 
     constructor(
@@ -24,17 +24,13 @@ export class HoverProvider {
         documents: TextDocuments<TextDocument>,
         language: ILanguageState,
         workspace: WorkspaceService,
-        indexer: IndexerService,
-        localization: LocalizationService,
-        textures: TextureService
+        data: GameData
     ) {
         this.jsonLanguageService = jsonLanguageService;
         this.documents = documents;
         this.language = language;
         this.workspace = workspace;
-        this.indexer = indexer;
-        this.localization = localization;
-        this.textures = textures;
+        this.data = data;
     }
 
     /**
@@ -86,7 +82,8 @@ export class HoverProvider {
                 }
 
                 if (context === PointerType.weapon_tag) {
-                    const weaponTagHover: Hover | null = await this.getWeaponTag(node.value, this.language.code);
+                    const filepath: string = fileURLToPath(params.textDocument.uri);
+                    const weaponTagHover: Hover | null = this.getWeaponTag(filepath, node.value, this.language.code);
                     if (weaponTagHover) {
                         return weaponTagHover;
                     }
@@ -99,21 +96,24 @@ export class HoverProvider {
     }
 
     private async getWeapon(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths = this.indexer.index.get(key)?.item.value;
-        const markdown: string[] = [];
-        if (paths) {
-            const file: string = await fs.promises.readFile(paths[0], "utf-8");
-            const contents = JSON.parse(file);
-            if (paths.some((e) => e.endsWith(".weapon"))) {
-                markdown.push(`**${this.localization.get(language)?.get(contents.name)}**`);
-                markdown.push("\n");
-                markdown.push("------------");
-                markdown.push("\n");
-                markdown.push(`| Damage | Range | Cooldown | Tags`);
-                markdown.push(`| :---- | :---- | :---- | :----`);
-                markdown.push(`| ${contents?.damage} | ${contents?.range} | ${contents?.cooldown_duration} | ${contents.tags?.join(", ")}`);
-            }
+        // TODO: Use the document URI to narrow down the search to a specific data source instead of searching everything.
+
+        const resolved: ResolvedFile | undefined = this.data.context.root.resolveFile(".weapon", key);
+        if (!resolved) {
+            return null;
         }
+
+        const text: string = await fs.promises.readFile(resolved.entry.filePath, "utf-8");
+        const json: any = JSON.parse(text);
+
+        const markdown: string[] = [];
+        markdown.push(`**${this.data.localization.get(language, json.name)}**`);
+        markdown.push("\n");
+        markdown.push("------------");
+        markdown.push("\n");
+        markdown.push(`| Damage | Range | Cooldown | Tags`);
+        markdown.push(`| :---- | :---- | :---- | :----`);
+        markdown.push(`| ${json?.damage} | ${json?.range} | ${json?.cooldown_duration} | ${json.tags?.join(", ")}`);
 
         return {
             contents: {
@@ -123,20 +123,23 @@ export class HoverProvider {
         };
     }
 
-    private async getWeaponTag(key: string, language: string = "en"): Promise<Hover | null> {
-        const paths: string | undefined = this.indexer.index.get("weapon")?.item.value.find((found) => found.endsWith(".uniforms"));
-        const markdown: string[] = [];
-        if (paths) {
-            const contents = JSON.parse(await fs.promises.readFile(paths, "utf-8"));
-            const local_key = contents?.weapon_tags.find((found: any) => found?.name === key)?.localized_name;
-            const local_text: string | undefined = this.localization.get(language)?.get(local_key)?.item.value;
+    private getWeaponTag(filepath: string, key: string, language: string = "en"): Hover | null {
+        // TODO: Use the document URI to narrow down the search to a specific data source instead of searching everything.
 
-            markdown.push(`**Tag**`);
-            markdown.push("\n");
-            markdown.push("------------");
-            markdown.push("\n");
-            markdown.push(`${local_text}`);
+        const entry: UniformEntry | undefined = this.data.uniforms.getEntry("weapon", key);
+        if (!entry?.localizedName) {
+            return null;
         }
+
+        // Resolve the localized text for this key and language.
+        const local_text: string | undefined = this.data.localization.get(language, entry.localizedName);
+
+        const markdown: string[] = [];
+        markdown.push(`**Tag**`);
+        markdown.push("\n");
+        markdown.push("------------");
+        markdown.push("\n");
+        markdown.push(`${local_text ?? entry.localizedName}`);
 
         return {
             contents: {
@@ -150,7 +153,7 @@ export class HoverProvider {
      * Checks if a string is a known localization key and returns a `Hover` object if so.
      */
     private getLocalizedText(key: string, language: string = "en"): Hover | null {
-        const text: string | undefined = this.localization.get(language)?.get(key)?.item.value;
+        const text: string | undefined = this.data.localization.get(language, key);
         if (!text) {
             return null;
         }
@@ -179,12 +182,12 @@ export class HoverProvider {
      * @param key The texture key value from the JSON (`"trader_light_frigate_hud_icon"`).
      */
     private getTexture(key: string): Hover | null {
-        if (!this.textures.root.has(key)) {
+        const resolved: ResolvedFile | undefined = this.data.context.root.resolveFile(".png", key);
+        if (!resolved) {
             return null;
         }
 
-        const fullPath: string = this.textures.root.get(key)?.item.value || "";
-
+        const fullPath: string = resolved.entry.filePath || "";
         try {
             const fileUrl: string = pathToFileURL(fullPath).toString();
 

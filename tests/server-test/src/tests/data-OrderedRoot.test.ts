@@ -1,6 +1,6 @@
 import * as assert from "assert";
-import { OrderedRoot } from "../../../../packages/server/out/z-obsolete/data/root-ordered";
-import { IDataProvider, IDataValue, IMergeStrategy, IResolution } from "../../../../packages/server/out/z-obsolete/data/types";
+import { OrderedRoot } from "@soase/server/z-obsolete/data";
+import { IDataProvider, IDataValue, IMergeStrategy, IResolution } from "@soase/server/z-obsolete/data/types";
 
 /** A simple string value type for testing. */
 interface TestValue extends IDataValue<string> {

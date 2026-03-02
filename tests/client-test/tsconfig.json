@@ -13,7 +13,22 @@
 			"vscode",
 			"mocha",
 			"node"
-		]
+		],
+		"paths": {
+			"@soase/client/*": [
+				"../../packages/client/src/*"
+			],
+			"@soase/client": [
+				"../../packages/client/src"
+			],
+			"@soase/shared/*": [
+				"../../packages/shared/src/*"
+			],
+			"@soase/shared": [
+				"../../packages/shared/src"
+			]
+		},
+		"baseUrl": "."
 	},
 	"include": [
 		"src/**/*"

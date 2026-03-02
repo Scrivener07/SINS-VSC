@@ -1,6 +1,6 @@
 {
 	"name": "@soase/shared",
-	"description": "Shared constants, types, and utilities for the Sins of a Solar Empire extension.",
+	"description": "Shared constants, types, and utilities for the Sins of a Solar Empire VS Code extension.",
 	"version": "0.0.1",
 	"private": true,
 	"main": "out/index.js",

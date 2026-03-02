@@ -1,9 +1,14 @@
 {
-	"name": "soase-lsp-client",
-	"description": "Sins of a Solar Empire language client.",
+	"name": "@soase/client",
+	"description": "The VS Code extension client for Sins of a Solar Empire",
 	"version": "0.0.1",
+	"private": true,
 	"engines": {
 		"vscode": "^1.106.1"
+	},
+	"exports": {
+		"./*": "./out/*.js",
+		"./environment": "./out/environment.js"
 	},
 	"dependencies": {
 		"@soase/shared": "file:../shared",

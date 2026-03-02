@@ -1,8 +1,6 @@
 import * as assert from "assert";
 import { TestData } from "../test-data";
-import { GameData } from "../../../../packages/server/out/data/data-service";
-import { ResolvedFile } from "../../../../packages/server/src/data/data-root";
-import { LocalizedEntry } from "../../../../packages/server/src/data/resolvers/localization-resolver";
+import { GameData, ResolvedFile, LocalizedEntry } from "@soase/server/data";
 
 suite("GameData (integration)", () => {
     let gameData: GameData;

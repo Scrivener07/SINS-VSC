@@ -12,7 +12,22 @@
 		"types": [
 			"mocha",
 			"node"
-		]
+		],
+		"paths": {
+			"@soase/server/*": [
+				"../../packages/server/src/*"
+			],
+			"@soase/server": [
+				"../../packages/server/src"
+			],
+			"@soase/shared/*": [
+				"../../packages/shared/src/*"
+			],
+			"@soase/shared": [
+				"../../packages/shared/src"
+			]
+		},
+		"baseUrl": "."
 	},
 	"include": [
 		"src/**/*"

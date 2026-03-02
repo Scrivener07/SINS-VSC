@@ -1,0 +1,10 @@
+export { IDataProvider, IDataValue, IMergeStrategy, IResolution } from "./types";
+export { GameDataService, IndexerService, DataService, TextureService, UniformService, ManifestService, LocalizationService } from "./service-game";
+export { OrderedRoot } from "./root-ordered";
+export { ProviderBase } from "./provider";
+export { DataProvider } from "./provider-data";
+export { IndexProvider } from "./provider-index";
+export { LocalizationProvider } from "./provider-localization";
+export { ManifestProvider } from "./provider-manifest";
+export { TextureProvider } from "./provider-texture";
+export { UniformProvider } from "./provider-uniform";

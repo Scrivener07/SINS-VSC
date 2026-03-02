@@ -1,0 +1,9 @@
+{
+	"name": "@soase/test-client",
+	"private": true,
+	"version": "0.0.0",
+	"dependencies": {
+		"@soase/shared": "file:../../packages/shared",
+		"@soase/client": "file:../../packages/client"
+	}
+}

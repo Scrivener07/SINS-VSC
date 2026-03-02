@@ -1,9 +1,4 @@
-import { IDataSource } from "../../../../packages/server/out/data/types";
-import { ResolvedFile } from "../../../../packages/server/out/data/data-root";
-import { GameData } from "../../../../packages/server/out/data/data-service";
-import { DataSource, FileEntry } from "../../../../packages/server/out/data/data-source";
-import { DependencyGraph } from "../../../../packages/server/out/data/dependency-graph";
-import { ScopedView } from "../../../../packages/server/out/data/scoped-view";
+import { DataSource, DependencyGraph, FileEntry, GameData, IDataSource, ResolvedFile, ScopedView } from "@soase/server/data";
 
 suite("[Diagnostic] Data Harness", function () {
     let harness: DataHarness;

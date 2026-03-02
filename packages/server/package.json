@@ -1,9 +1,20 @@
 {
-	"name": "soase-lsp-server",
-	"description": "Sins of a Solar Empire language server.",
+	"name": "@soase/server",
+	"description": "The language server for Sins of a Solar Empire.",
 	"version": "0.0.1",
+	"private": true,
 	"engines": {
 		"node": "*"
+	},
+	"main": "out/server.js",
+	"types": "out/server.d.ts",
+	"exports": {
+		"./*": "./out/*.js",
+		"./data": "./out/data/index.js",
+		"./providers": "./out/providers/index.js",
+		"./managers": "./out/managers/index.js",
+		"./z-obsolete/data": "./out/z-obsolete/data/index.js",
+		"./z-obsolete/data/types": "./out/z-obsolete/data/types.js"
 	},
 	"dependencies": {
 		"@soase/shared": "file:../shared",

@@ -1,0 +1,9 @@
+{
+	"name": "@soase/test-server",
+	"private": true,
+	"version": "0.0.0",
+	"dependencies": {
+		"@soase/shared": "file:../../packages/shared",
+		"@soase/server": "file:../../packages/server"
+	}
+}

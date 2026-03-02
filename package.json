@@ -137,7 +137,8 @@
 		}
 	},
 	"workspaces": [
-		"packages/*"
+		"packages/*",
+		"tests/*"
 	],
 	"scripts": {
 		"vscode:prepublish": "npm run package",
@@ -146,7 +147,7 @@
 		"compile": "npm run compile-shared && webpack",
 		"watch": "npm run compile-shared && webpack --watch",
 		"package": "npm run compile-shared && webpack --mode production --devtool hidden-source-map",
-		"compile-tests": "tsc -b packages/shared && tsc -b packages/server && tsc -b",
+		"compile-tests": "tsc -b packages/shared && tsc -b packages/server && tsc -b packages/client && tsc -b ",
 		"watch-tests": "tsc -b -w",
 		"pretest": "npm run compile-tests && npm run compile && npm run lint",
 		"lint": "eslint packages/*/src/*",

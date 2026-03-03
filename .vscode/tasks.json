@@ -5,46 +5,74 @@
 	"tasks": [
 		//#region Compile
 		{
-			// Runs Webpack once to build the dist folder.
-			"label": "compile: extension",
-			"detail": "One-shot build for the extension (dist)",
+			"label": "compile: shared",
+			"detail": "One-shot build for shared (out)",
 			"type": "npm",
-			"script": "compile",
-			"group": "build",
-			"problemMatcher": [
-				"$ts-webpack"
-			]
-		},
-		{
-			// Runs TypeScript once to build the out folder.
-			"label": "compile: tests",
-			"detail": "One-shot build for tests (out)",
-			"type": "npm",
-			"script": "compile-tests",
+			"script": "compile:packages:shared",
 			"group": "build",
 			"problemMatcher": [
 				"$tsc"
 			]
 		},
 		{
-			// A convenience task that runs both `compile` and `compile-tests` in parallel.
-			"label": "compile: all",
-			"detail": "One-shot build for the extension and tests",
-			"dependsOn": [
-				"compile: extension",
-				"compile: tests"
-			],
+			"label": "compile: server",
+			"detail": "One-shot build for server (out)",
+			"type": "npm",
+			"script": "compile:packages:server",
 			"group": "build",
-			"problemMatcher": []
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "compile: client",
+			"detail": "One-shot build for client (out)",
+			"type": "npm",
+			"script": "compile:packages:client",
+			"group": "build",
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "compile: tests",
+			"detail": "One-shot build for tests (out)",
+			"type": "npm",
+			"script": "compile:tests",
+			"group": "build",
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "compile: extension",
+			"detail": "One-shot build for the extension webpack (dist)",
+			"type": "npm",
+			"script": "compile:extension",
+			"group": "build",
+			"problemMatcher": [
+				"$ts-webpack"
+			]
+		},
+		{
+			"label": "compile: all",
+			"detail": "One-shot build for everything",
+			"type": "npm",
+			"script": "compile",
+			"group": "build",
+			"problemMatcher": [
+				"$tsc",
+				"$ts-webpack"
+			]
 		},
 		//#endregion
 		//#region Watch
 		{
 			// A watcher build task for the shared package.
 			"label": "watch: shared",
+			"detail": "Compile and watch shared package (ts)",
 			"type": "npm",
-			"script": "watch",
-			"path": "packages/shared",
+			"script": "watch:packages:shared",
 			"problemMatcher": "$tsc-watch",
 			"isBackground": true,
 			"presentation": {
@@ -54,11 +82,57 @@
 			"group": "build"
 		},
 		{
-			// The default build task starts a watcher instance.
-			"label": "watch: extension",
-			"detail": "Compiles and watches extension packages",
+			"label": "watch: server",
+			"detail": "Compile and watch server package (ts)",
 			"type": "npm",
-			"script": "watch",
+			"script": "watch:packages:server",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			},
+			"group": "build"
+		},
+		{
+			"label": "watch: client",
+			"detail": "Compile and watch client package (ts)",
+			"type": "npm",
+			"script": "watch:packages:client",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			},
+			"group": "build"
+		},
+		{
+			// A TypeScript watcher for tests.
+			"label": "watch: tests",
+			"detail": "Compile and watch test packages",
+			"type": "npm",
+			"script": "watch:tests",
+			"problemMatcher": "$tsc-watch",
+			"isBackground": true,
+			"presentation": {
+				"reveal": "never",
+				"group": "watchers"
+			},
+			"group": "build"
+		},
+		{
+			// The default build task starts a webpack watcher instance.
+			/*
+				The individual TS compilations are not needed here since the webspack handles these.
+				- packages/client
+				- packages/server
+				- packages/view-research
+			*/
+			"label": "watch: extension",
+			"detail": "Compiles and watches extension packages (webpack)",
+			"type": "npm",
+			"script": "watch:extension",
 			"problemMatcher": "$ts-webpack-watch",
 			"isBackground": true,
 			"presentation": {
@@ -74,22 +148,9 @@
 			]
 		},
 		{
-			// A TypeScript watcher for tests.
-			"label": "watch: tests",
-			"type": "npm",
-			"script": "watch-tests",
-			"problemMatcher": "$tsc-watch",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never",
-				"group": "watchers"
-			},
-			"group": "build"
-		},
-		{
 			// Runs both the extension and test watchers in parallel.
 			"label": "watch: all",
-			"detail": "Watches both extension and tests",
+			"detail": "Watches extension and tests in parallel",
 			"dependsOn": [
 				"watch: extension",
 				"watch: tests"
@@ -102,7 +163,20 @@
 			"label": "test: server",
 			"detail": "Run server unit tests with Mocha",
 			"type": "npm",
-			"script": "test:server",
+			"script": "test:packages:server",
+			"group": "test",
+			"presentation": {
+				"panel": "dedicated"
+			},
+			"problemMatcher": [
+				"$tsc"
+			]
+		},
+		{
+			"label": "test: server diagnostic",
+			"detail": "Run server diagnostic data harness only",
+			"type": "npm",
+			"script": "test:packages:server:diagnostic",
 			"group": "test",
 			"presentation": {
 				"panel": "dedicated"
@@ -115,7 +189,7 @@
 			"label": "test: extension",
 			"detail": "Run extension integration tests",
 			"type": "npm",
-			"script": "test",
+			"script": "test:extension",
 			"group": "test",
 			"presentation": {
 				"panel": "dedicated"
@@ -134,6 +208,72 @@
 				"kind": "test",
 				"isDefault": true
 			},
+			"problemMatcher": []
+		},
+		//#endregion
+		//#region Clean
+		{
+			"label": "clean: shared",
+			"detail": "Clean shared build output (tsc --clean)",
+			"type": "npm",
+			"script": "clean:packages:shared",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: server",
+			"detail": "Clean server build output (tsc --clean)",
+			"type": "npm",
+			"script": "clean:packages:server",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: client",
+			"detail": "Clean client build output (tsc --clean)",
+			"type": "npm",
+			"script": "clean:packages:client",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: tests",
+			"detail": "Clean test build outputs (tsc --clean)",
+			"type": "npm",
+			"script": "clean:tests",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: dist",
+			"detail": "Remove webpack '.\\dist' folder",
+			"type": "npm",
+			"script": "clean:build:dist",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: test artifacts",
+			"detail": "⚠ Clean all test artifacts '.\\.vscode-test' folder",
+			"type": "npm",
+			"script": "clean:build:vscode-test",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "clean: all",
+			"detail": "Clean all build artifacts (tsc + dist)",
+			"type": "npm",
+			"script": "clean",
+			"group": "none",
+			"problemMatcher": []
+		},
+		{
+			"label": "reset",
+			"detail": "⚠ Remove ALL artifacts (stop all tasks/watchers first)",
+			"type": "npm",
+			"script": "reset",
+			"group": "none",
 			"problemMatcher": []
 		}
 		//#endregion

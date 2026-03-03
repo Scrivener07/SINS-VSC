@@ -50,12 +50,36 @@
 			"type": "node",
 			"request": "launch",
 			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"cwd": "${workspaceFolder}",
 			"args": [
 				"--config",
 				"tests/server-test/.mocharc.json",
 				"--no-timeouts"
 			],
+			"sourceMaps": true,
+			"resolveSourceMapLocations": [
+				"${workspaceFolder}/tests/server-test/**",
+				"${workspaceFolder}/packages/server/**",
+				"${workspaceFolder}/packages/shared/**"
+			],
+			"outFiles": [
+				"${workspaceFolder}/tests/server-test/out/**/*.js",
+				"${workspaceFolder}/packages/server/out/**/*.js",
+				"${workspaceFolder}/packages/shared/out/**/*.js"
+			],
+			"preLaunchTask": "compile: tests"
+		},
+		{
+			"name": "Debug Server Diagnostic",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
 			"cwd": "${workspaceFolder}",
+			"args": [
+				"--config",
+				"tests/server-test/.mocharc.diagnostic.json",
+				"--no-timeouts"
+			],
 			"sourceMaps": true,
 			"resolveSourceMapLocations": [
 				"${workspaceFolder}/tests/server-test/**",

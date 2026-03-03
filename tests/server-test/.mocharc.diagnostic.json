@@ -1,7 +1,6 @@
 {
 	"ui": "tdd",
-	"timeout": 10000,
+	"timeout": 60000,
 	"spec": "tests/server-test/out/**/*.test.js",
-	"grep": "\\[Diagnostic\\]",
-	"invert": true
+	"grep": "\\[Diagnostic\\]"
 }

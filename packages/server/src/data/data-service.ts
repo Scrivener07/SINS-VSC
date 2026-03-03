@@ -24,7 +24,7 @@ export class GameData {
     }
 
     public async addSource(configuration: IDataSource): Promise<void> {
-        this.context.addSource(configuration);
+        await this.context.addSource(configuration);
     }
 
     public removeSource(directory: string): void {
@@ -36,6 +36,7 @@ export class GameData {
         await this.localization.rebuild();
         await this.uniforms.rebuild();
         await this.manifests.rebuild();
+        this.context.watchAll();
     }
 
     /**

@@ -22,12 +22,24 @@ export class LayeredRoot {
     }
 
     public removeSource(directory: string): void {
+        // TODO: This is kind of a crap way to remove a source. Perhaps use a map instead. PK field is directory.
+        for (const source of this.sources) {
+            if (source.directory === directory) {
+                source.dispose();
+            }
+        }
         this.sources = this.sources.filter((source) => source.directory !== directory);
     }
 
     public async scanAll(): Promise<void> {
         for (const source of this.sources) {
             await source.scan();
+        }
+    }
+
+    public watchAll(): void {
+        for (const source of this.sources) {
+            source.watch();
         }
     }
 

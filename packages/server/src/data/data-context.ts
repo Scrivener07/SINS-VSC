@@ -50,6 +50,10 @@ export class DataContext {
         await this.root.scanAll();
     }
 
+    public watchAll() {
+        this.root.watchAll();
+    }
+
     //#region Views
 
     /**

@@ -9,12 +9,11 @@
 	"main": "out/server.js",
 	"types": "out/server.d.ts",
 	"exports": {
-		"./*": "./out/*.js",
+		".": "./out/index.js",
 		"./data": "./out/data/index.js",
-		"./providers": "./out/providers/index.js",
 		"./managers": "./out/managers/index.js",
-		"./z-obsolete/data": "./out/z-obsolete/data/index.js",
-		"./z-obsolete/data/types": "./out/z-obsolete/data/types.js"
+		"./providers": "./out/providers/index.js",
+		"./z-obsolete/data": "./out/z-obsolete/data/index.js"
 	},
 	"dependencies": {
 		"@soase/shared": "file:../shared",

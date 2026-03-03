@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as vscode from "vscode";
-import { GameDirectory } from "@soase/client/environment";
+import { GameDirectory } from "@soase/client";
 
 suite("GameDirectory", function () {
     test("isValid() returns true for a valid game directory", async function () {

@@ -1,6 +1,6 @@
-import * as fs from "fs";
 import * as path from "path";
 import { WorkspaceSearch } from "../managers";
+import { FileChangeEvent, FileChangeType, Watcher } from "./watcher";
 
 /**
  * Represents a single file entry in the virtual file system.
@@ -37,16 +37,17 @@ export class DataSource {
     /** extension → fileKey → FileEntry */
     private readonly catalog = new Map<string, Map<string, FileEntry>>();
 
-    private watcher: fs.FSWatcher | undefined = undefined;
+    private readonly watcher: Watcher;
 
     constructor(directory: string, name: string, priority: number) {
         this.directory = directory;
         this.name = name;
         this.priority = priority;
+        this.watcher = new Watcher(this.directory, 300, this.onFileChanged.bind(this));
     }
 
     public dispose(): void {
-        this.watcher_dispose();
+        this.watcher.dispose();
     }
 
     //#region Scan
@@ -62,103 +63,34 @@ export class DataSource {
             return;
         }
 
-        // TODO: Consolidate with catalogAdd method once it has been proven to work with watch events.
         const fileKey: string = path.basename(filePath, extension).toLowerCase();
-        let bucket: Map<string, FileEntry> | undefined = this.catalog.get(extension);
-        if (!bucket) {
-            bucket = new Map();
-            this.catalog.set(extension, bucket);
-        }
-
-        const entry: FileEntry = { fileKey, filePath, extension };
-        bucket.set(fileKey, entry);
+        this.add(extension, fileKey, filePath);
     }
 
     //#endregion
 
-    //#region Watcher
-
-    private readonly pendingEvents = new Map<string, fs.WatchEventType>();
-    private flushTimeout: ReturnType<typeof setTimeout> | undefined;
+    //#region Watch
 
     public watch(): void {
-        this.watcher_dispose();
-        try {
-            this.watcher = fs.watch(this.directory, { recursive: true }, this.onWatch.bind(this));
-        } catch (error) {
-            console.error(`Failed to watch directory: ${this.directory}`, error);
-        }
+        this.watcher.start();
     }
 
-    private onWatch(eventType: fs.WatchEventType, filename: string | null): void {
-        // console.log(`Source: ${this.name}, File changed: ${filename} (${eventType})`);
-
-        if (!filename) {
-            return;
-        }
-
-        // debounce
-
-        // Accumulate events, last event type wins per filename.
-        this.pendingEvents.set(filename, eventType);
-
-        if (this.flushTimeout) {
-            clearTimeout(this.flushTimeout);
-        }
-        this.flushTimeout = setTimeout(() => this.flushPendingEvents(), 300);
-    }
-
-    private flushPendingEvents(): void {
-        for (const [filename, eventType] of this.pendingEvents) {
-            this.processWatchEvent(eventType, filename);
-        }
-        this.pendingEvents.clear();
-    }
-
-    private processWatchEvent(eventType: fs.WatchEventType, filename: string): void {
-        const filePath: string = path.join(this.directory, filename);
-        const extension: string = path.extname(filePath);
-
-        // Ignore directory events and files without extensions.
-        if (!extension) {
-            return;
-        }
-
-        const fileKey: string = path.basename(filePath, extension).toLowerCase();
-
-        if (eventType === "rename") {
-            // "rename" fires for create, delete, and rename.
-            // Check if the file exists to determine which.
-            const exists: boolean = fs.existsSync(filePath);
-
-            if (exists) {
-                // File was created (or is the new name of a rename).
-                this.catalogAdd(extension, fileKey, filePath);
-                console.log(`Source: ${this.name}, File added: ${filename}`);
-            } else {
-                // File was deleted (or is the old name of a rename).
-                this.catalogRemove(extension, fileKey);
-                console.log(`Source: ${this.name}, File removed: ${filename}`);
+    private onFileChanged(events: FileChangeEvent[]): void {
+        for (const event of events) {
+            switch (event.type) {
+                case FileChangeType.Added:
+                    this.add(event.extension, event.fileKey, event.filePath);
+                    console.log(`Source: ${this.name}, File added: ${event.relativePath}`);
+                    break;
+                case FileChangeType.Removed:
+                    this.remove(event.extension, event.fileKey);
+                    console.log(`Source: ${this.name}, File removed: ${event.relativePath}`);
+                    break;
+                case FileChangeType.Modified:
+                    console.log(`Source: ${this.name}, File modified: ${event.relativePath}`);
+                    // TODO: Notify listeners that cached data for this file is stale.
+                    break;
             }
-        } else if (eventType === "change") {
-            // File content changed. The catalog entry (path/key) doesn't change, but downstream caches may need invalidation.
-            if (this.catalog.get(extension)?.has(fileKey)) {
-                console.log(`Source: ${this.name}, File modified: ${filename}`);
-                // TODO: Notify listeners that cached data for this file is stale.
-            }
-        }
-    }
-
-    private watcher_dispose(): void {
-        if (this.flushTimeout) {
-            clearTimeout(this.flushTimeout);
-            this.flushTimeout = undefined;
-        }
-        this.pendingEvents.clear();
-
-        if (this.watcher) {
-            this.watcher.close();
-            this.watcher = undefined;
         }
     }
 
@@ -166,7 +98,7 @@ export class DataSource {
 
     //#region Catalog
 
-    private catalogAdd(extension: string, fileKey: string, filePath: string): void {
+    private add(extension: string, fileKey: string, filePath: string): void {
         let bucket: Map<string, FileEntry> | undefined = this.catalog.get(extension);
         if (!bucket) {
             bucket = new Map();
@@ -177,7 +109,7 @@ export class DataSource {
         bucket.set(fileKey, entry);
     }
 
-    private catalogRemove(extension: string, fileKey: string): void {
+    private remove(extension: string, fileKey: string): void {
         const bucket: Map<string, FileEntry> | undefined = this.catalog.get(extension);
         if (bucket) {
             bucket.delete(fileKey);
@@ -209,7 +141,3 @@ export class DataSource {
 
     //#endregion
 }
-
-// class Watcher {
-//     constructor() {}
-// }

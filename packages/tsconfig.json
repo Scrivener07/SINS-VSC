@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		// Type Checking
+		"strict": true, /*
+		- alwaysStrict
+		- strictNullChecks
+		- strictBindCallApply
+		- strictBuiltinIteratorReturn
+		- strictFunctionTypes
+		- strictPropertyInitialization
+		- noImplicitAny
+		- noImplicitThis
+		- useUnknownInCatchVariables
+		*/
+		"noImplicitOverride": true,
+
+		// Language and Environment
+		"moduleDetection": "force",
+
+		// Projects
+		"composite": true,
+
+		// Emit
+		"sourceMap": true
+	}
+}

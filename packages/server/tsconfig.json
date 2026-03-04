@@ -1,15 +1,13 @@
 {
+	"extends": "../tsconfig.json",
 	"compilerOptions": {
+		"outDir": "out",
+		"rootDir": "src",
 		"module": "commonjs",
 		"target": "ES2024",
 		"lib": [
 			"ES2024"
-		],
-		"outDir": "out",
-		"rootDir": "src",
-		"sourceMap": true,
-		"strict": true,
-		"composite": true
+		]
 	},
 	"include": [
 		"src"

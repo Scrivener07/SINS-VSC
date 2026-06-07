@@ -1,5 +1,5 @@
 import path = require("path");
-import { WorkspaceSearch } from "../../managers";
+import { FileSearch } from "../../files";
 import { OrderedRoot } from "./root-ordered";
 import { TextureProvider } from "./provider-texture";
 import { IndexProvider } from "./provider-index";
@@ -199,7 +199,7 @@ export class LocalizationService {
     }
 
     public async create(rootPath: string, name: string, priority: number): Promise<void> {
-        const files: string[] = await WorkspaceSearch.findFiles(rootPath, LocalizationService.FILE_EXTENSION);
+        const files: string[] = await FileSearch.findFiles(rootPath, LocalizationService.FILE_EXTENSION);
         for (const file of files) {
             const language: string = path.basename(file, LocalizationService.FILE_EXTENSION);
 

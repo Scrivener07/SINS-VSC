@@ -1,5 +1,5 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 
 /**
  * @deprecated
@@ -75,7 +75,7 @@ export class IndexManager {
 
         console.time(`Indexing::'${rootPath}'`);
         for (const extension of this.fileExtensions) {
-            const files: string[] = await WorkspaceSearch.findFiles(rootPath, extension);
+            const files: string[] = await FileSearch.findFiles(rootPath, extension);
             for (const file of files) {
                 this.addToIndex(file);
             }

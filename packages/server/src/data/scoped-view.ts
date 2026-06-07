@@ -82,6 +82,6 @@ export class ScopedView {
      * Returns the sources in scope, ordered by priority.
      */
     public getScopedSources(): readonly DataSource[] {
-        return this.root.getSources().filter((source) => this.scope.has(source.directory));
+        return this.root.filter((source) => this.scope.has(source.directory));
     }
 }

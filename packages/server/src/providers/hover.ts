@@ -8,7 +8,7 @@ import { JsonAST } from "../json-ast";
 import { JsonPointer } from "../json-pointer";
 import { WorkspaceService } from "../managers";
 import { ILanguageState } from "../types";
-import { GameData, ResolvedFile, UniformEntry } from "../data";
+import { DataService, ResolvedFile, UniformEntry } from "../data";
 
 // TODO: Try to eliminate awaited file IO. Hover should be fast and non-blocking.
 
@@ -16,7 +16,7 @@ export class HoverProvider {
     private readonly jsonLanguageService: LanguageService;
     private readonly documents: TextDocuments<TextDocument>;
     private readonly workspace: WorkspaceService;
-    private readonly data: GameData;
+    private readonly data: DataService;
     private readonly language: ILanguageState;
 
     constructor(
@@ -24,7 +24,7 @@ export class HoverProvider {
         documents: TextDocuments<TextDocument>,
         language: ILanguageState,
         workspace: WorkspaceService,
-        data: GameData
+        data: DataService
     ) {
         this.jsonLanguageService = jsonLanguageService;
         this.documents = documents;

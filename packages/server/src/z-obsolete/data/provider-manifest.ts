@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
@@ -36,7 +36,7 @@ export class ManifestProvider extends ProviderBase<ValueStringSet> {
         this.cache.clear();
 
         for (const manifestType of ManifestProvider.MANIFEST_TYPES) {
-            const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, `${manifestType}${ManifestProvider.FILE_EXTENSION}`);
+            const files: string[] = await FileSearch.findFiles(this.rootPath, `${manifestType}${ManifestProvider.FILE_EXTENSION}`);
 
             if (files.length === 0) {
                 continue;

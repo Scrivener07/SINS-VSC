@@ -1,4 +1,4 @@
-abstract class KeyedCollection<TKey, TItem> {
+export abstract class KeyedCollection<TKey, TItem> {
     protected readonly collection: Map<TKey, TItem>;
 
     constructor(items?: Iterable<TItem>) {

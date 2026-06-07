@@ -13,7 +13,7 @@ import {
 import { PointerType } from "../pointers";
 import { JsonPointer } from "../json-pointer";
 import { IEntityState, ILanguageState } from "../types";
-import { GameData } from "../data";
+import { DataService } from "../data";
 import { fileURLToPath } from "url";
 
 export class CompletionManager {
@@ -25,7 +25,7 @@ export class CompletionManager {
     private readonly jsonLanguageService: LanguageService;
     private readonly documents: TextDocuments<TextDocument>;
     private readonly entity: IEntityState;
-    private readonly data: GameData;
+    private readonly data: DataService;
 
     private readonly language: ILanguageState;
 
@@ -33,7 +33,7 @@ export class CompletionManager {
         jsonLanguageService: LanguageService,
         documents: TextDocuments<TextDocument>,
         entity: IEntityState,
-        data: GameData,
+        data: DataService,
         language: ILanguageState
     ) {
         this.jsonLanguageService = jsonLanguageService;

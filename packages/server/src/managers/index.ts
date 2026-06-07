@@ -1,2 +1,2 @@
-export { WorkspaceService, WorkspaceSearch } from "./workspace";
-export { SchemaManager } from "./schema";
+export * from "./workspace";
+export * from "./schema";

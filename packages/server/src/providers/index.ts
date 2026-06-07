@@ -1,5 +1,5 @@
-export { CompletionManager } from "./completion";
-export { DefinitionProvider } from "./definition";
-export { DiagnosticManager, Report } from "./diagnostic";
-export { HoverProvider } from "./hover";
-export { DocumentSymbolProvider } from "./document-symbol";
+export * from "./completion";
+export * from "./definition";
+export * from "./diagnostic";
+export * from "./hover";
+export * from "./document-symbol";

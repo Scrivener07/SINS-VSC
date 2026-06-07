@@ -1,5 +1,5 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { ValueString } from "./types";
 import { ProviderBase } from "./provider";
 
@@ -15,7 +15,7 @@ export class TextureProvider extends ProviderBase<ValueString> {
     public async load(): Promise<void> {
         this.cache.clear();
 
-        const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".png");
+        const files: string[] = await FileSearch.findFiles(this.rootPath, ".png");
         for (const file of files) {
             try {
                 const fileName: string = path.basename(file);

@@ -1,5 +1,5 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { IDataValue } from "./types";
 import { ProviderBase } from "./provider";
 
@@ -84,7 +84,7 @@ export class IndexProvider extends ProviderBase<IDataValue<string[]>> {
 
         console.time(`IndexProvider::load '${this.identifier}'`);
         for (const extension of IndexProvider.FILE_EXTENSIONS) {
-            const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, extension);
+            const files: string[] = await FileSearch.findFiles(this.rootPath, extension);
             for (const filePath of files) {
                 this.addToCache(filePath);
             }

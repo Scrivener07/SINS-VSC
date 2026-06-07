@@ -34,7 +34,7 @@ export class LocalizationResolver {
         this.cache.clear();
 
         // Iterate sources low→high priority so later sources override.
-        for (const source of this.root.getSources()) {
+        for (const source of this.root) {
             const bucket: Map<string, FileEntry> | undefined = source.getFilesByExtension(LocalizationResolver.FILE_EXTENSION);
             if (!bucket) {
                 continue;
@@ -97,7 +97,7 @@ export class LocalizationResolver {
     public async getLayers(language: string, key: string): Promise<LocalizedEntry[]> {
         const layers: LocalizedEntry[] = [];
 
-        for (const source of this.root.getSources()) {
+        for (const source of this.root) {
             const bucket: Map<string, FileEntry> | undefined = source.getFilesByExtension(LocalizationResolver.FILE_EXTENSION);
             if (!bucket) {
                 continue;

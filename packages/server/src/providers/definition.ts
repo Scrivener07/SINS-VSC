@@ -7,15 +7,15 @@ import { PointerType } from "../pointers";
 import { JsonAST } from "../json-ast";
 import { JsonPointer } from "../json-pointer";
 import { ILanguageState } from "../types";
-import { GameData, LocalizedEntry, ResolvedFile } from "../data";
+import { DataService, LocalizedEntry, ResolvedFile } from "../data";
 
 export class DefinitionProvider {
     private readonly jsonLanguageService: LanguageService;
     private readonly documents: TextDocuments<TextDocument>;
-    private readonly data: GameData;
+    private readonly data: DataService;
     private readonly language: ILanguageState;
 
-    constructor(jsonLanguageService: LanguageService, documents: TextDocuments<TextDocument>, data: GameData, language: ILanguageState) {
+    constructor(jsonLanguageService: LanguageService, documents: TextDocuments<TextDocument>, data: DataService, language: ILanguageState) {
         this.jsonLanguageService = jsonLanguageService;
         this.documents = documents;
         this.data = data;

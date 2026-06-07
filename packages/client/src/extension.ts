@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { Services } from "./services";
-import { HelloCommand } from "./commands";
+import { HelloCommand, RevealFolderCommand } from "./commands";
 import { ResearchOpenCommand } from "./research";
 
 /**
@@ -13,6 +13,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     console.log("The extension has been activated.");
     await Services.activate(context);
     context.subscriptions.push(HelloCommand.register());
+    context.subscriptions.push(RevealFolderCommand.register());
     context.subscriptions.push(ResearchOpenCommand.register(context));
 }
 

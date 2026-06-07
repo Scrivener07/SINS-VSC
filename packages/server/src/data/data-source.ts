@@ -1,6 +1,5 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../managers";
-import { FileChangeEvent, FileChangeType, Watcher } from "./watcher";
+import { FileSearch, Watcher, FileChangeEvent, FileChangeType } from "../files";
 
 /**
  * Represents a single file entry in the virtual file system.
@@ -26,35 +25,73 @@ export interface FileEntry {
 }
 
 /**
+ * Callback invoked after the catalog has been updated from file system changes.
+ */
+export type CatalogChangeListener = (source: DataSource, events: FileChangeEvent[]) => void;
+
+/**
  * Represents one data source directory (base game or mod).
  * Scans once and stores a catalog of all files found sorted by extension.
  */
 export class DataSource {
+    /**
+     * The root directory of the data source.
+     * This is used as a primary key for lookups.
+     */
     public readonly directory: string;
+
+    /**
+     * A friendly display name for the source, used in logging and debugging.
+     */
     public readonly name: string;
+
+    /**
+     * The priority of the source. Higher priority sources override lower ones.
+     *
+     * TODO: deprecate in favor of explicit dependency graph construction.
+     */
     public readonly priority: number;
+
+    public readonly dependencies: string[];
+
+    public readonly kind: "game" | "mod";
 
     /** extension → fileKey → FileEntry */
     private readonly catalog = new Map<string, Map<string, FileEntry>>();
+    private onCatalogChanged: CatalogChangeListener | undefined;
+
+    /**
+     * Registers a listener that is notified after catalog mutations from file system changes.
+     * Only one listener is supported for the owning instance.
+     */
+    public setChangeListener(listener: CatalogChangeListener | undefined): void {
+        this.onCatalogChanged = listener;
+    }
 
     private readonly watcher: Watcher;
 
-    constructor(directory: string, name: string, priority: number) {
+    constructor(directory: string, name: string, priority: number, dependencies: string[] = [], kind: "game" | "mod" = "mod") {
         this.directory = directory;
         this.name = name;
         this.priority = priority;
+        this.dependencies = dependencies;
+        this.kind = kind;
         this.watcher = new Watcher(this.directory, 300, this.onFileChanged.bind(this));
     }
 
-    public dispose(): void {
-        this.watcher.dispose();
+    public load(): void {
+        //
+    }
+
+    public unload(): void {
+        this.watcher.close();
     }
 
     //#region Scan
 
     public async scan(): Promise<void> {
         this.catalog.clear();
-        await WorkspaceSearch.scanFiles(this.directory, this.onScan.bind(this));
+        await FileSearch.scanFiles(this.directory, this.onScan.bind(this));
     }
 
     private onScan(filePath: string): void {
@@ -72,26 +109,28 @@ export class DataSource {
     //#region Watch
 
     public watch(): void {
-        this.watcher.start();
+        this.watcher.watch();
     }
 
     private onFileChanged(events: FileChangeEvent[]): void {
         for (const event of events) {
+            console.log(`Source: ${this.name}, Action: ${event.type}, File: ${event.relativePath}`);
+
             switch (event.type) {
                 case FileChangeType.Added:
                     this.add(event.extension, event.fileKey, event.filePath);
-                    console.log(`Source: ${this.name}, File added: ${event.relativePath}`);
                     break;
                 case FileChangeType.Removed:
                     this.remove(event.extension, event.fileKey);
-                    console.log(`Source: ${this.name}, File removed: ${event.relativePath}`);
                     break;
                 case FileChangeType.Modified:
-                    console.log(`Source: ${this.name}, File modified: ${event.relativePath}`);
                     // TODO: Notify listeners that cached data for this file is stale.
                     break;
             }
         }
+
+        // Notify listeners for a catalog change.
+        this.onCatalogChanged?.(this, events);
     }
 
     //#endregion

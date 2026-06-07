@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { ValueStringSet } from "./types";
 import { ProviderBase } from "./provider";
 
@@ -43,7 +43,7 @@ export class UniformProvider extends ProviderBase<ValueStringSet> {
         this.cache.clear();
 
         for (const { type, extractor } of UniformProvider.UNIFORM_TYPES) {
-            const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, `${type}.uniforms`);
+            const files: string[] = await FileSearch.findFiles(this.rootPath, `${type}.uniforms`);
 
             if (files.length === 0) {
                 continue;

@@ -6,7 +6,7 @@ import { DiagnosticManager } from "./providers";
 import { Report } from "./providers/diagnostic";
 import { PointerType } from "./pointers";
 import { IEntityState, ILanguageState } from "./types";
-import { GameData } from "./data";
+import { DataService } from "./data";
 
 /**
  * Provides business logic for validation rules.
@@ -17,7 +17,7 @@ export class Validator {
         private readonly jsonLanguageService: LanguageService,
         private readonly diagnostics: Diagnostic[],
         private readonly diagnosticManager: DiagnosticManager,
-        private readonly data: GameData,
+        private readonly data: DataService,
         private readonly entity: IEntityState,
         private readonly language: ILanguageState
     ) {

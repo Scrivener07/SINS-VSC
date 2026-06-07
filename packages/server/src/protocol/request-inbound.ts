@@ -1,14 +1,14 @@
 import { Connection } from "vscode-languageserver/node";
 import { ServerRequest, IRequestEntityPath, IRequestLocalization, IRequestUniformPath } from "@soase/shared";
-import { GameData, ResolvedFile } from "../data";
+import { DataService, ResolvedFile } from "../data";
 
 /**
  * Encapsulates inbound requests from the client to the server.
  */
 export class RequestInbound {
-    private readonly data: GameData;
+    private readonly data: DataService;
 
-    constructor(data: GameData) {
+    constructor(data: DataService) {
         this.data = data;
     }
 

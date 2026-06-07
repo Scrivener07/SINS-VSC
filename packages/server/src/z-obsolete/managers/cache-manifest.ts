@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { CacheStorage } from "./cache";
 
 /**
@@ -49,7 +49,7 @@ export class ManifestManager extends CacheStorage<ManifestType> {
     }
 
     private async store(rootPath: string, entityManifest: keyof ManifestType): Promise<void> {
-        const manifest: string[] = await WorkspaceSearch.findFiles(rootPath, `${entityManifest}.entity_manifest`);
+        const manifest: string[] = await FileSearch.findFiles(rootPath, `${entityManifest}.entity_manifest`);
 
         if (manifest.length === 0) {
             console.info(`No manifest found for '${entityManifest}' in '${rootPath}'.`);

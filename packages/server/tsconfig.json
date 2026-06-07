@@ -10,7 +10,8 @@
 		]
 	},
 	"include": [
-		"src"
+		"src",
+		"../shared/src/collections"
 	],
 	"references": [
 		{

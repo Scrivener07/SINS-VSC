@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Configuration } from "./configuration";
+import { MetaFile } from "./project/mod-meta";
 
 /**
  * Provides utilities for detecting and retrieving the game installation directory.
@@ -90,33 +91,24 @@ export class GameDirectory {
 
 export class ModificationDirectory {
     public static async isValid(folder: vscode.Uri): Promise<boolean> {
-        return Detect_MetaFile.isValid(folder);
+        return MetaFile.existsIn(folder);
     }
 
+    /**
+     * Retrieves valid modification directories from the current workspace.
+     * These are determined by the presence of a `.mod_meta_data` file within the root of any workspace folder.
+     * @returns A promise that resolves to an array of `vscode.Uri` objects representing valid modification directories.
+     */
     public static async fromWorkspace(): Promise<vscode.Uri[]> {
         const folders: vscode.Uri[] = [];
         if (vscode.workspace.workspaceFolders) {
             for (const folder of vscode.workspace.workspaceFolders) {
-                if (await Detect_MetaFile.isValid(folder.uri)) {
+                if (await MetaFile.existsIn(folder.uri)) {
                     folders.push(folder.uri);
                 }
             }
         }
         return folders;
-    }
-}
-
-class Detect_MetaFile {
-    private static readonly FILE_NAME: string = ".mod_meta_data";
-
-    public static async isValid(folder: vscode.Uri): Promise<boolean> {
-        try {
-            const file: vscode.Uri = vscode.Uri.joinPath(folder, Detect_MetaFile.FILE_NAME);
-            void (await vscode.workspace.fs.stat(file));
-            return true;
-        } catch {
-            return false;
-        }
     }
 }
 

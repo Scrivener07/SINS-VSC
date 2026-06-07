@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { ValueString } from "./types";
 import { ProviderBase } from "./provider";
 
@@ -22,7 +22,7 @@ export class LocalizationProvider extends ProviderBase<ValueString> {
     public async load(): Promise<void> {
         this.cache.clear();
 
-        const files: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".localized_text");
+        const files: string[] = await FileSearch.findFiles(this.rootPath, ".localized_text");
         const targetFile: string | undefined = files.find((file) => {
             const fileName: string = path.basename(file);
             return fileName.split(".")[0] === this.languageCode;

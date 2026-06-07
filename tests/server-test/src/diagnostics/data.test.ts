@@ -1,4 +1,4 @@
-import { DataSource, DependencyGraph, FileEntry, GameData, IDataSource, ResolvedFile, ScopedView } from "@soase/server/data";
+import { DataSource, DependencyGraph, FileEntry, DataService, IDataSource, ResolvedFile, ScopedView } from "@soase/server/data";
 
 suite("[Diagnostic] Data Harness", function () {
     let harness: DataHarness;
@@ -33,18 +33,22 @@ suite("[Diagnostic] Data Harness", function () {
 type CatalogStat = { fileExtension: string; fileCount: number };
 
 class DataHarness {
-    private readonly gameData: GameData;
+    private readonly gameData: DataService;
 
     private readonly gameSource: IDataSource = {
         directory: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Sins2",
         name: "Game",
-        priority: 0
+        priority: 0,
+        kind: "game",
+        dependencies: []
     };
 
     private readonly memSource: IDataSource = {
         directory: "C:\\Users\\Public\\mod.io\\5762\\mods\\4527333",
         name: "M.E.M Framework",
-        priority: 1
+        priority: 1,
+        kind: "mod",
+        dependencies: [this.gameSource.directory]
         /** Dependencies
          * - [0] Game
          */
@@ -53,7 +57,9 @@ class DataHarness {
     private readonly sgrSource: IDataSource = {
         directory: "C:\\Users\\Public\\mod.io\\5762\\mods\\4286987",
         name: "SGR - Stargate Races",
-        priority: 2
+        priority: 2,
+        kind: "mod",
+        dependencies: [this.gameSource.directory, this.memSource.directory]
         /** Dependencies
          * - [0] Game
          * - [1] M.E.M Framework
@@ -63,14 +69,16 @@ class DataHarness {
     private readonly haloSource: IDataSource = {
         directory: "S:\\Studio\\Stardock\\Ironclad\\SINS-2\\Halo",
         name: "Halo",
-        priority: 3
+        priority: 3,
+        kind: "mod",
+        dependencies: [this.gameSource.directory]
         /** Dependencies
          * - [0] Game
          */
     };
 
     constructor() {
-        this.gameData = new GameData();
+        this.gameData = new DataService();
     }
 
     public async startup() {
@@ -115,7 +123,7 @@ class DataHarness {
      */
     public test_catalog_stats() {
         console.log("\n=== Catalog Stats ===");
-        for (const source of this.gameData.context.root.getSources()) {
+        for (const source of this.gameData.context.root) {
             const extensions: string[] = [...source.getExtensions()];
             let totalFiles: number = 0;
 
@@ -192,7 +200,7 @@ class DataHarness {
         ];
         for (const filePath of testPaths) {
             const sourceDir: string | undefined = this.gameData.context.resolveSourceForFile(filePath);
-            const source: DataSource | undefined = this.gameData.context.root.getSources().find((s) => s.directory === sourceDir);
+            const source: DataSource | undefined = this.gameData.context.root.find((s) => s.directory === sourceDir);
             console.log(`  ${filePath}`);
             console.log(`    → ${source?.name ?? "UNRESOLVED (global fallback)"}`);
         }

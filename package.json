@@ -43,6 +43,26 @@
 						"zh_cn"
 					],
 					"description": "A language code for the prefered primary `*.localized_text` dictionary to display."
+				},
+				"soase2-plugin.data-sources": {
+					"type": "object",
+					"scope": "resource",
+					"default": {},
+					"description": "Maps a data-source directory to dependency configuration.",
+					"additionalProperties": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"dependencies": {
+								"type": "array",
+								"description": "Absolute directory paths this source depends on.",
+								"items": {
+									"type": "string"
+								},
+								"default": []
+							}
+						}
+					}
 				}
 			}
 		},
@@ -124,6 +144,10 @@
 				"command": "soase.research.visualizer.open",
 				"title": "Open Research Visualizer",
 				"icon": "$(graph)"
+			},
+			{
+				"command": "soase.contentTree.revealFolder",
+				"title": "Reveal in File Explorer"
 			}
 		],
 		"menus": {
@@ -132,6 +156,21 @@
 					"command": "soase.research.visualizer.open",
 					"group": "navigation",
 					"when": "editorLangId == 'soase'"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "soase.contentTree.revealFolder",
+					"when": "view == soase.contentTree && viewItem =~ /^(game|mod|dependency)$/",
+					"group": "navigation"
+				}
+			]
+		},
+		"views": {
+			"explorer": [
+				{
+					"id": "soase.contentTree",
+					"name": "Sins Content"
 				}
 			]
 		}

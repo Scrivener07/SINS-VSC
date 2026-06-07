@@ -6,9 +6,12 @@ import { DataContext } from "./data-context";
 import { ScopedView } from "./scoped-view";
 
 /**
- * Top-level game data service.
+ * The top-level game data service.
+ *
+ * - Resolvers work against the global root for building caches.
+ * - Scoped filtering happens at query time via `ScopedView`.
  */
-export class GameData {
+export class DataService {
     public readonly context: DataContext;
     public readonly localization: LocalizationResolver;
     public readonly uniforms: UniformResolver;
@@ -16,8 +19,6 @@ export class GameData {
 
     constructor() {
         this.context = new DataContext();
-        // Resolvers work against the global root for building caches.
-        // Scoped filtering happens at query time via ScopedView.
         this.localization = new LocalizationResolver(this.context.root);
         this.uniforms = new UniformResolver(this.context.root);
         this.manifests = new ManifestResolver(this.context.root);
@@ -32,10 +33,19 @@ export class GameData {
     }
 
     public async reload(): Promise<void> {
+        // WIP
+        await this.context.rebuildDependencies();
+
+        // Scan all source files.
         await this.context.scanAll();
+
+        // Rebuild resolver caches after loading all data.
         await this.localization.rebuild();
         await this.uniforms.rebuild();
         await this.manifests.rebuild();
+
+        // Watch...
+        // NOTE: Comment this line to disable file watching for debugging purposes.
         this.context.watchAll();
     }
 

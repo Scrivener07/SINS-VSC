@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files/search";
 import { ProviderBase } from "./provider";
 import { IDataValue } from "./types";
 
@@ -48,7 +48,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadLocalizations(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, `${this.language}.localized_text`);
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, `${this.language}.localized_text`);
 
         if (filePaths.length === 0) {
             console.info(`DataProvider: No localization found for '${this.language}' in '${this.rootPath}'.`);
@@ -69,7 +69,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadBrushes(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".png");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".png");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFile(filePath));
@@ -79,7 +79,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadTextures(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".dds");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".dds");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFile(filePath));
@@ -89,7 +89,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadPlayers(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".player");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".player");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -98,7 +98,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadUnitItems(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".unit_item");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".unit_item");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -107,7 +107,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadWeapons(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".weapon");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".weapon");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -116,7 +116,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadUnitSkins(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".unit_skin");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".unit_skin");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -125,7 +125,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadUnits(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".unit");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".unit");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -134,7 +134,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadMeshes(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".mesh");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".mesh");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -143,7 +143,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadMeshMaterials(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".mesh_material");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".mesh_material");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -152,7 +152,7 @@ export class DataProvider extends ProviderBase<IDataValue<Set<string>>> {
     }
 
     private async loadTtfFonts(): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(this.rootPath, ".ttf");
+        const filePaths: string[] = await FileSearch.findFiles(this.rootPath, ".ttf");
         const set = new Set<string>();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));

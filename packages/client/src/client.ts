@@ -1,14 +1,16 @@
 import * as path from "path";
 import * as vscode from "vscode";
-import { ExtensionContext, WorkspaceFoldersChangeEvent } from "vscode";
+import { ExtensionContext } from "vscode";
 import { LanguageClient, TransportKind } from "vscode-languageclient/node";
 import * as shared from "@soase/shared";
 import { ClientNotification } from "@soase/shared";
 import { Configuration } from "./configuration";
-import { GameDirectory, ModificationDirectory } from "./environment";
+import { ProjectContext, ProjectKind } from "./project";
 
 export class ClientManager implements vscode.Disposable {
-    private disposables: vscode.Disposable[] = [];
+    private context: ProjectContext;
+
+    private disposables: vscode.Disposable[];
 
     private languageClient: LanguageClient | undefined;
     public get client(): LanguageClient | undefined {
@@ -29,6 +31,11 @@ export class ClientManager implements vscode.Disposable {
     private static readonly CLIENT_ID: string = "soase-lsp";
     private static readonly CLIENT_NAME: string = "Sins LSP";
 
+    public constructor(context: ProjectContext) {
+        this.context = context;
+        this.disposables = [];
+    }
+
     //#region Extension
     // These are the extension lifecycle methods.
 
@@ -39,14 +46,15 @@ export class ClientManager implements vscode.Disposable {
         this.serverModule = context.asAbsolutePath(path.join("dist", "server.js"));
 
         // Listen for workspace folder changes.
-        this.disposables.push(vscode.workspace.onDidChangeWorkspaceFolders((event) => this.onDidChangeWorkspaceFolders(event)));
+        this.disposables.push(this.context.onDidChange(this.onProjectsChanged.bind(this)));
 
         // Create and start the new language client. Then add request handlers for the language server.
         const client: LanguageClient = await this.create();
-        await client.start().then(() => {
-            client.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
-            console.info("Language client created and started on extension activation.");
-        });
+
+        await client.start();
+        client.onRequest(shared.PROPERTIES.language, () => Configuration.getLanguage());
+        console.info("Language client created and started on extension activation.");
+
         this.languageClient = client;
     }
 
@@ -72,8 +80,8 @@ export class ClientManager implements vscode.Disposable {
     //#region Server
 
     private async create(): Promise<LanguageClient> {
-        const info: shared.IWorkspaceInfo = await ClientManager.getWorkspaceInfo();
-        console.info("Workspace Info", JSON.stringify(info, null, 2));
+        const info: shared.IWorkspaceInfo = ClientManager.toWorkspaceInfo(this.context);
+        const watchers: vscode.FileSystemWatcher[] = ClientManager.getWatchers(info);
 
         if (!this.serverModule) {
             throw new Error("Server module path is not defined.");
@@ -106,16 +114,42 @@ export class ClientManager implements vscode.Disposable {
                 diagnosticCollectionName: ClientManager.CLIENT_ID,
                 outputChannel: vscode.window.createOutputChannel(ClientManager.CHANNEL_NAME),
                 documentSelector: [
-                    // Selects files within the root of any workspace folder.
-                    { scheme: "file", language: ClientManager.LANGUAGE_SINS }
+                    {
+                        // A pattern that selects only Sins-2 files within the root of any workspace folder.
+                        scheme: "file",
+                        language: ClientManager.LANGUAGE_SINS
+                    }
                     // { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${gameFolder.fsPath}/**/*` },
                     // { scheme: "file", language: ClientManager.LANGUAGE_SINS, pattern: `${folder.uri.fsPath}/**/*` }
                 ],
+                synchronize: {
+                    fileEvents: watchers
+                },
                 initializationOptions: {
                     info: info
                 }
             }
         );
+    }
+
+    private static getWatchers(info: shared.IWorkspaceInfo): vscode.FileSystemWatcher[] {
+        // WIP
+        // Instantiate file watchers for all workspace folders to trigger server-side synchronization.
+        // It is unclear if I should use this approach, or if I should implement file watching on the server side.
+        // NOTE: These root directory watchers cannot be added\removed dynamically after the client is created.
+        //       The server will ignore file events for unknown folders and the client must be restarted to add new root watchers.
+        // https://code.visualstudio.com/api/references/vscode-api#workspace.createFileSystemWatcher
+        const watchers: vscode.FileSystemWatcher[] = [];
+
+        console.info(`Creating file watchers for workspace folders:`);
+        console.info(`    ${info.gameFolder}`);
+        watchers.push(vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(info.gameFolder, "**/*")));
+        for (const modFolder of info.modFolders) {
+            console.info(`    ${modFolder}`);
+            watchers.push(vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(modFolder, "**/*")));
+        }
+
+        return watchers;
     }
 
     //#endregion
@@ -124,16 +158,19 @@ export class ClientManager implements vscode.Disposable {
 
     /**
      * Handles workspace folder changes.
-     * @param event The workspace folder change event.
+     *
+     * @remarks NOTE: This does not actually work as intended.
+     * The server must be restarted to change the workspace folders that the client is watching.
+     * This is a limitation of the vscode language client API.
      */
-    private async onDidChangeWorkspaceFolders(event: WorkspaceFoldersChangeEvent): Promise<void> {
+    private async onProjectsChanged(): Promise<void> {
         if (!this.languageClient) {
             console.warn("Client not initialized yet; ignoring workspace folder change.");
             return;
         }
 
-        // Re-fetch the current game and mod folders.
-        const info: shared.IWorkspaceInfo = await ClientManager.getWorkspaceInfo();
+        // Grab the current workspace info and log it for debugging.
+        const info: shared.IWorkspaceInfo = ClientManager.toWorkspaceInfo(this.context);
         console.info("Workspace Info Updated ", JSON.stringify(info, null, 4));
 
         // Send the updated folder list to the server.
@@ -141,17 +178,31 @@ export class ClientManager implements vscode.Disposable {
     }
 
     /**
-     * Creates a data transfer object containing the paths of the game and mod folders in the current workspace.
-     * @returns A promise that resolves to an object containing the game and mod folder paths.
+     * Converts the current workspace state into a serializable object to send to the server.
+     * @param context The project context representing the current workspace state.
+     * @returns A DTO to be sent to the server.
      */
-    private static async getWorkspaceInfo(): Promise<shared.IWorkspaceInfo> {
-        const gameFolder: vscode.Uri = await GameDirectory.get();
-        const modFolders: vscode.Uri[] = await ModificationDirectory.fromWorkspace();
-        const info: shared.IWorkspaceInfo = {
-            gameFolder: gameFolder.fsPath,
-            modFolders: modFolders.map((uri) => uri.fsPath)
+    private static toWorkspaceInfo(context: ProjectContext): shared.IWorkspaceInfo {
+        let gameFolder: string = "";
+        let modFolders: string[] = [];
+        let dependencies: Record<string, string[]> = {};
+
+        for (const project of context.values()) {
+            if (project.kind === ProjectKind.Game) {
+                gameFolder = project.directory.fsPath;
+            } else {
+                modFolders.push(project.directory.fsPath);
+                dependencies[project.directory.fsPath] = project.dependencies.map(function (dependency) {
+                    return dependency.directory.fsPath;
+                });
+            }
+        }
+
+        return {
+            gameFolder: gameFolder,
+            modFolders: modFolders,
+            dependencies: dependencies
         };
-        return info;
     }
 
     //#endregion

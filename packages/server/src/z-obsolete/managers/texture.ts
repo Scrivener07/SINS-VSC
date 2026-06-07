@@ -1,5 +1,5 @@
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files/search";
 
 /**
  * @deprecated
@@ -14,7 +14,7 @@ export class TextureManager {
     public async loadFromWorkspace(rootPath: string): Promise<void> {
         this.cache.clear();
 
-        const files: string[] = await WorkspaceSearch.findFiles(rootPath, ".png");
+        const files: string[] = await FileSearch.findFiles(rootPath, ".png");
         for (const file of files) {
             try {
                 const fileName: string = path.basename(file);

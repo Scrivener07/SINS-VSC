@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { CacheStorage } from "./cache";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 
 /**
  * @deprecated
@@ -19,7 +19,7 @@ export class UniformManager extends CacheStorage<UniformType> {
     }
 
     private async store(rootPath: string, uniform: keyof UniformType): Promise<void> {
-        const uniformFile: string[] = await WorkspaceSearch.findFiles(rootPath, `${uniform}.uniforms`);
+        const uniformFile: string[] = await FileSearch.findFiles(rootPath, `${uniform}.uniforms`);
 
         if (uniformFile.length === 0) {
             console.info(`No uniform found for '${uniform}' in '${rootPath}'.`);

@@ -6,5 +6,6 @@ export const SOURCE: string = "Jabberwocky";
  */
 export const PROPERTIES = {
     installation: "installation",
-    language: "language"
+    language: "language",
+    dataSources: "data-sources"
 };

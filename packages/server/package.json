@@ -10,6 +10,7 @@
 	"types": "out/server.d.ts",
 	"exports": {
 		".": "./out/index.js",
+		"./collections": "./out/collections/index.js",
 		"./data": "./out/data/index.js",
 		"./managers": "./out/managers/index.js",
 		"./providers": "./out/providers/index.js",

@@ -17,11 +17,11 @@ export interface FileChangeEvent {
     /** The type of change that occurred. */
     readonly type: FileChangeType;
 
-    /** The relative path from the watched directory. */
-    readonly relativePath: string;
-
     /** The full absolute path on disk. */
     readonly filePath: string;
+
+    /** The relative path from the watched directory. */
+    readonly relativePath: string;
 
     /** The file extension including dot.*/
     readonly extension: string;
@@ -36,7 +36,7 @@ export interface FileChangeEvent {
 export type FileChangeListener = (events: FileChangeEvent[]) => void;
 
 /**
- * Wraps `fs.watch` to provide debounced and disambiguated file change events.
+ * Wraps `fs.FSWatcher` to provide debounced and disambiguated file change events.
  *
  * The native `fs.watch` API is platform-inconsistent and emits raw `"change"` and `"rename"` events.
  * These don't distinguish between create, delete, and rename.
@@ -70,10 +70,10 @@ export class Watcher {
 
     /**
      * Starts watching the directory for file changes.
-     * If already watching, the previous watcher is disposed first.
+     * If already watching, the previous watcher is stopped first.
      */
-    public start(): void {
-        this.dispose();
+    public watch(): void {
+        this.close();
         try {
             this.watcher = fs.watch(this.directory, { recursive: true }, this.onWatch.bind(this));
         } catch (error) {
@@ -82,9 +82,9 @@ export class Watcher {
     }
 
     /**
-     * Disposes the watcher by stopping the watch and clearing pending events.
+     * Stops watching the directory and clears pending events.
      */
-    public dispose(): void {
+    public close(): void {
         if (this.flushTimeout) {
             clearTimeout(this.flushTimeout);
             this.flushTimeout = undefined;

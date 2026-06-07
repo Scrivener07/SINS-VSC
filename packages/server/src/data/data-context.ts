@@ -1,6 +1,7 @@
+import { FileChangeEvent } from "../files";
+import { IDataSource } from "./types";
 import { LayeredRoot } from "./data-root";
 import { DataSource } from "./data-source";
-import { IDataSource } from "./types";
 import { DependencyGraph } from "./dependency-graph";
 import { ScopedView } from "./scoped-view";
 
@@ -29,9 +30,19 @@ export class DataContext {
      * - This does not trigger a scan. Call `reload()` after registering all sources and their dependencies.
      */
     public async addSource(configuration: IDataSource): Promise<void> {
-        const source: DataSource = new DataSource(configuration.directory, configuration.name, configuration.priority);
+        const source: DataSource = new DataSource(
+            configuration.directory,
+            configuration.name,
+            configuration.priority,
+            configuration.dependencies,
+            configuration.kind
+        );
+        source.setChangeListener(this.onSourceChanged.bind(this));
         this.sourceMap.set(configuration.directory, source);
-        this.root.addSource(source);
+        this.root.add(source);
+
+        // WIP
+        await this.rebuildDependencies();
     }
 
     /**
@@ -39,7 +50,7 @@ export class DataContext {
      */
     public removeSource(directory: string): void {
         this.sourceMap.delete(directory);
-        this.root.removeSource(directory);
+        this.root.removeByDirectory(directory);
         this.graph.removeNode(directory);
     }
 
@@ -52,6 +63,16 @@ export class DataContext {
 
     public watchAll() {
         this.root.watchAll();
+    }
+
+    private async onSourceChanged(source: DataSource, events: FileChangeEvent[]): Promise<void> {
+        console.log(`Source: ${source.name} has ${events.length} file changes at ${source.directory}`);
+        for (const event of events) {
+            console.log(`  Action: ${event.type}, File: ${event.relativePath}`);
+        }
+
+        // TODO: May need to rebuild dependencies if a new .mod_dependency file is added/removed/changed.
+        // await this.rebuildDependencies();
     }
 
     //#region Views
@@ -78,7 +99,7 @@ export class DataContext {
      * - For operations that inherently need everything (like full workspace search).
      */
     public getGlobalView(): ScopedView {
-        const allDirectories: string[] = this.root.getSources().map((source) => source.directory);
+        const allDirectories: string[] = this.root.map((source) => source.directory);
         return new ScopedView(this.root, allDirectories);
     }
 
@@ -128,6 +149,166 @@ export class DataContext {
 
         return match;
     }
+
+    //#endregion
+
+    // WIP: Audit this code with tests.
+    //#region Dependency Graph Management
+
+    public async rebuildDependencies(): Promise<void> {
+        const sourceByNormalized: Map<string, string> = new Map<string, string>();
+        const declarations: Array<{ dependent: string; dependencies: string[] }> = [];
+
+        for (const source of this.sourceMap.values()) {
+            sourceByNormalized.set(source.directory.toLowerCase(), source.directory);
+        }
+
+        for (const source of this.sourceMap.values()) {
+            const resolvedOrdered: string[] = [];
+            const seen: Set<string> = new Set<string>();
+
+            for (const dependency of source.dependencies) {
+                const match: string | undefined = sourceByNormalized.get(dependency.toLowerCase());
+                if (!match) {
+                    continue;
+                }
+
+                if (match === source.directory) {
+                    continue;
+                }
+
+                const key: string = match.toLowerCase();
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    resolvedOrdered.push(match);
+                }
+            }
+
+            declarations.push({
+                dependent: source.directory,
+                dependencies: resolvedOrdered
+            });
+        }
+
+        this.graph.rebuild(declarations);
+    }
+
+    // public async rebuildDependencies(): Promise<void> {
+    //     const sourceByNormalized = new Map<string, string>();
+    //     const sourceKindByDirectory = new Map<string, "game" | "mod">();
+    //     const declarations: Array<{ dependent: string; dependencies: string[] }> = [];
+
+    //     let gameDirectory: string | undefined = undefined;
+
+    //     for (const source of this.sourceMap.values()) {
+    //         const normalized = source.directory.toLowerCase();
+    //         sourceByNormalized.set(normalized, source.directory);
+    //         sourceKindByDirectory.set(source.directory, source.kind);
+
+    //         if (source.kind === "game") {
+    //             gameDirectory = source.directory;
+    //         }
+    //     }
+
+    //     for (const source of this.sourceMap.values()) {
+    //         if (source.kind === "game") {
+    //             declarations.push({ dependent: source.directory, dependencies: [] });
+    //             continue;
+    //         }
+
+    //         const resolvedOrdered: string[] = [];
+    //         const seen = new Set<string>();
+
+    //         for (const dependency of source.dependencies) {
+    //             const match = sourceByNormalized.get(dependency.toLowerCase());
+    //             if (!match) {
+    //                 continue;
+    //             }
+
+    //             if (match === source.directory) {
+    //                 continue;
+    //             }
+
+    //             const key = match.toLowerCase();
+    //             if (!seen.has(key)) {
+    //                 seen.add(key);
+    //                 resolvedOrdered.push(match);
+    //             }
+    //         }
+
+    //         if (gameDirectory) {
+    //             const gameKey = gameDirectory.toLowerCase();
+
+    //             // tolerate explicit game dependency, but force game to lowest priority
+    //             for (let index = resolvedOrdered.length - 1; index >= 0; index--) {
+    //                 if (resolvedOrdered[index].toLowerCase() === gameKey) {
+    //                     resolvedOrdered.splice(index, 1);
+    //                 }
+    //             }
+
+    //             resolvedOrdered.push(gameDirectory);
+    //         }
+
+    //         declarations.push({
+    //             dependent: source.directory,
+    //             dependencies: resolvedOrdered
+    //         });
+    //     }
+
+    //     this.graph.rebuild(declarations);
+    // }
+
+    // public async rebuildDependencies(): Promise<void> {
+    //     const declarations: Array<{ dependent: string; dependencies: string[] }> = [];
+    //     const sourceByNormalized = new Map<string, string>();
+
+    //     for (const directory of this.sourceMap.keys()) {
+    //         sourceByNormalized.set(directory.toLowerCase(), directory);
+    //     }
+
+    //     for (const source of this.sourceMap.values()) {
+    //         const resolved: string[] = [];
+
+    //         for (const dependency of source.dependencies) {
+    //             const match: string | undefined = sourceByNormalized.get(dependency.toLowerCase());
+    //             if (match) {
+    //                 resolved.push(match);
+    //             } else {
+    //                 console.warn(`[DataContext] Dependency not found in source map: ${dependency} (required by ${source.directory})`);
+    //             }
+    //         }
+
+    //         declarations.push({ dependent: source.directory, dependencies: resolved });
+    //     }
+
+    //     this.graph.rebuild(declarations);
+    // }
+
+    // public async rebuildDependencies(): Promise<void> {
+    //     const declarations: Array<{ dependent: string; dependencies: string[] }> = [];
+    //     const sourceByNormalized = new Map<string, string>();
+
+    //     for (const directory of this.sourceMap.keys()) {
+    //         sourceByNormalized.set(ModDependencyFile.normalizeDirectory(directory), directory);
+    //     }
+
+    //     for (const source of this.sourceMap.values()) {
+    //         const dependencies: string[] | undefined = await ModDependencyFile.tryReadDependencies(source.directory);
+    //         const resolved: string[] = [];
+
+    //         for (const dependency of dependencies ?? []) {
+    //             const key: string = ModDependencyFile.normalizeDirectory(dependency);
+    //             const match: string | undefined = sourceByNormalized.get(key);
+    //             if (match) {
+    //                 resolved.push(match);
+    //             }
+    //         }
+
+    //         declarations.push({ dependent: source.directory, dependencies: resolved });
+    //     }
+
+    //     this.graph.rebuild(declarations);
+    // }
 
     //#endregion
 }

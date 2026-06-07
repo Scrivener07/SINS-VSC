@@ -22,7 +22,7 @@ export class ManifestResolver {
     public async rebuild(): Promise<void> {
         this.cache.clear();
 
-        for (const source of this.root.getSources()) {
+        for (const source of this.root) {
             const bucket: Map<string, FileEntry> | undefined = source.getFilesByExtension(ManifestResolver.FILE_EXTENSION);
             if (!bucket) {
                 continue;

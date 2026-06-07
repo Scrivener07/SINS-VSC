@@ -14,10 +14,10 @@ suite("LayeredRoot", () => {
         const modHalo = new DataSource(TestData.MOD_HALO, TestData.MOD_HALO_TITLE, 3);
 
         root = new LayeredRoot();
-        root.addSource(baseGame);
-        root.addSource(modMem);
-        root.addSource(modSgr);
-        root.addSource(modHalo);
+        root.add(baseGame);
+        root.add(modMem);
+        root.add(modSgr);
+        root.add(modHalo);
         await root.scanAll();
     });
 
@@ -127,7 +127,7 @@ suite("LayeredRoot", () => {
     suite("source ordering", () => {
         // Verify that getSources() returns sources sorted by priority after addSource with non-sequential calls.
         test("getSources returns sources sorted by priority", () => {
-            const sources: readonly DataSource[] = root.getSources();
+            const sources: DataSource[] = root.toArray();
             for (let index = 1; index < sources.length; index++) {
                 assert.ok(
                     sources[index].priority >= sources[index - 1].priority,

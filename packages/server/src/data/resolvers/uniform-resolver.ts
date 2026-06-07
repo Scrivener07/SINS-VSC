@@ -45,7 +45,7 @@ export class UniformResolver {
     public async rebuild(): Promise<void> {
         this.cache.clear();
 
-        for (const source of this.root.getSources()) {
+        for (const source of this.root) {
             const bucket: Map<string, FileEntry> | undefined = source.getFilesByExtension(UniformResolver.FILE_EXTENSION);
             if (!bucket) {
                 continue;

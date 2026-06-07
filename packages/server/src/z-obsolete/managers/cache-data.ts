@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 import { CacheStorage } from "./cache";
 import { ManifestType } from "./cache-manifest";
 
@@ -46,7 +46,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadLocalizations(rootPath: string, language: string): Promise<void> {
-        const filePaths: string[] | undefined = await WorkspaceSearch.findFiles(rootPath, `${language}.localized_text`);
+        const filePaths: string[] | undefined = await FileSearch.findFiles(rootPath, `${language}.localized_text`);
 
         if (filePaths && filePaths.length > 0) {
             const text: string = await fs.promises.readFile(filePaths[0], "utf-8");
@@ -63,7 +63,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadBrushes(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".png");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".png");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFile(filePath));
@@ -74,7 +74,7 @@ export class DataManager extends CacheStorage<DataType> {
 
     /* this should load .dds only */
     private async loadTextures(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".dds");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".dds");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFile(filePath));
@@ -84,7 +84,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadPlayers(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".player");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".player");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -93,7 +93,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadUnitItems(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".unit_item");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".unit_item");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -102,7 +102,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadWeapons(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".weapon");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".weapon");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -111,7 +111,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadUnitSkins(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".unit_skin");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".unit_skin");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -120,7 +120,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadUnits(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".unit");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".unit");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -129,7 +129,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadMeshes(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".mesh");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".mesh");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -138,7 +138,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadMeshMaterials(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".mesh_material");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".mesh_material");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));
@@ -147,7 +147,7 @@ export class DataManager extends CacheStorage<DataType> {
     }
 
     private async loadTtfFonts(rootPath: string): Promise<void> {
-        const filePaths: string[] = await WorkspaceSearch.findFiles(rootPath, ".ttf");
+        const filePaths: string[] = await FileSearch.findFiles(rootPath, ".ttf");
         const set: Set<string> = new Set();
         for (const filePath of filePaths) {
             set.add(this.toFileName(filePath));

@@ -4,6 +4,7 @@ Examples of how to import from this package:
 `import { MyType } from "@soase/shared";`
 */
 
+export * from "./collections";
 export * from "./constants";
 export * from "./messaging";
 export * from "./requests";

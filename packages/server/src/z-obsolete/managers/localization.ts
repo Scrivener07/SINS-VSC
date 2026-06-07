@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { WorkspaceSearch } from "../../managers/workspace";
+import { FileSearch } from "../../files";
 
 /**
  * @deprecated
@@ -28,7 +28,7 @@ export class LocalizationManager {
         this.cache.clear();
         this.knownKeys.clear();
 
-        const files: string[] = await WorkspaceSearch.findFiles(rootPath, ".localized_text");
+        const files: string[] = await FileSearch.findFiles(rootPath, ".localized_text");
 
         for (const file of files) {
             try {

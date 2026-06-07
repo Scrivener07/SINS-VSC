@@ -1,18 +1,36 @@
 import * as assert from "assert";
 import { TestData } from "../test-data";
-import { GameData, ResolvedFile, LocalizedEntry } from "@soase/server/data";
+import { DataService, ResolvedFile, LocalizedEntry } from "@soase/server/data";
 
 suite("GameData (integration)", () => {
-    let gameData: GameData;
+    let gameData: DataService;
 
     suiteSetup(async function () {
         this.timeout(60_000);
 
-        gameData = new GameData();
-        await gameData.addSource({ directory: TestData.BASE_GAME, name: TestData.BASE_GAME_TITLE, priority: 0 });
-        await gameData.addSource({ directory: TestData.MOD_MEM, name: TestData.MOD_MEM_TITLE, priority: 1 });
-        await gameData.addSource({ directory: TestData.MOD_SGR, name: TestData.MOD_SGR_TITLE, priority: 2 });
-        await gameData.addSource({ directory: TestData.MOD_HALO, name: TestData.MOD_HALO_TITLE, priority: 3 });
+        gameData = new DataService();
+        await gameData.addSource({ directory: TestData.BASE_GAME, name: TestData.BASE_GAME_TITLE, priority: 0, kind: "game", dependencies: [] });
+        await gameData.addSource({
+            directory: TestData.MOD_MEM,
+            name: TestData.MOD_MEM_TITLE,
+            priority: 1,
+            kind: "mod",
+            dependencies: [TestData.BASE_GAME]
+        });
+        await gameData.addSource({
+            directory: TestData.MOD_SGR,
+            name: TestData.MOD_SGR_TITLE,
+            priority: 2,
+            kind: "mod",
+            dependencies: [TestData.BASE_GAME, TestData.MOD_MEM]
+        });
+        await gameData.addSource({
+            directory: TestData.MOD_HALO,
+            name: TestData.MOD_HALO_TITLE,
+            priority: 3,
+            kind: "mod",
+            dependencies: [TestData.BASE_GAME]
+        });
         await gameData.reload();
     });
 
